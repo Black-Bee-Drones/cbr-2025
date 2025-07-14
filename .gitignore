@@ -1,0 +1,25 @@
+# ROS2 build and install folders
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Visual Studio Code settings
+.vscode/
+
+# Backup files
+*~
+*.swp
+
+# Dependency folders
+.colcon/
+.env/
+venv/
