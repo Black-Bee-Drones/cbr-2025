@@ -4,6 +4,15 @@ from std_msgs.msg import Int16
 from time import time, sleep
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 
+TAKEOFF_HEIGHT = 1.5
+VELOCITY_UP_DOWN = 0.3
+VELOCITY_SIDES = 0.5
+VELOCITY_IN_OUT = -0.5
+VELOCITY_YAW = 0.1
+ACTION_TIMEOUT = 0.2
+SLEEP_AFTER_TAKEOFF = 2.0
+SLEEP_AFTER_LAND = 1.0
+
 class GestureController(Node):
     """
     Este nó controla um MavDrone com base nos IDs de gestos recebidos.
@@ -21,35 +30,29 @@ class GestureController(Node):
         
         self.continuous_actions: dict[int, tuple[str, callable]] = {
             -1: ("Parar", lambda: self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)),
-            2: ("Subir", lambda: self.mavdrone.offboard_velocity(linear_z=0.5)),
-            3: ("Descer", lambda: self.mavdrone.offboard_velocity(linear_z=-0.5)),
-            4: ("Ir para Esquerda", lambda: self.mavdrone.offboard_velocity(linear_y=0.5)),
-            5: ("Ir para Direita", lambda: self.mavdrone.offboard_velocity(linear_y=-0.5)),
-            11: ("Ir para Frente", lambda: self.mavdrone.offboard_velocity(linear_x=0.5)),
-            12: ("Ir para Trás", lambda: self.mavdrone.offboard_velocity(linear_x=-0.5)),
-            13: ("Girar Horário", lambda: self.mavdrone.offboard_velocity(angular_z=-0.5)),
-            14: ("Girar Anti-Horário", lambda: self.mavdrone.offboard_velocity(angular_z=0.5)),
+            2: ("Subir", lambda: self.mavdrone.offboard_velocity(linear_z=VELOCITY_UP_DOWN)),
+            3: ("Descer", lambda: self.mavdrone.offboard_velocity(linear_z=-VELOCITY_UP_DOWN)),
+            4: ("Ir para Esquerda", lambda: self.mavdrone.offboard_velocity(linear_y=VELOCITY_SIDES)),
+            5: ("Ir para Direita", lambda: self.mavdrone.offboard_velocity(linear_y=-VELOCITY_SIDES)),
+            11: ("Ir para Frente", lambda: self.mavdrone.offboard_velocity(linear_x=VELOCITY_IN_OUT)),
+            12: ("Ir para Trás", lambda: self.mavdrone.offboard_velocity(linear_x=-VELOCITY_IN_OUT)),
+            13: ("Girar Horário", lambda: self.mavdrone.offboard_velocity(angular_z=VELOCITY_YAW)),
+            14: ("Girar Anti-Horário", lambda: self.mavdrone.offboard_velocity(angular_z=-VELOCITY_YAW)),
         }
 
         self.single_actions: dict[int, tuple[str, callable]] = {
             1: ("Pousar", lambda: self.mavdrone.land()),
+            15: ("Decolar", lambda: self.arm_takeoff_action()),
         }
         
-        # self.arm_and_takeoff(2.0)
+    def arm_takeoff_action(self) -> None:
+        """
+        Arma o drone e decola para a altura especificada nas constantes.
+        Após decolar, aguarda um tempo também definido nas constantes.
+        """
+        self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
+        sleep(SLEEP_AFTER_TAKEOFF)
 
-    def arm_and_takeoff(self):
-        """
-        Prepara o drone para o voo, armando e decolando para uma altitude segura.
-        """
-        self.get_logger().info("Aguardando conexão com o MAVROS...")
-        while not self.mavdrone.get_state.connected and rclpy.ok():
-            self.get_logger().info("Esperando conexão com o FCU via MAVROS...")
-            sleep(1)
-        
-        self.get_logger().info("MAVROS conectado. Armado e decolando para 3 metros...")
-        self.mavdrone.arm_takeoff(3.0)
-        sleep(5)
-        self.get_logger().info("Drone pronto para receber comandos de gestos.")
 
     def _moviment_callback(self, msg: Int16) -> None:
         """
@@ -63,7 +66,7 @@ class GestureController(Node):
             self.command_sent = False
             return
 
-        if time() - self.action_start_time >= 0.5:
+        if time() - self.action_start_time >= ACTION_TIMEOUT:
             if self.current_action in self.continuous_actions:
                 action_name, action_func = self.continuous_actions[self.current_action]
                 self.get_logger().info(f"Ação Contínua: {action_name}")
@@ -83,7 +86,7 @@ def main(args=None):
     except KeyboardInterrupt:
         controller.get_logger().info("Interrupção de teclado recebida. Pousando o drone...")
         controller.mavdrone.land()
-        sleep(5)
+        sleep(SLEEP_AFTER_LAND)
         controller.destroy_node()
         rclpy.shutdown()
 
