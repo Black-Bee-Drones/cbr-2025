@@ -1,3 +1,6 @@
+from ament_index_python.packages import get_package_share_directory
+import os
+
 # Arena dimensions
 ARENA_WIDTH = 8.0
 ARENA_HEIGHT = 8.0
@@ -33,7 +36,9 @@ LANDING_TIMEOUT = 30  # seconds - landing timeout
 TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 
 # YOLO detection parameters
-YOLO_MODEL_PATH = "models/landing_base_model.pt"  # path to trained YOLO model
+YOLO_MODEL_PATH = os.path.join(
+    get_package_share_directory("mapping"), "models", "yolov11n.onnx"
+)
 YOLO_CONFIDENCE_THRESHOLD = 0.7  # confidence threshold for detection
 YOLO_IMAGE_SIZE = 640  # input image size for YOLO
 DETECTION_SAVE_PATH = "detections/"  # path to save detection images

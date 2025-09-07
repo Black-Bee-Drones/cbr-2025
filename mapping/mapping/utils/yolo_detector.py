@@ -3,6 +3,7 @@ import numpy as np
 import os
 from typing import List, Dict, Tuple, Optional
 import time
+import random
 
 try:
     import ultralytics
@@ -55,7 +56,7 @@ class YOLODetector:
 
         if os.path.exists(self.model_path):
             try:
-                self.model = YOLO(self.model_path)
+                self.model = YOLO(self.model_path, task='detect')
                 print(f"- YOLO model loaded: {self.model_path}")
             except Exception as e:
                 print(f"  Failed to load YOLO model: {e}")
@@ -218,7 +219,6 @@ class YOLODetector:
         self, image: np.ndarray, save_image: bool
     ) -> List[Dict[str, any]]:
         # Simulate occasional detection (10% chance)
-        import random
 
         if random.random() < 0.1:
             # Create mock detection near image center with some offset
