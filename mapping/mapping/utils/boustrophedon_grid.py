@@ -32,7 +32,7 @@ class BoustrophedonGrid:
         search_height: float = 6.5,
         grid_spacing: float = 1.5,
         initial_position: Tuple[float, float] = (0.0, 0.0),
-        start_offset: Tuple[float, float] = (1.0, 0.75),
+        start_offset: Tuple[float, float] = (0.0, 0.0),
         pattern_type: str = "COLUMNS",
         primary_direction: str = "FORWARD",
         transition_direction: str = "RIGHT",
@@ -94,36 +94,30 @@ class BoustrophedonGrid:
         """
         waypoints = []
 
+        # Calculate number of columns (Y-axis divisions) and points per column (X-axis divisions)
         num_columns = max(1, int(math.ceil(self.search_width / self.grid_spacing)))
         points_per_column = (
             max(1, int(math.ceil(self.search_height / self.grid_spacing))) + 1
         )
 
-        # Calculate the starting position to center the pattern within search area
-        # The pattern should be centered around search_origin
-        half_pattern_width = (num_columns - 1) * self.grid_spacing / 2.0
-        half_pattern_height = (points_per_column - 1) * self.grid_spacing / 2.0
-
         for col in range(num_columns):
+            # Calculate column Y position (columns are arranged along Y-axis)
             if self.transition_direction == Direction.RIGHT:
-                # Start from leftmost column and move right
-                y_pos = (
-                    self.search_origin[1] + half_pattern_width - col * self.grid_spacing
-                )
+                # Moving right means decreasing Y (negative Y direction)
+                y_pos = self.search_origin[1] - col * self.grid_spacing
             else:  # LEFT
-                # Start from rightmost column and move left
-                y_pos = (
-                    self.search_origin[1] - half_pattern_width + col * self.grid_spacing
-                )
+                # Moving left means increasing Y (positive Y direction)
+                y_pos = self.search_origin[1] + col * self.grid_spacing
 
             # Determine movement direction for this column (alternating)
             if col % 2 == 0:
                 # Even columns: use primary direction
                 column_direction = self.primary_direction
             else:
-                # Odd columns: reverse direction
+                # Odd columns: reverse direction for boustrophedon
                 column_direction = self._reverse_direction(self.primary_direction)
 
+            # Generate points in this column
             column_points = self._generate_column_points(
                 y_pos, col, column_direction, points_per_column
             )
@@ -138,30 +132,22 @@ class BoustrophedonGrid:
         """
         waypoints = []
 
+        # Calculate number of rows (X-axis divisions) and points per row (Y-axis divisions)
         num_rows = max(1, int(math.ceil(self.search_height / self.grid_spacing)))
         points_per_row = (
             max(1, int(math.ceil(self.search_width / self.grid_spacing))) + 1
         )
 
-        half_pattern_width = (points_per_row - 1) * self.grid_spacing / 2.0
-        half_pattern_height = (num_rows - 1) * self.grid_spacing / 2.0
-
         for row in range(num_rows):
+            # Calculate row X position (rows are arranged along X-axis)
             if self.transition_direction == Direction.FORWARD:
-                # Start from bottom row and move up
-                x_pos = (
-                    self.search_origin[0]
-                    - half_pattern_height
-                    + row * self.grid_spacing
-                )
+                # Moving forward means increasing X
+                x_pos = self.search_origin[0] + row * self.grid_spacing
             else:  # BACKWARD
-                # Start from top row and move down
-                x_pos = (
-                    self.search_origin[0]
-                    + half_pattern_height
-                    - row * self.grid_spacing
-                )
+                # Moving backward means decreasing X
+                x_pos = self.search_origin[0] + (num_rows - 1 - row) * self.grid_spacing
 
+            # Determine movement direction for this row (alternating)
             if row % 2 == 0:
                 # Even rows: use primary direction
                 row_direction = self.primary_direction
@@ -169,6 +155,7 @@ class BoustrophedonGrid:
                 # Odd rows: reverse direction for boustrophedon
                 row_direction = self._reverse_direction(self.primary_direction)
 
+            # Generate points in this row
             row_points = self._generate_row_points(
                 x_pos, row, row_direction, points_per_row
             )
@@ -189,27 +176,21 @@ class BoustrophedonGrid:
         """
         points = []
 
-        half_pattern_height = (num_points - 1) * self.grid_spacing / 2.0
-
         for point_idx in range(num_points):
             if direction == Direction.FORWARD:
-                # Start from bottom and move up (negative X to positive X)
-                x_pos = (
-                    self.search_origin[0]
-                    - half_pattern_height
-                    + point_idx * self.grid_spacing
-                )
+                # Moving forward means increasing X
+                x_pos = self.search_origin[0] + point_idx * self.grid_spacing
             else:  # BACKWARD
-                # Start from top and move down (positive X to negative X)
+                # Moving backward means decreasing X
                 x_pos = (
                     self.search_origin[0]
-                    + half_pattern_height
-                    - point_idx * self.grid_spacing
+                    + (num_points - 1 - point_idx) * self.grid_spacing
                 )
 
+            # Check if point is within search bounds
             if (
-                abs(x_pos - self.search_origin[0]) <= self.search_height / 2.0
-                and abs(y_pos - self.search_origin[1]) <= self.search_width / 2.0
+                x_pos <= self.search_origin[0] + self.search_height
+                and abs(y_pos - self.search_origin[1]) <= self.search_width
             ):
 
                 points.append(
@@ -239,27 +220,18 @@ class BoustrophedonGrid:
         """
         points = []
 
-        half_pattern_width = (num_points - 1) * self.grid_spacing / 2.0
-
         for point_idx in range(num_points):
             if direction == Direction.RIGHT:
-                # Start from left and move right (negative Y to positive Y)
-                y_pos = (
-                    self.search_origin[1]
-                    - half_pattern_width
-                    + point_idx * self.grid_spacing
-                )
+                # Moving right means decreasing Y (negative Y direction)
+                y_pos = self.search_origin[1] - point_idx * self.grid_spacing
             else:  # LEFT
-                # Start from right and move left (positive Y to negative Y)
-                y_pos = (
-                    self.search_origin[1]
-                    + half_pattern_width
-                    - point_idx * self.grid_spacing
-                )
+                # Moving left means increasing Y (positive Y direction)
+                y_pos = self.search_origin[1] + point_idx * self.grid_spacing
 
+            # Check if point is within search bounds
             if (
-                abs(x_pos - self.search_origin[0]) <= self.search_height / 2.0
-                and abs(y_pos - self.search_origin[1]) <= self.search_width / 2.0
+                x_pos <= self.search_origin[0] + self.search_height
+                and abs(y_pos - self.search_origin[1]) <= self.search_width
             ):
 
                 points.append(
