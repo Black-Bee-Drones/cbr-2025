@@ -6,7 +6,6 @@ import time
 from yasmin import StateMachine, State
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
 from yasmin_ros.yasmin_node import YasminNode
-from yasmin_viewer import YasminViewerPub
 
 from mapping.states import (
     Initialize,
@@ -114,8 +113,6 @@ def main() -> None:
 
     try:
         phase1_sm = CBRPhase1StateMachine()
-
-        YasminViewerPub("cbr_phase1_state_machine", phase1_sm)
 
         print(phase1_sm())
 

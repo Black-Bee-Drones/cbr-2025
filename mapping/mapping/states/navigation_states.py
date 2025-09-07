@@ -18,7 +18,7 @@ from mapping.constants import (
     CAMERA_SOURCE,
     DETECTION_SAVE_PATH,
 )
-from mapping.utils import GridWaypoints, YOLODetector
+from mapping.utils import BoustrophedonGrid, YOLODetector
 
 
 class NavigateToWaypoint(State):

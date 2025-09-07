@@ -17,8 +17,12 @@ from mapping.constants import (
     SEARCH_AREA_WIDTH,
     SEARCH_AREA_HEIGHT,
     GRID_SPACING,
+    GRID_PATTERN_TYPE,
+    GRID_PRIMARY_DIRECTION,
+    GRID_TRANSITION_DIRECTION,
+    GRID_START_OFFSET,
 )
-from mapping.utils import GridWaypoints, YOLODetector, PositionController
+from mapping.utils import BoustrophedonGrid, YOLODetector, PositionController
 
 
 class Initialize(State):
@@ -30,15 +34,35 @@ class Initialize(State):
     def execute(self, blackboard: Blackboard):
 
         try:
+            # Initialize MavDrone first
             blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
             mavdrone: MavDrone = blackboard["mavdrone"]
 
-            grid_waypoints = GridWaypoints(
+            time.sleep(2)  # Allow sensors to stabilize
+
+            # Get initial position from drone odometry
+            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
+            initial_position = (
+                mavdrone.get_local_pos.pose.position.x,
+                mavdrone.get_local_pos.pose.position.y,
+            )
+
+            yasmin.YASMIN_LOG_INFO(
+                f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f})"
+            )
+
+            # Initialize boustrophedon grid based on initial position
+            boustrophedon_grid = BoustrophedonGrid(
                 search_width=SEARCH_AREA_WIDTH,
                 search_height=SEARCH_AREA_HEIGHT,
                 grid_spacing=GRID_SPACING,
+                initial_position=initial_position,
+                start_offset=GRID_START_OFFSET,
+                pattern_type=GRID_PATTERN_TYPE,
+                primary_direction=GRID_PRIMARY_DIRECTION,
+                transition_direction=GRID_TRANSITION_DIRECTION,
             )
-            blackboard["grid_waypoints"] = grid_waypoints
+            blackboard["grid_waypoints"] = boustrophedon_grid
 
             yolo_detector = YOLODetector()
             blackboard["yolo_detector"] = yolo_detector
@@ -57,15 +81,22 @@ class Initialize(State):
             blackboard["current_detection"] = None
             blackboard["pre_center_position"] = None
 
-            time.sleep(2)
-
-            grid_summary = grid_waypoints.get_summary()
-
+            # Log pattern summary
+            pattern_summary = boustrophedon_grid.get_pattern_summary()
+            yasmin.YASMIN_LOG_INFO("CBR 2025 Phase 1 Mission Initialized Successfully.")
             yasmin.YASMIN_LOG_INFO(
-                f"Grid waypoints: {grid_summary['total_waypoints']} points"
+                f"Pattern: {pattern_summary['pattern_type']} - {pattern_summary['primary_direction']}"
             )
-            yasmin.YASMIN_LOG_INFO(f"Search area: {grid_summary['search_area']}")
-            yasmin.YASMIN_LOG_INFO(f"Grid spacing: {grid_summary['grid_spacing']}")
+            yasmin.YASMIN_LOG_INFO(
+                f"Grid waypoints: {pattern_summary['total_waypoints']} points"
+            )
+            yasmin.YASMIN_LOG_INFO(f"Search area: {pattern_summary['search_area']}")
+            yasmin.YASMIN_LOG_INFO(
+                f"Search origin: ({pattern_summary['search_origin'][0]:.2f}, {pattern_summary['search_origin'][1]:.2f})"
+            )
+
+            # Show pattern visualization
+            print(boustrophedon_grid.visualize_pattern())
 
             return SUCCEED
 

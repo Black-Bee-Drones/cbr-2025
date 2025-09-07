@@ -17,6 +17,12 @@ GRID_SPACING = 1.5  # meters - spacing between grid points
 WAYPOINT_VELOCITY = 0.8  # m/s - movement velocity between waypoints
 CENTERING_VELOCITY = 0.3  # m/s - velocity during precision centering
 
+# Grid pattern configuration
+GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
+GRID_PRIMARY_DIRECTION = "FORWARD"  # Primary movement direction
+GRID_TRANSITION_DIRECTION = "RIGHT"  # Transition between columns/rows
+GRID_START_OFFSET = (0.0, 0.0)  # (1.0, -0.75)  # Starting offset (forward 1m, right 0.75m)
+
 # Landing base detection parameters
 LANDING_BASE_SIZE = 1.0  # meters - 1m x 1m landing bases
 MIN_LANDING_BASE_HEIGHT = 0.0
@@ -39,9 +45,9 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("mapping"), "models", "yolov11n.onnx"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.7  # confidence threshold for detection
-YOLO_IMAGE_SIZE = 640  # input image size for YOLO
-DETECTION_SAVE_PATH = "detections/"  # path to save detection images
+YOLO_CONFIDENCE_THRESHOLD = 0.7  
+YOLO_IMAGE_SIZE = 640 
+DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Centering control parameters
 CENTERING_P_GAIN = 0.002  # P controller gain for centering (m/s per pixel)
