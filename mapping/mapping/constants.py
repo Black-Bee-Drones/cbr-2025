@@ -1,12 +1,12 @@
 # Arena dimensions
-ARENA_WIDTH = 8.0  
-ARENA_HEIGHT = 8.0 
-SEARCH_AREA_WIDTH = 6.5  
-SEARCH_AREA_HEIGHT = 6.5    
+ARENA_WIDTH = 8.0
+ARENA_HEIGHT = 8.0
+SEARCH_AREA_WIDTH = 6.5
+SEARCH_AREA_HEIGHT = 6.5
 
 # Flight parameters
-TAKEOFF_ALTITUDE = 2.5 
-SEARCH_ALTITUDE = 2.5 
+TAKEOFF_ALTITUDE = 2.5
+SEARCH_ALTITUDE = 2.5
 RTL_ALTITUDE = 2.5
 
 # Grid waypoint parameters
@@ -16,9 +16,13 @@ CENTERING_VELOCITY = 0.3  # m/s - velocity during precision centering
 
 # Landing base detection parameters
 LANDING_BASE_SIZE = 1.0  # meters - 1m x 1m landing bases
-MIN_LANDING_BASE_HEIGHT = 0.0  
-MAX_LANDING_BASE_HEIGHT = 1.5  
+MIN_LANDING_BASE_HEIGHT = 0.0
+MAX_LANDING_BASE_HEIGHT = 1.5
 EXPECTED_LANDING_BASES = 6  # number of landing bases to find
+
+# Height reference management
+MAINTAIN_ABSOLUTE_HEIGHT = True  # Keep same height above original ground level
+TARGET_HEIGHT_ABOVE_GROUND = 2.5  # meters - desired height above original ground
 
 # Position precision
 LANDING_PRECISION = 0.2  # meters - precision radius for landing
@@ -41,7 +45,7 @@ CENTERING_TIMEOUT = 15  # seconds - max time for centering operation
 LAND_WAIT_TIME = 15  # seconds - wait time after landing before takeoff
 
 # Camera parameters
-CAMERA_SOURCE = "webcam" 
+CAMERA_SOURCE = "webcam"
 IMAGE_CENTER_X = 320  # camera image center X (pixels)
 IMAGE_CENTER_Y = 240  # camera image center Y (pixels)
 
@@ -54,10 +58,10 @@ POSITION_TOLERANCE = 0.3  # meters - position precision tolerance
 POSITION_CONTROLLER_KP_XY = 0.8  # Proportional gain for XY movement
 POSITION_CONTROLLER_KP_Z = 0.6  # Proportional gain for Z movement
 POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
-MAX_VELOCITY_XY = 0.8 
-MAX_VELOCITY_Z = 0.5 
+MAX_VELOCITY_XY = 0.8
+MAX_VELOCITY_Z = 0.5
 
 # Safety parameters
-MIN_SAFE_ALTITUDE = 1.0  
-MAX_SAFE_ALTITUDE = 4.0 
-WALL_CLEARANCE = 0.5  
+MIN_SAFE_ALTITUDE = 1.0
+MAX_SAFE_ALTITUDE = 4.0
+WALL_CLEARANCE = 0.5

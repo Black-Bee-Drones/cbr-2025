@@ -14,6 +14,8 @@ from mapping.constants import (
     POSITION_CONTROLLER_KP_YAW,
     MAX_VELOCITY_XY,
     MAX_VELOCITY_Z,
+    TARGET_HEIGHT_ABOVE_GROUND,
+    MAINTAIN_ABSOLUTE_HEIGHT,
 )
 
 
@@ -45,6 +47,10 @@ class PositionController:
         self.max_vel_xy = MAX_VELOCITY_XY
         self.max_vel_z = MAX_VELOCITY_Z
         self.max_vel_yaw = 0.3  # rad/s
+
+        # Height reference management
+        self.initial_ground_altitude = None  # Will be set during initialization
+        self.target_height_above_ground = TARGET_HEIGHT_ABOVE_GROUND
 
     def goto_position(
         self,
@@ -199,6 +205,122 @@ class PositionController:
         yasmin.YASMIN_LOG_INFO(f"Takeoff position: ({target_x:.2f}, {target_y:.2f})")
 
         return self.goto_position(target_x, target_y, target_z, timeout=60.0)
+
+    def set_initial_ground_reference(self):
+        """
+        Set the initial ground altitude reference for height calculations.
+        Should be called during mission initialization.
+        """
+        rclpy.spin_once(self.node, timeout_sec=0.1)
+        self.initial_ground_altitude = self.mavdrone.get_rel_alt.data
+        yasmin.YASMIN_LOG_INFO(
+            f"Initial ground reference set: {self.initial_ground_altitude:.2f}m"
+        )
+
+    def calculate_takeoff_altitude_from_base(self) -> float:
+        """
+        Calculate the required takeoff altitude to maintain target height above original ground.
+
+        This accounts for landing bases at different heights (0-1.5m).
+
+        Returns:
+            Required takeoff altitude (meters) relative to current position
+        """
+        if self.initial_ground_altitude is None:
+            yasmin.YASMIN_LOG_WARN(
+                "Initial ground reference not set, using default altitude"
+            )
+            return TARGET_HEIGHT_ABOVE_GROUND
+
+        # Get current altitude (should be at base level after landing)
+        rclpy.spin_once(self.node, timeout_sec=0.1)
+        current_altitude = self.mavdrone.get_rel_alt.data
+
+        # Calculate base height above original ground
+        base_height = current_altitude - self.initial_ground_altitude
+
+        # Calculate required takeoff altitude to reach target height above original ground
+        required_altitude = self.target_height_above_ground - base_height
+
+        yasmin.YASMIN_LOG_INFO(f"Base height above ground: {base_height:.2f}m")
+        yasmin.YASMIN_LOG_INFO(f"Required takeoff altitude: {required_altitude:.2f}m")
+
+        # Ensure minimum takeoff altitude for safety
+        required_altitude = max(1.0, required_altitude)
+
+        return required_altitude
+
+    def takeoff_to_maintain_height(self) -> bool:
+        """
+        Takeoff from current position to maintain target height above original ground.
+
+        Returns:
+            True if successful, False if failed
+        """
+        if not MAINTAIN_ABSOLUTE_HEIGHT:
+            # Use fixed takeoff altitude if height maintenance is disabled
+            required_altitude = TARGET_HEIGHT_ABOVE_GROUND
+        else:
+            # Calculate altitude needed to maintain height above original ground
+            required_altitude = self.calculate_takeoff_altitude_from_base()
+
+        yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {required_altitude:.2f}m")
+
+        try:
+            # Use MavDrone takeoff command
+            self.mavdrone.takeoff(required_altitude)
+            time.sleep(2)
+
+            # Monitor takeoff progress with position control
+            start_time = time.time()
+            timeout = 30.0
+
+            while time.time() - start_time < timeout:
+                current_alt = self.mavdrone.get_rel_alt.data
+                altitude_error = required_altitude - current_alt
+
+                if abs(altitude_error) < 0.2:  # 20cm tolerance
+                    yasmin.YASMIN_LOG_INFO("Target takeoff altitude reached")
+                    self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+                    time.sleep(1)
+                    return True
+
+                # Apply altitude correction if needed
+                correction_velocity = max(-0.5, min(0.5, 0.3 * altitude_error))
+                self.mavdrone.offboard_velocity(0.0, 0.0, correction_velocity, 0.0)
+
+                rclpy.spin_once(self.node, timeout_sec=0.01)
+                time.sleep(0.1)
+
+            yasmin.YASMIN_LOG_ERROR("Takeoff timeout reached")
+            return False
+
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
+            return False
+
+    def get_target_height_above_ground(self) -> float:
+        """
+        Get the target flight height above the original ground level.
+
+        Returns:
+            Target height in meters above original ground
+        """
+        return self.target_height_above_ground
+
+    def get_current_height_above_ground(self) -> float:
+        """
+        Get current height above the original ground level.
+
+        Returns:
+            Current height in meters above original ground, or None if reference not set
+        """
+        if self.initial_ground_altitude is None:
+            return None
+
+        rclpy.spin_once(self.node, timeout_sec=0.1)
+        current_altitude = self.mavdrone.get_rel_alt.data
+        return current_altitude - self.initial_ground_altitude
 
     def hover_at_current_position(self, duration: float = 2.0):
         """

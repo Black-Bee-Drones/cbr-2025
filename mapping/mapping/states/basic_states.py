@@ -45,6 +45,10 @@ class Initialize(State):
 
             # Initialize position controller
             position_controller = PositionController(mavdrone)
+
+            # Set initial ground reference for height calculations
+            position_controller.set_initial_ground_reference()
+
             blackboard["position_controller"] = position_controller
 
             blackboard["visited_bases"] = []

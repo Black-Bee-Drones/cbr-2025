@@ -214,32 +214,29 @@ class TakeoffAndReturn(State):
 
         yasmin.YASMIN_LOG_INFO("Taking off and returning to grid position...")
 
+        # Get position controller
+        position_controller = blackboard.get("position_controller")
+        if not position_controller:
+            yasmin.YASMIN_LOG_ERROR("Position controller not available.")
+            return ABORT
+
         try:
-            mavdrone.takeoff(SEARCH_ALTITUDE)
-            time.sleep(2)
+            # Use height-aware takeoff to maintain altitude above original ground
+            success = position_controller.takeoff_to_maintain_height()
 
-            start_time = time.time()
-            while time.time() - start_time < TAKEOFF_TIMEOUT:
-                current_alt = mavdrone.get_rel_alt.data
+            if not success:
+                yasmin.YASMIN_LOG_ERROR("Height-aware takeoff failed")
+                return ABORT
 
-                if abs(current_alt - SEARCH_ALTITUDE) < ALTITUDE_TOLERANCE:
-                    yasmin.YASMIN_LOG_INFO("Takeoff altitude reached")
-                    break
+            yasmin.YASMIN_LOG_INFO("Takeoff completed. Ready to continue mission.")
 
-                rclpy.spin_once(node, timeout_sec=0.01)
-                time.sleep(0.1)
-
-            # Get position controller
-            position_controller = blackboard.get("position_controller")
-            if position_controller:
-                success = position_controller.goto_position(
-                    pre_center_position["x"],
-                    pre_center_position["y"],
-                    pre_center_position["z"],
-                    timeout=30.0,
-                )
-            else:
-                success = self._return_to_position(mavdrone, node, pre_center_position)
+            # Return to pre-centering position
+            success = position_controller.goto_position(
+                pre_center_position["x"],
+                pre_center_position["y"],
+                pre_center_position["z"],
+                timeout=30.0,
+            )
 
             if success:
                 yasmin.YASMIN_LOG_INFO("- Successfully returned to grid position")
