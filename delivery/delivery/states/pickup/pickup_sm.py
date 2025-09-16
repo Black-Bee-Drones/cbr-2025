@@ -29,10 +29,14 @@ class PickPkg(State):
     """
     Ativar garra
     """
+class CheckPkg(State):
+    """
+    Checar pela yolo se o pacote ainda esta na base
+    """
 
 class Delivery(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit"])
+        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected"])
         self.add_state(
             "GO_TO_PKG",
             GoToPkg(),
@@ -66,7 +70,14 @@ class Delivery(StateMachine):
         self.add_state(
             "TAKEOFF",
             Takeoff(),
-            transitions={SUCCEED: SUCCEED, ABORT : ABORT},
+            transitions={SUCCEED: "CHECK_PKG", ABORT : ABORT},
         )
+        
+        self.add_state(
+            "CHECK_PKG",
+            CheckPkg(),
+            transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_PKG"},
+        )
+        
         
         self.set_start_state("GO_TO_PKG")
