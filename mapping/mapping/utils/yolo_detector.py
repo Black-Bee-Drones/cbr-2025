@@ -65,8 +65,8 @@ class YOLODetector:
             print(f"  YOLO model not found: {self.model_path}")
             print("   Using simulation mode for detection")
 
-    def detect_landing_bases(
-        self, image: np.ndarray, save_image: bool = True
+    def detect(
+        self, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None
     ) -> List[Dict[str, any]]:
         """
         Detect landing bases in image.
@@ -74,14 +74,17 @@ class YOLODetector:
         Args:
             image: Input image (BGR format)
             save_image: Whether to save detection images
+            timestamp: Optional timestamp for filenames
 
         Returns:
             List of detections with bounding boxes and confidence scores
         """
         detections = []
 
+        current_timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
+
         if self.model is None or not YOLO_AVAILABLE:
-            return self._simulate_detection(image, save_image)
+            return self._simulate_detection(image, save_image, current_timestamp)
 
         try:
             results = self.model(
@@ -109,12 +112,12 @@ class YOLODetector:
                         detections.append(detection)
 
             if detections and save_image:
-                self._save_detection_image(image, detections)
+                self._save_detection_image(image, detections, current_timestamp)
 
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return detections
+        return self.get_best_detection(detections)
 
     def get_best_detection(
         self, detections: List[Dict[str, any]]
@@ -168,7 +171,7 @@ class YOLODetector:
         return distance <= tolerance_px
 
     def _save_detection_image(
-        self, image: np.ndarray, detections: List[Dict[str, any]]
+        self, image: np.ndarray, detections: List[Dict[str, any]], timestamp: int
     ):
         """Save image with detection bounding boxes."""
         annotated_image = image.copy()
@@ -210,13 +213,12 @@ class YOLODetector:
             2,
         )
 
-        timestamp = int(time.time() * 1000)
         filename = f"{DETECTION_SAVE_PATH}/detection_{self.detection_count:04d}_{timestamp}.jpg"
         cv2.imwrite(filename, annotated_image)  
         self.detection_count += 1
 
     def _simulate_detection(
-        self, image: np.ndarray, save_image: bool
+        self, image: np.ndarray, save_image: bool, timestamp: int
     ) -> List[Dict[str, any]]:
         # Simulate occasional detection (10% chance)
 
@@ -244,7 +246,7 @@ class YOLODetector:
             }
 
             if save_image:
-                self._save_detection_image(image, [detection])
+                self._save_detection_image(image, [detection], timestamp)
 
             return [detection]
 
