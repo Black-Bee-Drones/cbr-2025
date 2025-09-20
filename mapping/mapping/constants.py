@@ -4,16 +4,20 @@ import os
 # Arena dimensions
 ARENA_WIDTH = 8.0
 ARENA_HEIGHT = 8.0
-SEARCH_AREA_WIDTH = 6.5
-SEARCH_AREA_HEIGHT = 6.5
+SEARCH_AREA_WIDTH = 7.0
+SEARCH_AREA_HEIGHT = 7.0
 
-# Flight parameters
-TAKEOFF_ALTITUDE = 2.5
-SEARCH_ALTITUDE = 2.5
-RTL_ALTITUDE = 2.5
+# Flight parameters (ground-relative)
+TAKEOFF_ALTITUDE = 3.0  # meters above ground for search
+SEARCH_ALTITUDE = 3.0   # maintain this height above ground during search
+CENTERING_ALTITUDE = 1.2  # final altitude above figure for landing
+RTL_ALTITUDE = 3.5
 
-# Grid waypoint parameters
-GRID_SPACING = 1.5  # meters - spacing between grid points
+# Camera FOV calculations for Arducam v2.3 IMX219
+# FOV: 62.2°(H) × 48.8°(V) at 1280x720
+# At 3m: coverage ≈ 3.63m x 2.73m
+# Grid spacing of 2.0m provides ~45% overlap for robust coverage
+GRID_SPACING = 2.0 
 WAYPOINT_VELOCITY = 0.8  # m/s - movement velocity between waypoints
 CENTERING_VELOCITY = 0.3  # m/s - velocity during precision centering
 
@@ -31,10 +35,14 @@ EXPECTED_LANDING_BASES = 6  # number of landing bases to find
 
 # Height reference management
 MAINTAIN_ABSOLUTE_HEIGHT = True  # Keep same height above original ground level
-TARGET_HEIGHT_ABOVE_GROUND = 2.5  # meters - desired height above original ground
+TARGET_HEIGHT_ABOVE_GROUND = 3.0  # meters - desired height above original ground
+ALTITUDE_COMPENSATION_TIME = 5.0  # seconds - time for drone to auto-compensate height
+ALTITUDE_COMPENSATION_GAIN = 0.4  # gain for counteracting auto-compensation
 
-# Position precision
+# Position precision and duplicate detection
 LANDING_PRECISION = 0.2  # meters - precision radius for landing
+DUPLICATE_BASE_RADIUS = 1.5  # meters - radius to consider as same base
+MIN_BASE_SEPARATION = 1.0  # meters - minimum distance between different bases
 
 # Timeouts
 SEARCH_TIMEOUT = 300  # seconds - 5 minutes search timeout per attempt
@@ -57,16 +65,16 @@ LAND_WAIT_TIME = 15  # seconds - wait time after landing before takeoff
 
 # Camera parameters
 CAMERA_SOURCE = "webcam"
-IMAGE_CENTER_X = 320  # camera image center X (pixels)
-IMAGE_CENTER_Y = 240  # camera image center Y (pixels)
+IMAGE_CENTER_X = 640  # camera image center X (pixels)
+IMAGE_CENTER_Y = 360  # camera image center Y (pixels)
 
 # Movement tolerances
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped
-ALTITUDE_TOLERANCE = 0.2  # meters - altitude precision tolerance
+ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
 POSITION_TOLERANCE = 0.3  # meters - position precision tolerance
 
 # Position control parameters
-POSITION_CONTROLLER_KP_XY = 0.8  # Proportional gain for XY movement
+POSITION_CONTROLLER_KP_XY = 0.6  # Proportional gain for XY movement
 POSITION_CONTROLLER_KP_Z = 0.6  # Proportional gain for Z movement
 POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
 MAX_VELOCITY_XY = 0.8

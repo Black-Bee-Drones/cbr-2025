@@ -16,6 +16,7 @@ from mapping.constants import (
     MAX_VELOCITY_Z,
     TARGET_HEIGHT_ABOVE_GROUND,
     MAINTAIN_ABSOLUTE_HEIGHT,
+    ALTITUDE_COMPENSATION_GAIN,
 )
 
 
@@ -49,8 +50,88 @@ class PositionController:
         self.max_vel_yaw = 0.3  # rad/s
 
         # Height reference management
-        self.initial_ground_altitude = None  # Will be set during initialization
+        self.initial_ground_altitude = None 
         self.target_height_above_ground = TARGET_HEIGHT_ABOVE_GROUND
+
+    def goto_position_ground_relative(
+        self,
+        target_x: float,
+        target_y: float,
+        target_altitude_above_ground: float,
+        ground_reference: float,
+        tolerance_xy: float = POSITION_TOLERANCE,
+        tolerance_z: float = ALTITUDE_TOLERANCE,
+        timeout: float = 30.0,
+    ) -> bool:
+        """
+        Navigate to target position while maintaining constant altitude above ground.
+        Compensates for drone's automatic height adjustment when passing over elevated surfaces.
+        
+        Args:
+            target_x: Target X position (meters, local frame)
+            target_y: Target Y position (meters, local frame)
+            target_altitude_above_ground: Desired altitude above original ground (meters)
+            ground_reference: Reference ground altitude from initial position (meters)
+            tolerance_xy: XY position tolerance (meters)
+            tolerance_z: Z position tolerance (meters)
+            timeout: Maximum time to reach position (seconds)
+        
+        Returns:
+            True if position reached successfully, False if timeout or error
+        """
+        start_time = time.time()
+        
+        yasmin.YASMIN_LOG_INFO(
+            f"Navigating to ({target_x:.2f}, {target_y:.2f}) at {target_altitude_above_ground:.1f}m above ground"
+        )
+        
+        while time.time() - start_time < timeout:
+            rclpy.spin_once(self.node, timeout_sec=0.01)
+            current_pos = self.mavdrone.get_local_pos.pose.position
+            current_lidar = self.mavdrone.get_rng_alt.data
+            
+            error_x = target_x - current_pos.x
+            error_y = target_y - current_pos.y
+            distance_xy = math.sqrt(error_x**2 + error_y**2)
+            
+            # Calculate altitude error (maintain constant height above ground)
+            # Target is to keep (target_altitude_above_ground - ground_reference) in lidar reading
+            desired_lidar_reading = target_altitude_above_ground - ground_reference
+            altitude_error = desired_lidar_reading - current_lidar
+            
+            if distance_xy < tolerance_xy and abs(altitude_error) < tolerance_z:
+                yasmin.YASMIN_LOG_INFO("Target position reached with ground-relative altitude")
+                self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+                time.sleep(0.5)
+                return True
+            
+            # XY 
+            vel_x = self._limit_velocity(error_x * self.kp_xy, self.max_vel_xy)
+            vel_y = self._limit_velocity(error_y * self.kp_xy, self.max_vel_xy)
+
+            # Use higher gain to counteract drone's automatic compensation
+            vel_z = self._limit_velocity(
+                altitude_error * ALTITUDE_COMPENSATION_GAIN, 
+                self.max_vel_z * 0.5  # Limit vertical speed for stability
+            )
+            
+            self.mavdrone.offboard_velocity(
+                vel_x, vel_y, vel_z, 0.0, ground_reference=False
+            )
+            
+            if int(time.time() * 2) % 2 == 0:  # 0.5 seconds
+                yasmin.YASMIN_LOG_DEBUG(
+                    f"XY error={distance_xy:.2f}m, Alt error={altitude_error:.2f}m"
+                )
+                yasmin.YASMIN_LOG_DEBUG(
+                    f"Velocities: ({vel_x:.2f}, {vel_y:.2f}, {vel_z:.2f}) m/s"
+                )
+            
+            time.sleep(0.05)
+        
+        yasmin.YASMIN_LOG_ERROR("Ground-relative position control timeout")
+        self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+        return False
 
     def goto_position(
         self,
@@ -86,12 +167,10 @@ class PositionController:
             yasmin.YASMIN_LOG_INFO(f"Target altitude: {target_z:.2f}m")
 
         while time.time() - start_time < timeout:
-            # Get current position
             rclpy.spin_once(self.node, timeout_sec=0.01)
             current_pos = self.mavdrone.get_local_pos.pose.position
-            current_alt = self.mavdrone.get_rel_alt.data
+            current_alt = self.mavdrone.get_rng_alt.data
 
-            # Calculate position errors
             error_x = target_x - current_pos.x
             error_y = target_y - current_pos.y
             error_z = (target_z - current_alt) if target_z is not None else 0.0
@@ -105,7 +184,6 @@ class PositionController:
                 time.sleep(0.5)
                 return True
 
-            # Calculate proportional velocities
             vel_x = self._limit_velocity(error_x * self.kp_xy, self.max_vel_xy)
             vel_y = self._limit_velocity(error_y * self.kp_xy, self.max_vel_xy)
             vel_z = (
@@ -122,7 +200,6 @@ class PositionController:
                     yaw_error * self.kp_yaw, self.max_vel_yaw
                 )
 
-            # Send velocity commands (body reference frame)
             self.mavdrone.offboard_velocity(
                 vel_x, vel_y, vel_z, vel_yaw, ground_reference=False
             )
@@ -167,7 +244,6 @@ class PositionController:
         current_pos = self.mavdrone.get_local_pos.pose.position
         current_alt = self.mavdrone.get_rel_alt.data
 
-        # Calculate target position
         target_x = current_pos.x + delta_x
         target_y = current_pos.y + delta_y
         target_z = current_alt + delta_z if delta_z != 0.0 else None
@@ -200,22 +276,11 @@ class PositionController:
 
         target_x = takeoff_position.get("local_x", 0.0)
         target_y = takeoff_position.get("local_y", 0.0)
-        target_z = approach_altitude  # Can be None for altitude hold
+        target_z = approach_altitude 
 
         yasmin.YASMIN_LOG_INFO(f"Takeoff position: ({target_x:.2f}, {target_y:.2f})")
 
         return self.goto_position(target_x, target_y, target_z, timeout=60.0)
-
-    def set_initial_ground_reference(self):
-        """
-        Set the initial ground altitude reference for height calculations.
-        Should be called during mission initialization.
-        """
-        rclpy.spin_once(self.node, timeout_sec=0.1)
-        self.initial_ground_altitude = self.mavdrone.get_rel_alt.data
-        yasmin.YASMIN_LOG_INFO(
-            f"Initial ground reference set: {self.initial_ground_altitude:.2f}m"
-        )
 
     def calculate_takeoff_altitude_from_base(self) -> float:
         """
@@ -234,7 +299,7 @@ class PositionController:
 
         # Get current altitude (should be at base level after landing)
         rclpy.spin_once(self.node, timeout_sec=0.1)
-        current_altitude = self.mavdrone.get_rel_alt.data
+        current_altitude = self.mavdrone.get_rgn_alt.data
 
         # Calculate base height above original ground
         base_height = current_altitude - self.initial_ground_altitude
@@ -245,8 +310,7 @@ class PositionController:
         yasmin.YASMIN_LOG_INFO(f"Base height above ground: {base_height:.2f}m")
         yasmin.YASMIN_LOG_INFO(f"Required takeoff altitude: {required_altitude:.2f}m")
 
-        # Ensure minimum takeoff altitude for safety
-        required_altitude = max(1.0, required_altitude)
+        required_altitude = max(0.5, required_altitude)
 
         return required_altitude
 
@@ -258,20 +322,16 @@ class PositionController:
             True if successful, False if failed
         """
         if not MAINTAIN_ABSOLUTE_HEIGHT:
-            # Use fixed takeoff altitude if height maintenance is disabled
             required_altitude = TARGET_HEIGHT_ABOVE_GROUND
         else:
-            # Calculate altitude needed to maintain height above original ground
             required_altitude = self.calculate_takeoff_altitude_from_base()
 
         yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {required_altitude:.2f}m")
 
         try:
-            # Use MavDrone takeoff command
             self.mavdrone.takeoff(required_altitude)
             time.sleep(2)
 
-            # Monitor takeoff progress with position control
             start_time = time.time()
             timeout = 30.0
 

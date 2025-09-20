@@ -18,7 +18,7 @@ from mapping.constants import (
     CAMERA_SOURCE,
     DETECTION_SAVE_PATH,
 )
-from mapping.utils import BoustrophedonGrid, YOLODetector
+from mapping.utils import PositionController, YOLODetector   
 
 
 class NavigateToWaypoint(State):
@@ -35,8 +35,6 @@ class NavigateToWaypoint(State):
             return ABORT
 
         mavdrone = blackboard["mavdrone"]
-        node = YasminNode.get_instance()
-
         grid_waypoints = blackboard.get("grid_waypoints")
         if not grid_waypoints:
             yasmin.YASMIN_LOG_ERROR("Grid waypoints not available.")
@@ -53,16 +51,22 @@ class NavigateToWaypoint(State):
 
         blackboard["current_target_waypoint"] = target_waypoint
 
-        # Get position controller
-        position_controller = blackboard.get("position_controller")
+        position_controller: PositionController = blackboard.get("position_controller")
         if not position_controller:
             yasmin.YASMIN_LOG_ERROR("Position controller not available.")
             return ABORT
 
+        # Get target altitude (maintain constant height above ground)
+        target_search_altitude = blackboard.get("target_search_altitude", SEARCH_ALTITUDE)
+
         try:
-            # Use position controller for precise navigation
-            success = position_controller.goto_position(
-                target_waypoint["x"], target_waypoint["y"], timeout=SEARCH_TIMEOUT
+            # Navigate with ground-relative altitude control
+            success = position_controller.goto_position_ground_relative(
+                target_waypoint["x"], 
+                target_waypoint["y"], 
+                target_search_altitude,
+                blackboard.get("ground_reference_altitude", 0.0),
+                timeout=SEARCH_TIMEOUT
             )
 
             if success:
@@ -82,13 +86,15 @@ class CaptureAndDetect(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, "DETECTION_FOUND", ABORT])
+        self.image_handler = ImageHandler(node=YasminNode.get_instance(), image_source=CAMERA_SOURCE)
+
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR("MavDrone not available in CaptureAndDetect state.")
             return ABORT
 
-        yolo_detector = blackboard.get("yolo_detector")
+        yolo_detector: YOLODetector = blackboard.get("yolo_detector")
         if not yolo_detector:
             yasmin.YASMIN_LOG_ERROR("YOLO detector not available.")
             return ABORT
@@ -102,35 +108,53 @@ class CaptureAndDetect(State):
             f"Capturing image and detecting at waypoint {current_waypoint['index']}"
         )
 
+        os.makedirs(DETECTION_SAVE_PATH, exist_ok=True)
+
         try:
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                yasmin.YASMIN_LOG_ERROR("Failed to open camera")
-                return ABORT
+            frame = self.image_handler.take_photo()
 
-            ret, frame = cap.read()
-            cap.release()
-
-            if not ret:
+            if frame is None:
                 yasmin.YASMIN_LOG_ERROR("Failed to capture image")
                 return ABORT
 
-            os.makedirs(DETECTION_SAVE_PATH, exist_ok=True)
             timestamp = int(time.time() * 1000)
             image_path = f"{DETECTION_SAVE_PATH}/waypoint_{current_waypoint['index']:03d}_{timestamp}.jpg"
             cv2.imwrite(image_path, frame)
 
-            detections = yolo_detector.detect_landing_bases(frame, save_image=True)
+            detection = yolo_detector.detect(
+                frame, save_image=True, timestamp=timestamp
+            )
 
-            if detections:
-                best_detection = yolo_detector.get_best_detection(detections)
-                blackboard["current_detection"] = best_detection
-                blackboard["detection_image"] = frame
+            if detection:
+                # Check if this detection is near a previously visited base
+                mavdrone = blackboard["mavdrone"]
+                current_pos = mavdrone.get_local_pos.pose.position
+                visited_bases = blackboard.get("visited_bases", [])
+                
+                is_duplicate = False
+                for base in visited_bases:
+                    distance = math.sqrt(
+                        (current_pos.x - base["x"]) ** 2 + 
+                        (current_pos.y - base["y"]) ** 2
+                    )
+                    if distance < 1.5:  # Within 1.5m is considered same base
+                        yasmin.YASMIN_LOG_INFO(
+                            f"Detection appears to be already visited base at ({base['x']:.1f}, {base['y']:.1f})"
+                        )
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    blackboard["current_detection"] = detection
+                    blackboard["detection_image"] = frame
 
-                yasmin.YASMIN_LOG_INFO(
-                    f"- Landing base detected! Confidence: {best_detection['confidence']:.2f}"
-                )
-                return "DETECTION_FOUND"
+                    yasmin.YASMIN_LOG_INFO(
+                        f"- NEW landing base detected! Confidence: {detection['confidence']:.2f}"
+                    )
+                    return "DETECTION_FOUND"
+                else:
+                    yasmin.YASMIN_LOG_INFO("Detection is a duplicate, continuing search")
+                    return SUCCEED
             else:
                 yasmin.YASMIN_LOG_INFO("No landing base detected at this waypoint")
                 return SUCCEED
