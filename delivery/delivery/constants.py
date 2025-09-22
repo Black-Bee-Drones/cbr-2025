@@ -1,10 +1,13 @@
 # Delivery constants
 
 TAKEOFF_ALTITUDE = 3.0 # Meters
+SEARCH_TIMEOUT = 180 # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = 0
 LAST_PACKAGE_IDX = 2
+PACKAGE_POSITIONS = []
+DELIVER_POSITIONS = []
 
 # Movement tolerances
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped

@@ -9,14 +9,17 @@ import os
 import yasmin
 from yasmin import StateMachine, State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
-from delivery.utils import position_controller
-
-
+from delivery.utils import PositionController
 
 
 from delivery.states import (
     Takeoff,
     Land,
+)
+
+from delivery.constants import (
+    TAKEOFF_ALTITUDE,
+    SEARCH_TIMEOUT
 )
 
 class GoToPkg(State):
@@ -38,11 +41,37 @@ class GoToPkg(State):
 
         mavdrone = blackboard["mavdrone"]
         
-        package_position = blackboard.get("package_position")[blackboard["current_package"]]
+        package_position = blackboard.get("package_position")
+        if package_position:
+            yasmin.YASMIN_LOG_INFO(f"Next package position: {package_position}.")
+        else:
+            yasmin.YASMIN_LOG_ERROR(f"Next package position not avaible.")
+            return ABORT
         
+        position_controller : PositionController = blackboard.get("mavdrone")
+        if not position_controller:
+            yasmin.YASMIN_LOG_ERROR("Position controller not avaible.")
+            return ABORT
+        
+        try:
+            success = position_controller.goto_position_ground_relative(
+                package_position["x"],
+                package_position["y"],
+                TAKEOFF_ALTITUDE,
+                blackboard.get("ground_reference_altitude", 0.0),
+                timeout = SEARCH_TIMEOUT
+            )
 
-
-
+            if success:
+                yasmin.YASMIN_LOG_INFO("Package point reached successfully.")
+                return SUCCEED
+            else:
+                yasmin.YASMIN_LOG_ERROR("Failed to reach package point.")
+                return ABORT
+            
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Navigation failed: {e}")
+            return ABORT
 
 
 class CenterPkg(State):
@@ -51,7 +80,7 @@ class CenterPkg(State):
     """
 class AllingPkg(State):
     """
-    Movimentação dw Yw no drone até atingir as proporções laterais corretas do bounding box
+    Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
     """
 class DescendPkg(State):
     """

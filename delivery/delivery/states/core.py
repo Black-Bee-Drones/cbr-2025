@@ -1,3 +1,6 @@
+import rclpy
+import time
+
 import yasmin
 from yasmin import Blackboard
 from yasmin import State
@@ -8,9 +11,13 @@ import time
 
 from mirela_sdk.control.mavros import MavDrone
 
+from delivery.utils import PositionController
+
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
-    STARTING_PACKAGE_IDX
+    STARTING_PACKAGE_IDX,
+    PACKAGE_POSITIONS,
+    DELIVER_POSITIONS
 )
 
 class Initialize(State):
@@ -20,14 +27,44 @@ class Initialize(State):
     def execute(self, blackboard : Blackboard):
         try:
             yasmin.YASMIN_LOG_INFO("Initializing mission...")
-            blackboard["drone"] = MavDrone(node=YasminNode.get_instance())
-            yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
+            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
+            mavdrone: MavDrone = blackboard["mavdrone"]
+
+
+            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
+            initial_position = (
+                mavdrone.get_local_pos.pose.position.x,
+                mavdrone.get_local_pos.pose.position.y,
+                mavdrone.get_local_pos.pose.position.z,
+            )
+            blackboard["initial_position"] = initial_position
+            
+            ground_altitude = mavdrone.get_rng_alt.data
+            blackboard["ground_reference_altitude"] = ground_altitude
+
+            yasmin.YASMIN_LOG_INFO(
+                f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
+            )
+            yasmin.YASMIN_LOG_INFO(
+                f"Ground reference altitude: {ground_altitude:.2f}m, Target search altitude: {ground_altitude + SEARCH_ALTITUDE:.2f}m"
+            )
 
             blackboard["current_package"] = STARTING_PACKAGE_IDX
-            blackboard["packages_position"] = [""" colocar posicoes do pacote"""]
-            blackboard["land_position"] = [""" colocar posicoes de entrega do pacote"""]
+            blackboard["packages_positions"] = PACKAGE_POSITIONS
+            blackboard["deliver_positions"] = DELIVER_POSITIONS
 
+            if not blackboard["packages_positions"]:
+                yasmin.YASMIN_LOG_WARN("Package positions not declared.")
+            if not blackboard["deliver_positions"]:
+                yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
+
+            position_controller = PositionController(mavdrone)
+
+            blackboard["position_controller"] = position_controller
+
+            yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED
+        
         except Exception as e:
             import traceback
             print("Failed to initialize:", traceback.format_exc())
