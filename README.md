@@ -31,3 +31,82 @@ The competition is structured into four distinct phases, each with a unique chal
 
 * **Phase 4: Confined Space Navigation** (`phase-4-navigation`)
     * **Objective:** Navigate through a dark and cluttered maze, find five hidden QR Code targets, and exit to land on a designated base.
+    
+    
+## Phase 2 UML
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> INITIALIZE
+
+    INITIALIZE --> TAKEOFF: SUCCEED
+    INITIALIZE --> END: ABORT
+
+    TAKEOFF --> PICKUP: SUCCEED
+    TAKEOFF --> RETURN_TO_LAUNCH: ABORT
+
+    state PICKUP {
+        direction LR
+        [*] --> GO_TO_PKG
+        GO_TO_PKG --> CENTER_PKG: SUCCEED
+        GO_TO_PKG --> an_ABORT_P1: ABORT
+
+        CENTER_PKG --> ALLING_PKG: SUCCEED
+        CENTER_PKG --> an_ABORT_P1: ABORT
+
+        ALLING_PKG --> DESCEND_PKG: SUCCEED
+        ALLING_PKG --> an_ABORT_P1: ABORT
+
+        DESCEND_PKG --> CENTER_PKG: SUCCEED
+        DESCEND_PKG --> LAND: height_limit
+        DESCEND_PKG --> an_ABORT_P1: ABORT
+
+        LAND --> PICK_PKG: SUCCEED
+        LAND --> an_ABORT_P1: ABORT
+
+        PICK_PKG --> p_TAKEOFF: SUCCEED
+        PICK_PKG --> an_ABORT_P1: ABORT
+
+        p_TAKEOFF: Takeoff
+        p_TAKEOFF --> CHECK_PKG: SUCCEED
+        p_TAKEOFF --> an_ABORT_P1: ABORT
+
+        CHECK_PKG --> CENTER_PKG: pkg_detected
+        CHECK_PKG --> [*]: SUCCEED
+        CHECK_PKG --> an_ABORT_P1: ABORT
+
+        an_ABORT_P1: ABORT
+        an_ABORT_P1 --> [*]
+    }
+
+    PICKUP --> DROPOFF: SUCCEED
+    PICKUP --> RETURN_TO_LAUNCH: ABORT
+
+    state DROPOFF {
+        direction LR
+        [*] --> GO_TO_DELIVERY
+        GO_TO_DELIVERY --> RELEASE_PKG: SUCCEED
+        GO_TO_DELIVERY --> an_ABORT_D1: ABORT
+
+        RELEASE_PKG --> d_TAKEOFF: SUCCEED
+        RELEASE_PKG --> an_ABORT_D1: ABORT
+
+        d_TAKEOFF: Takeoff
+        d_TAKEOFF --> [*]: SUCCEED
+        d_TAKEOFF --> an_ABORT_D1: ABORT
+
+        an_ABORT_D1: ABORT
+        an_ABORT_D1 --> [*]
+    }
+
+    DROPOFF --> RETURN_TO_LAUNCH: SUCCEED
+    DROPOFF --> RETURN_TO_LAUNCH: ABORT
+    DROPOFF --> PICKUP: next_pkg
+
+    RETURN_TO_LAUNCH --> END: SUCCEED
+    RETURN_TO_LAUNCH --> END: ABORT
+
+    END --> [*]
+```

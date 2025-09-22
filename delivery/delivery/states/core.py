@@ -9,7 +9,8 @@ import time
 from mirela_sdk.control.mavros import MavDrone
 
 from delivery.constants import (
-    TAKEOFF_ALTITUDE
+    TAKEOFF_ALTITUDE,
+    STARTING_PACKAGE_IDX
 )
 
 class Initialize(State):
@@ -21,6 +22,11 @@ class Initialize(State):
             yasmin.YASMIN_LOG_INFO("Initializing mission...")
             blackboard["drone"] = MavDrone(node=YasminNode.get_instance())
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
+
+            blackboard["current_package"] = STARTING_PACKAGE_IDX
+            blackboard["packages_position"] = [""" colocar posicoes do pacote"""]
+            blackboard["land_position"] = [""" colocar posicoes de entrega do pacote"""]
+
             return SUCCEED
         except Exception as e:
             import traceback
