@@ -5,10 +5,14 @@ import time
 import math
 import cv2
 import os
+from typing import Tuple
+
+from mirela_sdk.control.mavros.mavros_api import MavDrone
+from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 import yasmin
 from yasmin import StateMachine, State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
 from delivery.utils import PositionController, YOLOPackageDetector, YOLODeliverDetector
 
 
@@ -21,8 +25,8 @@ from delivery.constants import (
     TAKEOFF_ALTITUDE,
     SEARCH_TIMEOUT,
     IMAGE_SOURCE,
-    CENTER_PID,
-
+    CENTER_ERROR_TOLERANCE,
+    CENTER_TIMEOUT,
 )
 
 class GoToPkg(State):
@@ -41,7 +45,7 @@ class GoToPkg(State):
             )
             return ABORT
 
-        mavdrone = blackboard.get("mavdrone")
+        mavdrone: MavDrone = blackboard.get("mavdrone")
         
         package_position = blackboard.get("package_position")
         if not package_position:
@@ -81,22 +85,61 @@ class CenterPkg(State):
     Movimentação X, Y para centralizar o drone e o pacote
     """
 
-    def __init__(self, outcomes):
-        super().__init__(outcomes=[SUCCEED, ABORT])
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
         self.image_handler = None
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR(
-                "MavDrone not available in NavigateToWaypoint state."
+                "MavDrone not available in CenterPkg state."
             )
             return ABORT
     
-        mavdrone = blackboard["mavdrone"]
+        mavdrone: MavDrone = blackboard["mavdrone"]
+
+        self.image_handler: ImageHandler = blackboard["image_handler"]
+
+        if not self.image_handler:
+            yasmin.YASMIN_LOG_ERROR(
+                "ImageHandler not available in CenterPkg state."
+            )
+            return ABORT
+
+        self.image_handler.image_processing_callback = self.image_processing_callback
+
+        start = time.time()
+        while (time.time() - start) < CENTER_TIMEOUT:
+            error_x, error_y = self.image_handler.take_photo()
+
+            if error_x is None or error_y is None:
+                return FAIL
+
+            if ((error_x ** 2) + (error_y ** 2)) < CENTER_ERROR_TOLERANCE**2:
+                return SUCCEED
+
+            mavdrone.offboard_velocity(
+                linear_x = error_x,
+                linear_y = error_y,
+                linear_z = 0.0,
+                angular_z = 0.0,
+            )
+        return ABORT
 
 
+    def image_processing_callback(self, img) -> Tuple[float, float]:
+        """
+        ImageHandler callback
+        return: if error == None: there isn't Yolo detection
+        """
+        error_x, error_y = None
+        return error_x, error_y
 
 
+class UpPKG(State):
+    """
+    Up to search package
+    """
 class AllingPkg(State):
     """
     Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
@@ -125,7 +168,12 @@ class Delivery(StateMachine):
         self.add_state(
             "CENTER_PKG",
             CenterPkg(),
-            transitions={SUCCEED:"ALLING_PKG", ABORT: ABORT},
+            transitions={SUCCEED:"ALLING_PKG", ABORT: ABORT, FAIL: "UP_PKG"},
+        )
+        self.add_state(
+            "UP_PKG",
+            UpPKG(),
+            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT},
         )
         self.add_state(
             "ALLING_PKG",

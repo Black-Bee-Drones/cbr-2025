@@ -5,6 +5,7 @@ import os
 
 TAKEOFF_ALTITUDE = 3.0 # Meters
 SEARCH_TIMEOUT = 180 # seconds
+CENTER_TIMEOUT = 180 # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = 0
@@ -43,3 +44,6 @@ POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
 MAX_VELOCITY_XY = 0.8
 MAX_VELOCITY_Z = 0.5
 MAX_VELOCITY_YAW = 0.3  # rad/s
+
+# Maximum error allowed for centering the position control
+CENTER_ERROR_TOLERANCE = 0.1 # meters
