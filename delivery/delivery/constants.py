@@ -42,3 +42,4 @@ POSITION_CONTROLLER_KP_Z = 0.6  # Proportional gain for Z movement
 POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
 MAX_VELOCITY_XY = 0.8
 MAX_VELOCITY_Z = 0.5
+MAX_VELOCITY_YAW = 0.3  # rad/s

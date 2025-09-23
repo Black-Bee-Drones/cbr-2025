@@ -14,6 +14,7 @@ from delivery.constants import (
     POSITION_CONTROLLER_KP_YAW,
     MAX_VELOCITY_XY,
     MAX_VELOCITY_Z,
+    MAX_VELOCITY_YAW,
     TARGET_HEIGHT_ABOVE_GROUND,
     MAINTAIN_ABSOLUTE_HEIGHT,
     ALTITUDE_COMPENSATION_GAIN,
@@ -47,7 +48,7 @@ class PositionController:
         # Velocity limits from constants
         self.max_vel_xy = MAX_VELOCITY_XY
         self.max_vel_z = MAX_VELOCITY_Z
-        self.max_vel_yaw = 0.3  # rad/s
+        self.max_vel_yaw = MAX_VELOCITY_YAW
 
         # Height reference management
         self.initial_ground_altitude = None 
