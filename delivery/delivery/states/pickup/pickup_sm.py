@@ -35,27 +35,26 @@ class GoToPkg(State):
         super().__init__(outcomes = [SUCCEED, ABORT])
 
     def execute(self, blackboard : Blackboard):
-
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR(
                 "MavDrone not available in NavigateToWaypoint state."
             )
             return ABORT
 
-        mavdrone = blackboard["mavdrone"]
+        mavdrone = blackboard.get("mavdrone")
         
         package_position = blackboard.get("package_position")
-        if package_position:
-            yasmin.YASMIN_LOG_INFO(f"Next package position: {package_position}.")
-        else:
+        if not package_position:
             yasmin.YASMIN_LOG_ERROR(f"Next package position not avaible.")
             return ABORT
+
+        yasmin.YASMIN_LOG_INFO(f"Next package position: {package_position}.")
         
-        position_controller : PositionController = blackboard.get("mavdrone")
+        position_controller : PositionController = blackboard.get("position_controller")
         if not position_controller:
             yasmin.YASMIN_LOG_ERROR("Position controller not avaible.")
             return ABORT
-        
+
         try:
             success = position_controller.goto_position_ground_relative(
                 package_position["x"],
