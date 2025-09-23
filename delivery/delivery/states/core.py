@@ -11,7 +11,7 @@ import time
 
 from mirela_sdk.control.mavros import MavDrone
 
-from delivery.utils import PositionController
+from delivery.utils import PositionController, YOLOPackageDetector, YOLODeliverDetector
 
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
@@ -46,7 +46,7 @@ class Initialize(State):
                 f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
             )
             yasmin.YASMIN_LOG_INFO(
-                f"Ground reference altitude: {ground_altitude:.2f}m, Target search altitude: {ground_altitude + SEARCH_ALTITUDE:.2f}m"
+                f"Ground reference altitude: {ground_altitude:.2f}m, Target search altitude: {ground_altitude + TAKEOFF_ALTITUDE:.2f}m"
             )
 
             blackboard["current_package"] = STARTING_PACKAGE_IDX
@@ -57,6 +57,12 @@ class Initialize(State):
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
+
+            yolo_pkg_detector = YOLOPackageDetector()
+            blackboard["yolo_pkg_detector"] = yolo_pkg_detector
+
+            yolo_deliver_detector = YOLODeliverDetector()
+            blackboard["yolo_deliver_detector"] = yolo_deliver_detector
 
             position_controller = PositionController(mavdrone)
 

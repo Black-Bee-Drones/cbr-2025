@@ -9,7 +9,7 @@ import os
 import yasmin
 from yasmin import StateMachine, State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
-from delivery.utils import PositionController
+from delivery.utils import PositionController, YOLOPackageDetector, YOLODeliverDetector
 
 
 from delivery.states import (
@@ -19,7 +19,10 @@ from delivery.states import (
 
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
-    SEARCH_TIMEOUT
+    SEARCH_TIMEOUT,
+    IMAGE_SOURCE,
+    CENTER_PID,
+
 )
 
 class GoToPkg(State):
@@ -78,6 +81,23 @@ class CenterPkg(State):
     """
     Movimentação X, Y para centralizar o drone e o pacote
     """
+
+    def __init__(self, outcomes):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+        self.image_handler = None
+
+    def execute(self, blackboard : Blackboard):
+        if "mavdrone" not in blackboard:
+            yasmin.YASMIN_LOG_ERROR(
+                "MavDrone not available in NavigateToWaypoint state."
+            )
+            return ABORT
+    
+        mavdrone = blackboard["mavdrone"]
+
+
+
+
 class AllingPkg(State):
     """
     Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
