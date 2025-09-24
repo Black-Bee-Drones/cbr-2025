@@ -10,6 +10,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 import time
 
 from mirela_sdk.control.mavros import MavDrone
+from mirela_sdk.image_processing import ImageHandler
 
 from delivery.utils import PositionController, YOLOPackageDetector, YOLODeliverDetector
 
@@ -17,7 +18,8 @@ from delivery.constants import (
     TAKEOFF_ALTITUDE,
     STARTING_PACKAGE_IDX,
     PACKAGE_POSITIONS,
-    DELIVER_POSITIONS
+    DELIVER_POSITIONS,
+    IMAGE_SOURCE
 )
 
 class Initialize(State):
@@ -67,6 +69,10 @@ class Initialize(State):
             position_controller = PositionController(mavdrone)
 
             blackboard["position_controller"] = position_controller
+
+            image_handler = ImageHandler()
+            image_handler.image_source = IMAGE_SOURCE
+            blackboard["image_handler"] = image_handler
 
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED

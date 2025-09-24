@@ -53,11 +53,11 @@ stateDiagram-v2
         GO_TO_PKG --> CENTER_PKG: SUCCEED
         GO_TO_PKG --> an_ABORT_P1: ABORT
 
-        CENTER_PKG --> ALLING_PKG: SUCCEED
+        CENTER_PKG --> ALING_PKG: SUCCEED
         CENTER_PKG --> an_ABORT_P1: ABORT
 
-        ALLING_PKG --> DESCEND_PKG: SUCCEED
-        ALLING_PKG --> an_ABORT_P1: ABORT
+        ALING_PKG --> DESCEND_PKG: SUCCEED
+        ALING_PKG --> an_ABORT_P1: ABORT
 
         DESCEND_PKG --> CENTER_PKG: SUCCEED
         DESCEND_PKG --> LAND: height_limit

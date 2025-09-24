@@ -6,6 +6,7 @@ import os
 TAKEOFF_ALTITUDE = 3.0 # Meters
 SEARCH_TIMEOUT = 180 # seconds
 CENTER_TIMEOUT = 180 # seconds
+ALIGN_TIMEOUT = 180 # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = 0
@@ -47,3 +48,7 @@ MAX_VELOCITY_YAW = 0.3  # rad/s
 
 # Maximum error allowed for centering the position control
 CENTER_ERROR_TOLERANCE = 0.1 # meters
+ALIGN_X_PROPORTION = 0.7
+
+# Detections lost to restart detection
+MIN_DETECTIONS_LOST = 5
