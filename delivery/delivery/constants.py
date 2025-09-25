@@ -55,3 +55,7 @@ ALIGN_X_PROPORTION = 0.7
 
 # Detections lost to restart detection
 MIN_DETECTIONS_LOST = 5
+
+# Vertical limit
+MAX_ALTITUDE = 5.0  # meters
+TARGET_UP_ALTITUDE = 0.5  # meters - how high the drone will climb if it doesn't find the package

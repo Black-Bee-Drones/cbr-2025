@@ -32,6 +32,8 @@ from delivery.constants import (
     MIN_DETECTIONS_LOST,
     POSITION_CONTROLLER_KP_XY,
     MAX_VELOCITY_XY,
+    MAX_ALTITUDE,
+    TARGET_UP_ALTITUDE,
 )
 
 class GoToPkg(State):
@@ -140,10 +142,37 @@ class CenterPkg(State):
         return error_x, error_y
 
 
-class UpPKG(State):
+class ReacquireTarget(State):
     """
     Up to search package
     """
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+
+    def execute(self, blackboard : Blackboard):
+        mavdrone: MavDrone = blackboard["mavdrone"]
+        controller: PositionController = blackboard["position_controller"]
+
+        current_alt = mavdrone.get_rel_alt.data
+
+        new_alt = current_alt + TARGET_UP_ALTITUDE
+
+        if new_alt >= MAX_ALTITUDE:
+            return ABORT
+
+        success = controller.goto_position(
+            target_x=0.0,
+            target_y=0.0,
+            target_z=new_alt,
+            timeout=30.0
+        )
+
+        if success:
+            return SUCCEED
+        else:
+            return ABORT
+
+
 class AlingPkg(State):
     """
     Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
@@ -241,12 +270,12 @@ class PickupSM(StateMachine):
         self.add_state(
             "CENTER_PKG",
             CenterPkg(),
-            transitions={SUCCEED:"ALING_PKG", ABORT: ABORT, FAIL: "UP_PKG"},
+            transitions={SUCCEED:"ALING_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
-            "UP_PKG",
-            UpPKG(),
-            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT, FAIL: "UP_PKG"},
+            "REACQUIRE_TARGET",
+            ReacquireTarget(),
+            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT},
         )
         self.add_state(
             "ALING_PKG",
