@@ -12,9 +12,11 @@ from delivery.states import (
     End,
 )
 
+
 class Delivery(StateMachine):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
+
         self.add_state(
             "INITIALIZE",
             Initialize(),
@@ -30,23 +32,20 @@ class Delivery(StateMachine):
             PickupSM(),
             transitions={SUCCEED:"DROPOFF", ABORT:"RETURN_TO_LAUNCH"},
         )
-        
         self.add_state(
             "DROPOFF",
             DropoffSM(),
             transitions={SUCCEED:"RETURN_TO_LAUNCH", ABORT:"RETURN_TO_LAUNCH", "next_pkg": "PICKUP"},
         )
-
         self.add_state(
             "RETURN_TO_LAUNCH",
             ReturnToLaunch(),
             transitions={SUCCEED:"END", ABORT:"END"},
         )
-
         self.add_state(
             "END",
             End(),
             transitions={SUCCEED: SUCCEED},
         )
-        
+
         self.set_start_state("INITIALIZE")

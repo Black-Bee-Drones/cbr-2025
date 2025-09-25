@@ -227,9 +227,10 @@ class CheckPkg(State):
     Checar pela yolo se o pacote ainda esta na base
     """
 
-class Delivery(StateMachine):
+class PickupSM(StateMachine):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected"])
+
         self.add_state(
             "GO_TO_PKG",
             GoToPkg(),
@@ -275,4 +276,5 @@ class Delivery(StateMachine):
             CheckPkg(),
             transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_PKG"},
         )
+
         self.set_start_state("GO_TO_PKG")

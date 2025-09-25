@@ -17,7 +17,7 @@ class ReleasePkg(State):
     Soltar pacote
     """
 
-class Delivery(StateMachine):
+class DropoffSM(StateMachine):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, "height_limit"])
         self.add_state(
