@@ -5,7 +5,7 @@ import time
 import math
 import cv2
 import os
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
@@ -25,11 +25,13 @@ from delivery.constants import (
     TAKEOFF_ALTITUDE,
     SEARCH_TIMEOUT,
     IMAGE_SOURCE,
-    CENTER_ERROR_TOLERANCE,
+    CENTERING_TOLERANCE_PX,
     CENTER_TIMEOUT,
     ALING_TIMEOUT,
     ALIGN_X_PROPOTION,
-    MIN_DETECTIONS_LOST
+    MIN_DETECTIONS_LOST,
+    POSITION_CONTROLLER_KP_XY,
+    MAX_VELOCITY_XY,
 )
 
 class GoToPkg(State):
@@ -90,10 +92,12 @@ class CenterPkg(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
+        self.yolo_pkg_detector: Optional[YOLODeliverDetector] = None
 
-    def execute(self, blackboard : Blackboard):    
+    def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
         image_handler: ImageHandler = blackboard["image_handler"]
+        self.yolo_pkg_detector: YOLODeliverDetector = blackboard["yolo_pkg_detector"]
 
         image_handler.image_processing_callback = self.image_processing_callback
 
@@ -104,24 +108,35 @@ class CenterPkg(State):
             if error_x is None or error_y is None:
                 return FAIL
 
-            if ((error_x ** 2) + (error_y ** 2)) < CENTER_ERROR_TOLERANCE**2:
+            if (error_x <= CENTERING_TOLERANCE_PX) and (error_y <= CENTERING_TOLERANCE_PX):
                 return SUCCEED
+            
+            vel_x = error_x * POSITION_CONTROLLER_KP_XY
+            vel_y = error_y * POSITION_CONTROLLER_KP_XY
+
+            vel_x = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_x))
+            vel_y = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_y))
 
             mavdrone.offboard_velocity(
-                linear_x = error_x,
-                linear_y = error_y,
+                linear_x = vel_x,
+                linear_y = vel_y,
                 linear_z = 0.0,
                 angular_z = 0.0,
             )
         return ABORT
-
 
     def image_processing_callback(self, img) -> Tuple[float, float]:
         """
         ImageHandler callback
         return: if error == None: there isn't Yolo detection
         """
-        error_x, error_y = None
+        detection = self.yolo_pkg_detector.detect(img)
+
+        if detection:
+            error_x, error_y = self.yolo_pkg_detector.calculate_centering_error(detection)
+        else:
+            error_x, error_y = None
+
         return error_x, error_y
 
 

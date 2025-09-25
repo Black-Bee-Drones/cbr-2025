@@ -2,7 +2,6 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 # Delivery constants
-
 TAKEOFF_ALTITUDE = 3.0 # Meters
 SEARCH_TIMEOUT = 180 # seconds
 CENTER_TIMEOUT = 180 # seconds
@@ -49,7 +48,7 @@ MAX_VELOCITY_Z = 0.5
 MAX_VELOCITY_YAW = 0.3  # rad/s
 CENTERING_P_GAIN = 0.002 
 
-# Maximum error allowed for centering the position control
+# Centering and alignment
 CENTER_ERROR_TOLERANCE = 0.1 # meters
 CENTERING_TOLERANCE_PX = 20 #pixels
 ALIGN_X_PROPORTION = 0.7
