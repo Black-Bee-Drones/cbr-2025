@@ -66,7 +66,7 @@ class YOLODeliverDetector:
             print("   Using simulation mode for detection")
 
     def detect(
-        self, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None
+        self, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None, desired_class: int = 0
     ) -> List[Dict[str, any]]:
         """
         Detect landing bases in image.
@@ -75,6 +75,7 @@ class YOLODeliverDetector:
             image: Input image (BGR format)
             save_image: Whether to save detection images
             timestamp: Optional timestamp for filenames
+            desired_class: Class ID to filter detections (default 0 for landing base)
 
         Returns:
             List of detections with bounding boxes and confidence scores
@@ -117,24 +118,29 @@ class YOLODeliverDetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self.get_best_detection(detections)
+        return self.get_best_detection(detections, desired_class=desired_class)
 
     def get_best_detection(
-        self, detections: List[Dict[str, any]]
+        self, detections: List[Dict[str, any]], desired_class: int = 0
     ) -> Optional[Dict[str, any]]:
         """
         Get the best detection based on confidence and size.
 
         Args:
             detections: List of detections
+            desired_class: Class ID to filter detections (default 0 for landing base)
 
         Returns:
             Best detection or None if no detections
         """
-        if not detections:
+        # filter detections by desired class
+        filtered_detections = [d for d in detections if d["class_id"] == desired_class]
+        
+        if not filtered_detections:
             return None
 
-        best_detection = max(detections, key=lambda d: d["confidence"] * d["area"])
+        # return detection with highest confidence * area
+        best_detection = max(filtered_detections, key=lambda d: d["confidence"] * d["area"])
         return best_detection
 
     def calculate_centering_error(self, detection: Dict[str, any]) -> Tuple[int, int]:

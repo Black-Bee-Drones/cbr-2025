@@ -209,8 +209,8 @@ class AlingPkg(State):
         lost_detections = 0
 
         while time.time() - start < ALING_TIMEOUT:
-            detection = self.yolo_pkg_detector(
-                self.image_handler.take_photo(), save_imgae=False
+            detection = self.yolo_pkg_detector.detect(
+                self.image_handler.take_photo(), save_image=False
             )
             side_x, side_y = self.detection_boundingbox_size(detection)
             if not detection:
