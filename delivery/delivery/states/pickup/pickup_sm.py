@@ -90,7 +90,6 @@ class CenterPkg(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
-        self.image_handler = None
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
@@ -101,19 +100,19 @@ class CenterPkg(State):
     
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        self.image_handler: ImageHandler = blackboard["image_handler"]
+        image_handler: ImageHandler = blackboard["image_handler"]
 
-        if not self.image_handler:
+        if not image_handler:
             yasmin.YASMIN_LOG_ERROR(
                 "ImageHandler not available in CenterPkg state."
             )
             return ABORT
 
-        self.image_handler.image_processing_callback = self.image_processing_callback
+        image_handler.image_processing_callback = self.image_processing_callback
 
         start = time.time()
         while (time.time() - start) < CENTER_TIMEOUT:
-            error_x, error_y = self.image_handler.take_photo()
+            error_x, error_y = image_handler.take_photo()
 
             if error_x is None or error_y is None:
                 return FAIL
