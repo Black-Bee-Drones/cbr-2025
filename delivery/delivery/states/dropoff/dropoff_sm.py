@@ -10,7 +10,7 @@ import rclpy
 from yasmin import StateMachine, State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from yasmin_ros.yasmin_node import YasminNode
-from utils.yolo_deliver import YOLOPackageDetector #Deve ser alterado pra yolo da base
+from delivery.utils import YOLODeliverDetector
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
 

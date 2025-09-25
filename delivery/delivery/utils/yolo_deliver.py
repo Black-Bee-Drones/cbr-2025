@@ -23,7 +23,7 @@ from delivery.constants import (
 )
 
 
-class YOLOPackageDetector:
+class YOLODeliverDetector:
     """
     YOLO-based landing base detector for CB5 Phase 1.
 
