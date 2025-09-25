@@ -54,6 +54,9 @@ class Initialize(State):
             blackboard["current_package"] = STARTING_PACKAGE_IDX
             blackboard["packages_positions"] = PACKAGE_POSITIONS
             blackboard["deliver_positions"] = DELIVER_POSITIONS
+            blackboard["visited_bases"] = []
+
+            blackboard["current_detection"] = None
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
