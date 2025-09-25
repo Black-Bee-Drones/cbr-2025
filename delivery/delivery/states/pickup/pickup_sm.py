@@ -38,7 +38,7 @@ class GoToPkg(State):
     Detector: Node de Yolo para reconhecer o pacote
     """
 
-    def __init__(self, outcomes):
+    def __init__(self):
         super().__init__(outcomes = [SUCCEED, ABORT])
 
     def execute(self, blackboard : Blackboard):
@@ -270,12 +270,9 @@ class Delivery(StateMachine):
             Takeoff(),
             transitions={SUCCEED: "CHECK_PKG", ABORT : ABORT},
         )
-        
         self.add_state(
             "CHECK_PKG",
             CheckPkg(),
             transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_PKG"},
         )
-        
-        
         self.set_start_state("GO_TO_PKG")
