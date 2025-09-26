@@ -330,6 +330,10 @@ class LandAndMarkBase(State):
             visited_bases.append(landing_position)
             blackboard["visited_bases"] = visited_bases
 
+            current_package = blackboard.get("current_package")
+            if current_package < 2:
+                current_package += 1
+
             yasmin.YASMIN_LOG_INFO(
                 f"- Landed successfully!"
             )
