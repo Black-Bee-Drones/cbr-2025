@@ -27,13 +27,16 @@ from delivery.constants import (
     IMAGE_SOURCE,
     CENTERING_TOLERANCE_PX,
     CENTER_TIMEOUT,
-    ALING_TIMEOUT,
-    ALIGN_X_PROPOTION,
+    ALIGN_TIMEOUT,
+    ALIGN_X_PROPORTION,
     MIN_DETECTIONS_LOST,
     POSITION_CONTROLLER_KP_XY,
     MAX_VELOCITY_XY,
     MAX_ALTITUDE,
     TARGET_UP_ALTITUDE,
+    POSITION_CONTROLLER_KP_Z,
+    MAX_VELOCITY_Z,
+    REACQUIRE_TARGET_TIMEOUT,
 )
 
 class GoToPkg(State):
@@ -103,14 +106,17 @@ class CenterPkg(State):
 
         image_handler.image_processing_callback = self.image_processing_callback
 
+        yasmin.YASMIN_LOG_INFO("Starting centering procedure using YOLO detector...")
         start = time.time()
         while (time.time() - start) < CENTER_TIMEOUT:
             error_x, error_y = image_handler.take_photo()
 
             if error_x is None or error_y is None:
+                yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
                 return FAIL
 
             if (error_x <= CENTERING_TOLERANCE_PX) and (error_y <= CENTERING_TOLERANCE_PX):
+                yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                 return SUCCEED
             
             vel_x = error_x * POSITION_CONTROLLER_KP_XY
@@ -119,12 +125,14 @@ class CenterPkg(State):
             vel_x = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_x))
             vel_y = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_y))
 
+            yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_x={error_x:.2f}, error_y={error_y:.2f}, linear_x={vel_x:.2f}, linear_y={vel_y:.2f}")
             mavdrone.offboard_velocity(
                 linear_x = vel_x,
                 linear_y = vel_y,
                 linear_z = 0.0,
                 angular_z = 0.0,
             )
+        yasmin.YASMIN_LOG_ERROR(f"Timeout ({CENTER_TIMEOUT:.1f}s) while trying to center target.")
         return ABORT
 
     def image_processing_callback(self, img) -> Tuple[float, float]:
@@ -151,26 +159,41 @@ class ReacquireTarget(State):
 
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
-        controller: PositionController = blackboard["position_controller"]
 
         current_alt = mavdrone.get_rel_alt.data
 
         new_alt = current_alt + TARGET_UP_ALTITUDE
 
         if new_alt >= MAX_ALTITUDE:
+            yasmin.YASMIN_LOG_ERROR("Target altitude exceeds maximum allowed limit.")
             return ABORT
 
-        success = controller.goto_position(
-            target_x=0.0,
-            target_y=0.0,
-            target_z=new_alt,
-            timeout=30.0
-        )
+        yasmin.YASMIN_LOG_INFO("Starting ascent.")
+        start = time.time()
+        while (time.time() - start) < REACQUIRE_TARGET_TIMEOUT:
+            current_alt = mavdrone.get_rel_alt.data
 
-        if success:
-            return SUCCEED
-        else:
-            return ABORT
+            if current_alt >= MAX_ALTITUDE:
+                yasmin.YASMIN_LOG_ERROR(f"Aborting: current altitude {current_alt:.2f}m >= max limit {MAX_ALTITUDE:.2f}m")
+                return ABORT
+
+            error_z = new_alt - current_alt
+
+            if abs(error_z) < CENTERING_TOLERANCE_PX:
+                yasmin.YASMIN_LOG_INFO(f"Target altitude reached successfully: {current_alt:.2f}m (error={error_z:.2f}m)")
+                return SUCCEED
+
+            vel_z = error_z * POSITION_CONTROLLER_KP_Z
+
+            vel_z = max(-MAX_VELOCITY_Z, min(MAX_VELOCITY_Z, vel_z))
+
+            yasmin.YASMIN_LOG_INFO(f"Ascent correction: current_alt={current_alt:.2f}m, target_alt={new_alt:.2f}m, error={error_z:.2f}m, linear_z={vel_z:.2f}m/s")
+            mavdrone.offboard_velocity(
+                linear_z=vel_z
+            )
+
+        yasmin.YASMIN_LOG_ERROR(f"Timeout ({REACQUIRE_TARGET_TIMEOUT:.1f}s) without reaching target altitude {new_alt:.2f}m. Last altitude={current_alt:.2f}m")
+        return ABORT
 
 
 class AlingPkg(State):
@@ -208,7 +231,7 @@ class AlingPkg(State):
         start = time.time()
         lost_detections = 0
 
-        while time.time() - start < ALING_TIMEOUT:
+        while time.time() - start < ALIGN_TIMEOUT:
             detection = self.yolo_pkg_detector.detect(
                 self.image_handler.take_photo(), save_image=False
             )
@@ -219,7 +242,7 @@ class AlingPkg(State):
                 if lost_detections > MIN_DETECTIONS_LOST:
                     yasmin.YASMIN_LOG_ERROR(F"Lost package, restarting package detection.")
                     return FAIL
-            elif side_y < (side_x * ALIGN_X_PROPOTION):
+            elif side_y < (side_x * ALIGN_X_PROPORTION):
                 mavdrone.offboard_velocity(0, 0, 0, 0.1, True)
                 lost_detections = 0
             else:

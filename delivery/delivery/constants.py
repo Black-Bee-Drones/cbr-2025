@@ -2,10 +2,11 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 # Delivery constants
-TAKEOFF_ALTITUDE = 3.0 # Meters
-SEARCH_TIMEOUT = 180 # seconds
-CENTER_TIMEOUT = 180 # seconds
-ALIGN_TIMEOUT = 180 # seconds
+TAKEOFF_ALTITUDE = 3.0  # Meters
+SEARCH_TIMEOUT = 180  # seconds
+CENTER_TIMEOUT = 180  # seconds
+ALIGN_TIMEOUT = 180  # seconds
+REACQUIRE_TARGET_TIMEOUT = 180  # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = 0
