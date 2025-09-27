@@ -15,7 +15,6 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
 
 from delivery.constants import (
-    MAX_ALTITUDE,
     IMAGE_SOURCE,
     DETECTION_SAVE_PATH,
     CENTER_TIMEOUT,
@@ -59,7 +58,7 @@ class GoToDelivery(State):
         target_dx = current_target["x"] - current_position["x"]
         target_dy = -current_target["y"] + current_position["y"]
 
-        mavdrone.offboard_position(target_dx, target_dy, MAX_ALTITUDE)
+        mavdrone.offboard_position(target_dx, target_dy, TAKEOFF_ALTITUDE)
 
 
 class CenterBase(State):
@@ -164,7 +163,7 @@ class CenterOnDetection(State):
         current_detection = blackboard.get("current_detection")
         ground_reference = blackboard.get("ground_reference_altitude", 0.0)
         #target_search_altitude = blackboard.get("target_search_altitude", SEARCH_ALTITUDE)
-        target_search_altitude = MAX_ALTITUDE
+        target_search_altitude = TAKEOFF_ALTITUDE
 
         if not self.yolo_deliver_detector or not current_detection:
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
