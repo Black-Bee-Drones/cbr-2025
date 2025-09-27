@@ -1,0 +1,26 @@
+# ROS build files
+build/
+install/
+log/
+devel/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode settings
+.vscode/
+
+# ROS generated python cache
+*/__pycache__/
+*/**/__pycache__/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Mapping or other large data folders (se você não quiser versionar)
+mapping/
+

@@ -272,18 +272,39 @@ class DescendPkg(State):
     """
     Descer um pouco e realinhar o drone até chegar em uma boa altura para dar land
     """
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit"])
+
+    def execute(self, blackboard: Blackboard):
+        yasmin.YASMIN_LOG_INFO("DescendPkg  executado.")
+        return SUCCEED
+    
+
 class PickPkg(State):
     """
     Ativar garra
     """
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+
+    def execute(self, blackboard: Blackboard):
+        yasmin.YASMIN_LOG_INFO("PickPkg (stub) executado.")
+        return SUCCEED
+
 class CheckPkg(State):
     """
     Checar pela yolo se o pacote ainda esta na base
     """
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT, "pkg_detected"])
+
+    def execute(self, blackboard: Blackboard):
+        yasmin.YASMIN_LOG_INFO("CheckPkg (stub) executado.")
+        return SUCCEED
 
 class PickupSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected"])
+        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected", FAIL])
 
         self.add_state(
             "GO_TO_PKG",

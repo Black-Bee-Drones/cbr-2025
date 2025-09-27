@@ -1,4 +1,4 @@
-from delivery.states.pickup.pickup_sm import PickupSM
+from .pickup_sm import PickupSM
 
 
 __all__ = ["PickupSM"]

@@ -15,7 +15,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
 
 from delivery.constants import (
-    TAKEOFF_ALTITUDE,
+    MAX_ALTITUDE,
     IMAGE_SOURCE,
     DETECTION_SAVE_PATH,
     CENTER_TIMEOUT,
@@ -24,10 +24,11 @@ from delivery.constants import (
     CENTERING_VELOCITY,
     ALTITUDE_COMPENSATION_GAIN,
     CENTERING_ALTITUDE,
+    TAKEOFF_ALTITUDE
     )
 
 from delivery.states import (
-    Takeoff,
+    Land,
 )
 
 class GoToDelivery(State):
@@ -58,7 +59,7 @@ class GoToDelivery(State):
         target_dx = current_target["x"] - current_position["x"]
         target_dy = -current_target["y"] + current_position["y"]
 
-        mavdrone.offboard_position(target_dx, target_dy, TAKEOFF_ALTITUDE)
+        mavdrone.offboard_position(target_dx, target_dy, MAX_ALTITUDE)
 
 
 class CenterBase(State):
@@ -163,7 +164,7 @@ class CenterOnDetection(State):
         current_detection = blackboard.get("current_detection")
         ground_reference = blackboard.get("ground_reference_altitude", 0.0)
         #target_search_altitude = blackboard.get("target_search_altitude", SEARCH_ALTITUDE)
-        target_search_altitude = TAKEOFF_ALTITUDE
+        target_search_altitude = MAX_ALTITUDE
 
         if not self.yolo_deliver_detector or not current_detection:
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
@@ -300,25 +301,21 @@ class CenterOnDetection(State):
         self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
         return False
 
-    
-class LandAndMarkBase(State):
-    """Land on detected base and wait before takeoff."""
-
+        
+class MarkBaseAndTakeoff(State):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
 
-    def execute(self, blackboard: Blackboard):
+    def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR("MavDrone not available in LandAndWait state.")
+            yasmin.YASMIN_LOG_ERROR("MavDrone not available in MarkBaseAndTakeoff state.")
             return ABORT
 
         mavdrone : MavDrone = blackboard["mavdrone"]
 
-        yasmin.YASMIN_LOG_INFO("Landing on detected base...")
+        yasmin.YASMIN_LOG_INFO("Marking base as visited...")
 
         try:
-            mavdrone.land()
-            time.sleep(5)  # Wait for landing to complete
 
             landing_position = {
                 "x": mavdrone.get_local_pos.pose.position.x,
@@ -330,19 +327,25 @@ class LandAndMarkBase(State):
             visited_bases.append(landing_position)
             blackboard["visited_bases"] = visited_bases
 
+            
+            yasmin.YASMIN_LOG_INFO(f"Total bases visited: {len(visited_bases)}/3")
+
+            
+            yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
+            mavdrone.takeoff(TAKEOFF_ALTITUDE)
+            time.sleep(5)
+            yasmin.YASMIN_LOG_INFO("Takeoff successful.")
+
+            # Updates current package index
             current_package = blackboard.get("current_package")
             if current_package < 2:
-                current_package += 1
-
-            yasmin.YASMIN_LOG_INFO(
-                f"- Landed successfully!"
-            )
-            yasmin.YASMIN_LOG_INFO(f"Total bases visited: {len(visited_bases)}/6")
+                blackboard["current_package"] = current_package + 1
+                return "next_pkg"
 
             return SUCCEED
 
         except Exception as e:
-            yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
+            yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
             return ABORT
 
 
@@ -350,10 +353,17 @@ class ReleasePkg(State):
     """
     Soltar pacote
     """
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+
+    def execute(self, blackboard: Blackboard):
+        yasmin.YASMIN_LOG_INFO("RealeasePkg executado.")
+        return SUCCEED
+    
 
 class DropoffSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
         self.add_state(
             "GO_TO_DELIVERY",
             GoToDelivery(),
@@ -362,22 +372,22 @@ class DropoffSM(StateMachine):
         self.add_state(
             "CENTER_ON_DETECTION",
             CenterOnDetection(),
-            transitions={SUCCEED: "LAND_AND_MARK_BASE", ABORT: ABORT},
+            transitions={SUCCEED: "LAND", ABORT: ABORT},
         )
         self.add_state(
-            "LAND_AND_MARK_BASE",
-            LandAndMarkBase(),
+            "LAND",
+            Land(),
             transitions={SUCCEED: "RELEASE_PKG", ABORT: ABORT}
         )
         self.add_state(
-            "REALEASE_PKG",
+            "RELEASE_PKG",
             ReleasePkg(),
-            transitions={SUCCEED:"TAKEOFF", ABORT: ABORT},
+            transitions={SUCCEED: "MARK_BASE_AND_TAKEOFF", ABORT: ABORT},
         )
         self.add_state(
-            "TAKEOFF",
-            Takeoff(),
-            transitions={SUCCEED: SUCCEED, ABORT : ABORT},
+            "MARK_BASE_AND_TAKEOFF",
+            MarkBaseAndTakeoff(),
+            transitions={SUCCEED: SUCCEED, ABORT : ABORT, "next_pkg" : "next_pkg"},
         )
         
         self.set_start_state("GO_TO_DELIVERY")

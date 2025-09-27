@@ -1,6 +1,10 @@
 # Main State Machine for Delivery
+import rclpy
 
+import yasmin
+from yasmin_ros import set_ros_loggers
 from yasmin import StateMachine
+from yasmin_viewer import YasminViewerPub
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 from delivery.states import (
@@ -49,3 +53,28 @@ class Delivery(StateMachine):
         )
 
         self.set_start_state("INITIALIZE")
+
+
+def main():
+    rclpy.init()
+    set_ros_loggers()
+    sm = Delivery()
+
+    
+    YasminViewerPub("YASMIN_DEMO", sm)
+
+    # Execute the FSM
+    try:
+        yasmin.YASMIN_LOG_ERROR(sm.validate())
+        outcome = sm()
+        yasmin.YASMIN_LOG_INFO(outcome)
+    except KeyboardInterrupt:
+        if sm.is_running():
+            sm.cancel_state()
+
+    # Shutdown ROS 2 if it's running
+    if rclpy.ok():
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()

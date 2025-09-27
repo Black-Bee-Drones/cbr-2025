@@ -31,7 +31,7 @@ class YOLOPackageDetector:
     for landing base recognition.
     """
 
-    def __init__(self, model_path: str = YOLO_MODEL_PATH):
+    def __init__(self, model_path: str = YOLO_MODEL_PATH): 
         """
         Initialize YOLO detector.
 
