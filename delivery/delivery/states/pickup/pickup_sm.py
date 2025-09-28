@@ -55,14 +55,14 @@ class GoToPkg(State):
             )
             return ABORT
 
-        mavdrone: MavDrone = blackboard.get("mavdrone")
+        # mavdrone: MavDrone = blackboard.get("mavdrone")
         
-        package_position = blackboard.get("package_position")
-        if not package_position:
+        packages_positions = blackboard.get("packages_positions")
+        if not packages_positions:
             yasmin.YASMIN_LOG_ERROR(f"Next package position not avaible.")
             return ABORT
 
-        yasmin.YASMIN_LOG_INFO(f"Next package position: {package_position}.")
+        yasmin.YASMIN_LOG_INFO(f"Next package position: {packages_positions}.")
         
         position_controller : PositionController = blackboard.get("position_controller")
         if not position_controller:
@@ -70,9 +70,10 @@ class GoToPkg(State):
             return ABORT
 
         try:
+            idx = blackboard.get("current_package")
             success = position_controller.goto_position_ground_relative(
-                package_position["x"],
-                package_position["y"],
+                packages_positions[idx]["x"],
+                packages_positions[idx]["y"],
                 TAKEOFF_ALTITUDE,
                 blackboard.get("ground_reference_altitude", 0.0),
                 timeout = SEARCH_TIMEOUT
@@ -97,7 +98,6 @@ class CenterPkg(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
-        self.yolo_pkg_detector: Optional[YOLODeliverDetector] = None
 
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
@@ -133,7 +133,7 @@ class CenterPkg(State):
                 angular_z = 0.0,
             )
         yasmin.YASMIN_LOG_ERROR(f"Timeout ({CENTER_TIMEOUT:.1f}s) while trying to center target.")
-        return ABORT
+        return FAIL
 
     def image_processing_callback(self, img) -> Tuple[float, float]:
         """
@@ -149,7 +149,7 @@ class CenterPkg(State):
 
         return error_x, error_y
 
-
+# Não faz sentido só subir
 class ReacquireTarget(State):
     """
     Up to search package
@@ -160,7 +160,7 @@ class ReacquireTarget(State):
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        current_alt = mavdrone.get_rel_alt.data
+        current_alt = mavdrone.get_rng_alt.range
 
         new_alt = current_alt + TARGET_UP_ALTITUDE
 
@@ -195,7 +195,8 @@ class ReacquireTarget(State):
         yasmin.YASMIN_LOG_ERROR(f"Timeout ({REACQUIRE_TARGET_TIMEOUT:.1f}s) without reaching target altitude {new_alt:.2f}m. Last altitude={current_alt:.2f}m")
         return ABORT
 
-
+# Pode se perder durante o align pq não faz a troca rápida de estados, aling
+# no pior caso vai dar quase um 360
 class AlingPkg(State):
     """
     Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
@@ -267,7 +268,7 @@ class AlingPkg(State):
 
         return [side_x, side_y]
     
-
+# Falta implementar
 class DescendPkg(State):
     """
     Descer um pouco e realinhar o drone até chegar em uma boa altura para dar land
@@ -324,7 +325,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "ALING_PKG",
             AlingPkg(),
-            transitions={SUCCEED:"DESCEND_PKG", ABORT: ABORT},
+            transitions={SUCCEED:"DESCEND_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
             "DESCEND_PKG",
