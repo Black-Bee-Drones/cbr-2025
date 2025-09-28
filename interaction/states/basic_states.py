@@ -105,6 +105,7 @@ class Takeoff(State):
             return ABORT
         
 class FindHuman(State):
+    """Starting the movement to find human."""
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
@@ -120,12 +121,13 @@ class FindHuman(State):
             return SUCCEED
 
         except Exception as e:
-            yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
+            yasmin.YASMIN_LOG_ERROR(f"Find Human failed: {e}")
             return ABORT
 
 
 
 class FollowHuman(State):
+    """Starting Human Follow mode. Activating gesture control systems."""
     
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
