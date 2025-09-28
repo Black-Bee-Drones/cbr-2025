@@ -42,6 +42,7 @@ class Initialize(State):
             )
             blackboard["initial_position"] = initial_position
             
+            # Vai dar problema porque não armamos ainda
             ground_altitude = mavdrone.get_rng_alt.range
             blackboard["ground_reference_altitude"] = ground_altitude
 
@@ -64,11 +65,11 @@ class Initialize(State):
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
-            """yolo_pkg_detector = YOLOPackageDetector()
+            yolo_pkg_detector = YOLOPackageDetector()
             blackboard["yolo_pkg_detector"] = yolo_pkg_detector
 
             yolo_deliver_detector = YOLODeliverDetector()
-            blackboard["yolo_deliver_detector"] = yolo_deliver_detector"""
+            blackboard["yolo_deliver_detector"] = yolo_deliver_detector
 
             position_controller = PositionController(mavdrone)
 
