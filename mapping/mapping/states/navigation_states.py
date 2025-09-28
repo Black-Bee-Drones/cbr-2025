@@ -18,20 +18,18 @@ from mapping.constants import (
     CAMERA_SOURCE,
     DETECTION_SAVE_PATH,
 )
-from mapping.utils import PositionController, YOLODetector   
+from mapping.utils import YOLODetector   
 
 
 class NavigateToWaypoint(State):
-    """Navigate drone to a specific grid waypoint."""
+    """Navigate drone to next grid waypoint and mark previous as visited."""
 
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, TIMEOUT])
+        super().__init__(outcomes=[SUCCEED, "ALL_COMPLETE", ABORT])
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR(
-                "MavDrone not available in NavigateToWaypoint state."
-            )
+            yasmin.YASMIN_LOG_ERROR("MavDrone not available in NavigateToWaypoint state.")
             return ABORT
 
         mavdrone = blackboard["mavdrone"]
@@ -40,41 +38,49 @@ class NavigateToWaypoint(State):
             yasmin.YASMIN_LOG_ERROR("Grid waypoints not available.")
             return ABORT
 
+        # Mark previous waypoint as visited if exists
+        current_waypoint = blackboard.get("current_target_waypoint")
+        if current_waypoint:
+            grid_waypoints.mark_waypoint_visited(current_waypoint["index"])
+            progress = grid_waypoints.get_progress()
+            yasmin.YASMIN_LOG_INFO(
+                f"Waypoint {current_waypoint['index']} completed. Progress: {progress['progress_percent']:.1f}%"
+            )
+
+        # Check if mission complete
+        visited_bases = blackboard.get("visited_bases", [])
+        if len(visited_bases) >= 6:
+            yasmin.YASMIN_LOG_INFO("All 6 landing bases visited! Mission complete.")
+            return "ALL_COMPLETE"
+
+        # Get next waypoint
         target_waypoint = grid_waypoints.get_next_waypoint()
         if not target_waypoint:
             yasmin.YASMIN_LOG_INFO("All waypoints completed!")
-            return SUCCEED
+            return "ALL_COMPLETE"
 
         yasmin.YASMIN_LOG_INFO(
-            f"Navigating to waypoint ({target_waypoint['x']:.1f}, {target_waypoint['y']:.1f})"
+            f"Navigating to waypoint {target_waypoint['index']} at ({target_waypoint['x']:.1f}, {target_waypoint['y']:.1f})"
         )
-
         blackboard["current_target_waypoint"] = target_waypoint
-
-        position_controller: PositionController = blackboard.get("position_controller")
-        if not position_controller:
-            yasmin.YASMIN_LOG_ERROR("Position controller not available.")
-            return ABORT
-
-        # Get target altitude (maintain constant height above ground)
-        target_search_altitude = blackboard.get("target_search_altitude", SEARCH_ALTITUDE)
+        grid_waypoints.advance_to_next()
 
         try:
-            # Navigate with ground-relative altitude control
-            success = position_controller.goto_position_ground_relative(
-                target_waypoint["x"], 
-                target_waypoint["y"], 
-                target_search_altitude,
-                blackboard.get("ground_reference_altitude", 0.0),
-                timeout=SEARCH_TIMEOUT
+            # Get current position and navigate
+            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
+            current_pos = mavdrone.get_visual_pos.pose.position
+            
+            mavdrone.offboard_position(
+                x=target_waypoint["x"] - current_pos.x,
+                y=target_waypoint["y"] - current_pos.y,
+                z=0.0,
+                precision_radius=POSITION_TOLERANCE,
+                timeout_sec=SEARCH_TIMEOUT,
+                strategy="PID"
             )
 
-            if success:
-                yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
-                return SUCCEED
-            else:
-                yasmin.YASMIN_LOG_ERROR("Failed to reach waypoint")
-                return ABORT
+            yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
+            return SUCCEED
 
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Navigation failed: {e}")
@@ -164,27 +170,3 @@ class CaptureAndDetect(State):
             return ABORT
 
 
-class AdvanceToNextWaypoint(State):
-    """Mark current waypoint as visited and advance to next."""
-
-    def __init__(self):
-        super().__init__(outcomes=[SUCCEED, "ALL_COMPLETE"])
-
-    def execute(self, blackboard: Blackboard):
-        grid_waypoints = blackboard.get("grid_waypoints")
-        current_waypoint = blackboard.get("current_target_waypoint")
-
-        if grid_waypoints and current_waypoint:
-            grid_waypoints.mark_waypoint_visited(current_waypoint["index"])
-            grid_waypoints.advance_to_next()
-
-            progress = grid_waypoints.get_progress()
-            yasmin.YASMIN_LOG_INFO(
-                f"Waypoint {current_waypoint['index']} completed. Progress: {progress['progress_percent']:.1f}%"
-            )
-
-            if grid_waypoints.is_complete():
-                yasmin.YASMIN_LOG_INFO("All waypoints completed!")
-                return "ALL_COMPLETE"
-
-        return SUCCEED
