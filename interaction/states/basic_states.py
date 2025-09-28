@@ -192,3 +192,26 @@ class ReturnToLaunch(State):
             return ABORT
         
         yasmin.YASMIN_LOG_INFO("Returning to takeoff base using local coordinates...")
+
+
+class End(State):
+    """Finalizes the mission and performs cleanup."""
+
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED])
+
+    def execute(self, blackboard: Blackboard):
+        yasmin.YASMIN_LOG_INFO("Phase 1 Mission completed. Cleanup...")
+
+        if "mavdrone" in blackboard:
+            mavdrone: MavDrone = blackboard["mavdrone"]
+
+            if mavdrone.get_state.armed:
+                yasmin.YASMIN_LOG_INFO("Drone still armed, ensuring safe landing...")
+                try:
+                    mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+                    mavdrone.land()
+                except Exception as e:
+                    yasmin.YASMIN_LOG_ERROR(f"Failed to land during cleanup: {e}")
+
+        return SUCCEED

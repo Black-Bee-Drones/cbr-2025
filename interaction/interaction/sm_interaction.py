@@ -10,7 +10,8 @@ from interaction.states.basic_states import (
     Takeoff,
     FindHuman,
     FollowHuman,
-    ReturnToLaunch
+    ReturnToLaunch,
+    End
 )
 
 class CBRPhase3StateMachine(StateMachine):
