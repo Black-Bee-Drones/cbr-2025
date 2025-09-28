@@ -15,9 +15,9 @@ class Direction(Enum):
     LEFT = "LEFT"  # +Y direction
 
 
-class BoustrophedonGrid:
+class Grid:
     """
-    Boustrophedon (lawnmower) grid pattern generator for CBR 2025 Phase 1.
+    Boustrophedon grid pattern generator.
 
     Supports configurable movement patterns:
     - Column-based: Move forward/backward in columns, transition right/left

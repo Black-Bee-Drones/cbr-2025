@@ -7,11 +7,10 @@ ARENA_HEIGHT = 8.0
 SEARCH_AREA_WIDTH = 7.0
 SEARCH_AREA_HEIGHT = 7.0
 
-# Flight parameters (ground-relative)
-TAKEOFF_ALTITUDE = 3.0  # meters above ground for search
-SEARCH_ALTITUDE = 3.0   # maintain this height above ground during search
-CENTERING_ALTITUDE = 1.2  # final altitude above figure for landing
-RTL_ALTITUDE = 3.5
+# Flight parameters
+TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitude
+SEARCH_ALTITUDE = 3.0   # meters - maintain during search
+CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
@@ -33,20 +32,12 @@ MIN_LANDING_BASE_HEIGHT = 0.0
 MAX_LANDING_BASE_HEIGHT = 1.5
 EXPECTED_LANDING_BASES = 6  # number of landing bases to find
 
-# Height reference management
-MAINTAIN_ABSOLUTE_HEIGHT = True  # Keep same height above original ground level
-TARGET_HEIGHT_ABOVE_GROUND = 3.0  # meters - desired height above original ground
-ALTITUDE_COMPENSATION_TIME = 5.0  # seconds - time for drone to auto-compensate height
-ALTITUDE_COMPENSATION_GAIN = 0.4  # gain for counteracting auto-compensation
 
-# Position precision and duplicate detection
-LANDING_PRECISION = 0.2  # meters - precision radius for landing
+# Duplicate detection
 DUPLICATE_BASE_RADIUS = 1.5  # meters - radius to consider as same base
-MIN_BASE_SEPARATION = 1.0  # meters - minimum distance between different bases
 
 # Timeouts
-SEARCH_TIMEOUT = 300  # seconds - 5 minutes search timeout per attempt
-LANDING_TIMEOUT = 30  # seconds - landing timeout
+SEARCH_TIMEOUT = 30  # seconds - timeout per waypoint navigation
 TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 
 # YOLO detection parameters
@@ -73,14 +64,4 @@ VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
 POSITION_TOLERANCE = 0.3  # meters - position precision tolerance
 
-# Position control parameters
-POSITION_CONTROLLER_KP_XY = 0.6  # Proportional gain for XY movement
-POSITION_CONTROLLER_KP_Z = 0.6  # Proportional gain for Z movement
-POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
-MAX_VELOCITY_XY = 0.8
-MAX_VELOCITY_Z = 0.5
 
-# Safety parameters
-MIN_SAFE_ALTITUDE = 1.0
-MAX_SAFE_ALTITUDE = 4.0
-WALL_CLEARANCE = 0.5

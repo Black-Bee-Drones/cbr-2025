@@ -11,6 +11,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from mapping.constants import (
     TAKEOFF_ALTITUDE,
+    SEARCH_ALTITUDE,
     RTL_ALTITUDE,
     TAKEOFF_TIMEOUT,
     ALTITUDE_TOLERANCE,
@@ -22,7 +23,7 @@ from mapping.constants import (
     GRID_TRANSITION_DIRECTION,
     GRID_START_OFFSET,
 )
-from mapping.utils import BoustrophedonGrid, YOLODetector, PositionController
+from mapping.utils import Grid, YOLODetector
 
 
 class Initialize(State):
@@ -34,29 +35,28 @@ class Initialize(State):
     def execute(self, blackboard: Blackboard):
 
         try:
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
+            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), indoor=True)
             mavdrone: MavDrone = blackboard["mavdrone"]
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
             initial_position = (
-                mavdrone.get_local_pos.pose.position.x,
-                mavdrone.get_local_pos.pose.position.y,
-                mavdrone.get_local_pos.pose.position.z,
+                mavdrone.get_visual_pos.pose.position.x,
+                mavdrone.get_visual_pos.pose.position.y,
+                mavdrone.get_visual_pos.pose.position.z,
             )
             blackboard["initial_position"] = initial_position
+            blackboard["takeoff_position"] = initial_position  # Store for RTL
             
-            ground_altitude = mavdrone.get_rng_alt.data
-            blackboard["ground_reference_altitude"] = ground_altitude
-            blackboard["target_search_altitude"] = ground_altitude + SEARCH_ALTITUDE
+            blackboard["target_search_altitude"] = SEARCH_ALTITUDE
 
             yasmin.YASMIN_LOG_INFO(
                 f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
             )
             yasmin.YASMIN_LOG_INFO(
-                f"Ground reference altitude: {ground_altitude:.2f}m, Target search altitude: {ground_altitude + SEARCH_ALTITUDE:.2f}m"
+                f"Target search altitude: {SEARCH_ALTITUDE:.2f}m"
             )
 
-            boustrophedon_grid = BoustrophedonGrid(
+            grid = Grid(
                 search_width=SEARCH_AREA_WIDTH,
                 search_height=SEARCH_AREA_HEIGHT,
                 grid_spacing=GRID_SPACING,
@@ -66,22 +66,16 @@ class Initialize(State):
                 primary_direction=GRID_PRIMARY_DIRECTION,
                 transition_direction=GRID_TRANSITION_DIRECTION,
             )
-            blackboard["grid_waypoints"] = boustrophedon_grid
+            blackboard["grid_waypoints"] = grid
 
             yolo_detector = YOLODetector()
             blackboard["yolo_detector"] = yolo_detector
 
-            position_controller = PositionController(mavdrone)
-
-            blackboard["position_controller"] = position_controller
-
             blackboard["visited_bases"] = []
-            blackboard["takeoff_position"] = None
             blackboard["current_target_waypoint"] = None
             blackboard["current_detection"] = None
-            blackboard["pre_center_position"] = None
 
-            pattern_summary = boustrophedon_grid.get_pattern_summary()
+            pattern_summary = grid.get_pattern_summary()
             yasmin.YASMIN_LOG_INFO("Phase 1 Mission Initialized")
             yasmin.YASMIN_LOG_INFO(
                 f"Pattern: {pattern_summary['pattern_type']} - {pattern_summary['primary_direction']}"
@@ -94,7 +88,7 @@ class Initialize(State):
                 f"Search origin: ({pattern_summary['search_origin'][0]:.2f}, {pattern_summary['search_origin'][1]:.2f})"
             )
 
-            print(boustrophedon_grid.visualize_pattern())
+            print(grid.visualize_pattern())
 
             return SUCCEED
 
@@ -108,6 +102,7 @@ class Takeoff(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
+        self.node = YasminNode.get_instance()
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
@@ -118,13 +113,16 @@ class Takeoff(State):
 
         yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {TAKEOFF_ALTITUDE}m...")
 
-        # Store takeoff position for RTL
-        takeoff_position = {
-            "local_x": mavdrone.get_local_pos.pose.position.x,
-            "local_y": mavdrone.get_local_pos.pose.position.y,
-            "local_z": mavdrone.get_local_pos.pose.position.z,
-        }
-        blackboard["takeoff_position"] = takeoff_position
+        # Store takeoff position for RTL if first takeoff
+        if blackboard.get("takeoff_position") is None:
+            rclpy.spin_once(self.node, timeout_sec=0.1)
+            takeoff_position = (
+                mavdrone.get_visual_pos.pose.position.x,
+                mavdrone.get_visual_pos.pose.position.y,
+                mavdrone.get_visual_pos.pose.position.z,
+            )
+            blackboard["takeoff_position"] = takeoff_position
+            yasmin.YASMIN_LOG_INFO(f"Stored takeoff position: ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
 
         try:
             mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
@@ -135,7 +133,7 @@ class Takeoff(State):
             while time.time() - start_time < TAKEOFF_TIMEOUT:
                 rclpy.spin_once(self.node, timeout_sec=0.1)
 
-                current_alt = mavdrone.get_rng_alt.data
+                current_alt = mavdrone.get_rng_alt.range
                 yasmin.YASMIN_LOG_INFO(f"Current altitude: {current_alt:.2f}m")
 
                 altitude_error = TAKEOFF_ALTITUDE - current_alt
@@ -175,12 +173,7 @@ class ReturnToLaunch(State):
             return ABORT
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        position_controller = blackboard.get("position_controller")
         takeoff_position = blackboard.get("takeoff_position")
-
-        if not position_controller:
-            yasmin.YASMIN_LOG_ERROR("Position controller not available.")
-            return ABORT
 
         if not takeoff_position:
             yasmin.YASMIN_LOG_ERROR("Takeoff position not stored.")
@@ -202,29 +195,25 @@ class ReturnToLaunch(State):
         yasmin.YASMIN_LOG_INFO(f"  - Mission completion: {len(visited_bases)}/6 bases")
 
         try:
-            # First, climb to RTL altitude for safe navigation
-            yasmin.YASMIN_LOG_INFO(f"Climbing to RTL altitude: {RTL_ALTITUDE}m")
-            current_pos = mavdrone.get_local_pos.pose.position
-            success = position_controller.goto_position(
-                current_pos.x, current_pos.y, RTL_ALTITUDE, timeout=30.0
+            # Get current position
+            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
+            current_pos = mavdrone.get_visual_pos.pose.position
+            
+            yasmin.YASMIN_LOG_INFO(f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
+        
+            mavdrone.offboard_position(
+                x=takeoff_position[0] - current_pos.x,
+                y=takeoff_position[1] - current_pos.y,
+                z=0.0, 
+                precision_radius=0.3,
+                timeout_sec=60.0,
+                strategy="PID"
             )
-
-            if not success:
-                yasmin.YASMIN_LOG_ERROR("Failed to climb to RTL altitude")
-                return ABORT
-
-            # Navigate back to takeoff position
-            success = position_controller.return_to_takeoff_position(
-                takeoff_position, approach_altitude=RTL_ALTITUDE
-            )
-
-            if not success:
-                yasmin.YASMIN_LOG_ERROR("Failed to return to takeoff position")
-                return ABORT
 
             # Land at takeoff position
             yasmin.YASMIN_LOG_INFO("Landing at takeoff position...")
             mavdrone.land()
+            time.sleep(10) 
 
             return SUCCEED
 

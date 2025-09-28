@@ -12,10 +12,8 @@ from mapping.states import (
     Takeoff,
     NavigateToWaypoint,
     CaptureAndDetect,
-    AdvanceToNextWaypoint,
     CenterOnDetection,
     LandAndWait,
-    TakeoffAndReturn,
     ReturnToLaunch,
     End,
 )
@@ -47,8 +45,8 @@ class CBRPhase1StateMachine(StateMachine):
             NavigateToWaypoint(),
             transitions={
                 SUCCEED: "CAPTURE_AND_DETECT",
+                "ALL_COMPLETE": "RETURN_TO_LAUNCH",
                 ABORT: "RETURN_TO_LAUNCH",
-                TIMEOUT: "RETURN_TO_LAUNCH",
             },
         )
 
@@ -56,7 +54,7 @@ class CBRPhase1StateMachine(StateMachine):
             "CAPTURE_AND_DETECT",
             CaptureAndDetect(),
             transitions={
-                SUCCEED: "ADVANCE_TO_NEXT",
+                SUCCEED: "NAVIGATE_TO_WAYPOINT",
                 "DETECTION_FOUND": "CENTER_ON_DETECTION",
                 ABORT: "RETURN_TO_LAUNCH",
             },
@@ -67,33 +65,23 @@ class CBRPhase1StateMachine(StateMachine):
             CenterOnDetection(),
             transitions={
                 SUCCEED: "LAND_AND_WAIT",
-                ABORT: "ADVANCE_TO_NEXT",
-                TIMEOUT: "ADVANCE_TO_NEXT",
+                ABORT: "NAVIGATE_TO_WAYPOINT",
+                TIMEOUT: "NAVIGATE_TO_WAYPOINT",
             },
         )
 
         self.add_state(
             "LAND_AND_WAIT",
             LandAndWait(),
-            transitions={SUCCEED: "TAKEOFF_AND_RETURN", ABORT: "RETURN_TO_LAUNCH"},
+            transitions={SUCCEED: "TAKEOFF_AFTER_LANDING", ABORT: "RETURN_TO_LAUNCH"},
         )
 
         self.add_state(
-            "TAKEOFF_AND_RETURN",
-            TakeoffAndReturn(),
-            transitions={
-                SUCCEED: "ADVANCE_TO_NEXT",
-                ABORT: "RETURN_TO_LAUNCH",
-                TIMEOUT: "RETURN_TO_LAUNCH",
-            },
-        )
-
-        self.add_state(
-            "ADVANCE_TO_NEXT",
-            AdvanceToNextWaypoint(),
+            "TAKEOFF_AFTER_LANDING",
+            Takeoff(),
             transitions={
                 SUCCEED: "NAVIGATE_TO_WAYPOINT",
-                "ALL_COMPLETE": "RETURN_TO_LAUNCH",
+                ABORT: "RETURN_TO_LAUNCH",
             },
         )
 
