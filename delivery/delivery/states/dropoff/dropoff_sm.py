@@ -60,87 +60,7 @@ class GoToDelivery(State):
 
         mavdrone.offboard_position(target_dx, target_dy, TAKEOFF_ALTITUDE)
 
-
-class CenterBase(State):
-    def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
-        self.image_handler = ImageHandler(node=YasminNode.get_instance(), image_source=IMAGE_SOURCE)
-
-    def execute(self, blackboard: Blackboard):
-        if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR("MavDrone not available in CenterBase state.")
-            return ABORT
-
-        yolo_deliver_detector: YOLODeliverDetector = blackboard.get("yolo_deliver_detector")
-        if not yolo_deliver_detector:
-            yasmin.YASMIN_LOG_ERROR("YOLO deliver detector not available.")
-            return ABORT
-
-        current_package = blackboard.get("current_package")
-        if not current_package:
-            yasmin.YASMIN_LOG_ERROR("Current package not available.")
-            return ABORT
-
-        yasmin.YASMIN_LOG_INFO(
-            f"Capturing image and detecting at base {current_package}"
-        )
-
-        os.makedirs(DETECTION_SAVE_PATH, exist_ok=True)
-
-        try:
-            frame = self.image_handler.take_photo()
-
-            if frame is None:
-                yasmin.YASMIN_LOG_ERROR("Failed to capture image")
-                return ABORT
-
-            timestamp = int(time.time() * 1000)
-            image_path = f"{DETECTION_SAVE_PATH}/base_{current_package:03d}_{timestamp}.jpg"
-            cv2.imwrite(image_path, frame)
-
-            detection = yolo_deliver_detector.detect(
-                frame, save_image=True, timestamp=timestamp
-            )
-
-            if detection:
-                # Check if this detection is near a previously visited base
-                mavdrone = blackboard["mavdrone"]
-                current_pos = mavdrone.get_local_pos.pose.position
-                visited_bases = blackboard.get("visited_bases", [])
-                
-                is_duplicate = False
-                for base in visited_bases: 
-                    distance = math.sqrt(
-                        (current_pos.x - base["x"]) ** 2 + 
-                        (current_pos.y - base["y"]) ** 2
-                    )
-                    if distance < 1.5:  # Within 1.5m is considered same base
-                        yasmin.YASMIN_LOG_INFO(
-                            f"Detection appears to be already visited base at ({base['x']:.1f}, {base['y']:.1f})"
-                        )
-                        is_duplicate = True
-                        break
-                
-                if not is_duplicate:
-                    blackboard["current_detection"] = detection
-                    blackboard["detection_image"] = frame
-
-                    yasmin.YASMIN_LOG_INFO(
-                        f"- NEW landing base detected! Confidence: {detection['confidence']:.2f}"
-                    )
-                    return "DETECTION_FOUND"
-                else:
-                    yasmin.YASMIN_LOG_INFO("Detection is a duplicate, continuing search")
-                    return SUCCEED
-            else:
-                yasmin.YASMIN_LOG_INFO("No landing base detected at this waypoint")
-                return SUCCEED
-
-        except Exception as e:
-            yasmin.YASMIN_LOG_ERROR(f"Capture and detect failed: {e}")
-            return ABORT
-        
-        
+# REVER OUTCOMES
 class CenterOnDetection(State):
     """Two-phase centering: Phase 1 at search altitude, Phase 2 descending to landing altitude."""
 
@@ -148,12 +68,9 @@ class CenterOnDetection(State):
         super().__init__(outcomes=[SUCCEED, ABORT])
         self.image_handler = None
         self.node = YasminNode.get_instance()
-        self.image_handler = ImageHandler(
-            node=self.node,
-            image_source=IMAGE_SOURCE,
-        )
 
     def execute(self, blackboard: Blackboard):
+        self.image_handler = blackboard.get("image_handler")
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR("MavDrone not available in CenterOnDetection state.")
             return ABORT
@@ -191,7 +108,7 @@ class CenterOnDetection(State):
                 return ABORT
 
             # Measure figure altitude after centering
-            current_lidar_reading = self.mavdrone.get_rng_alt.data
+            current_lidar_reading = self.mavdrone.get_rng_alt.range
             figure_altitude = target_search_altitude - current_lidar_reading
             blackboard["figure_altitude"] = figure_altitude
             yasmin.YASMIN_LOG_INFO(f"Figure detected at altitude: {figure_altitude:.2f}m above ground")
@@ -244,7 +161,7 @@ class CenterOnDetection(State):
             vel_x = max(-CENTERING_VELOCITY, min(CENTERING_VELOCITY, vel_x))
             vel_y = max(-CENTERING_VELOCITY, min(CENTERING_VELOCITY, vel_y))
 
-            current_lidar = self.mavdrone.get_rng_alt.data
+            current_lidar = self.mavdrone.get_rng_alt.range
             altitude_error = (target_altitude - ground_reference) - current_lidar
             vel_z = altitude_error * ALTITUDE_COMPENSATION_GAIN
             vel_z = max(-0.2, min(0.2, vel_z))
