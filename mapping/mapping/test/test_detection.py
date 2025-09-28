@@ -9,6 +9,7 @@ import time
 import rclpy
 from yasmin_ros.yasmin_node import YasminNode
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.image_processing.camera import IMX219Config
 
 from mapping.utils import YOLODetector
 from mapping.constants import (
@@ -16,7 +17,8 @@ from mapping.constants import (
     IMAGE_CENTER_X,
     IMAGE_CENTER_Y,
     CENTERING_TOLERANCE_PX,
-    DETECTION_SAVE_PATH
+    DETECTION_SAVE_PATH,
+    YOLO_MODEL_PATH
 )
 
 
@@ -29,8 +31,13 @@ def test_detection():
     rclpy.init()
     node = YasminNode.get_instance()
 
-    image_handler = ImageHandler(node=node, image_source=CAMERA_SOURCE)
-    yolo_detector = YOLODetector()
+    image_handler = ImageHandler(
+        node=node, 
+        image_source=CAMERA_SOURCE,
+        config=IMX219Config(sensor_id=0, width=1280, height=720, flip=2),
+    )
+    time.sleep(3)  
+    yolo_detector = YOLODetector(YOLO_MODEL_PATH)
     
     frame_count = 0
     detection_count = 0
@@ -44,7 +51,7 @@ def test_detection():
             
             frame_count += 1
  
-            detection = yolo_detector.detect(frame, save_image=False)
+            detection = yolo_detector.detect(frame, save_image=True)
             
             display_frame = frame.copy()
             cv2.line(display_frame, (IMAGE_CENTER_X - 20, IMAGE_CENTER_Y),
@@ -95,16 +102,16 @@ def test_detection():
             cv2.putText(display_frame, f"Detections: {detection_count}", (10, display_frame.shape[0] - 20),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                        
-            cv2.imshow("YOLO Detection Test", display_frame)
+            #cv2.imshow("YOLO Detection Test", display_frame)
             
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break
-            elif key == ord('s'):
-                timestamp = int(time.time() * 1000)
-                filename = f"{DETECTION_SAVE_PATH}/test_frame_{timestamp}.jpg"
-                cv2.imwrite(filename, display_frame)
-                print(f"Saved frame to {filename}")
+            # key = cv2.waitKey(1) & 0xFF
+            # if key == ord('q'):
+            #     break
+            # elif key == ord('s'):
+            #     timestamp = int(time.time() * 1000)
+            #     filename = f"{DETECTION_SAVE_PATH}/test_frame_{timestamp}.jpg"
+            #     cv2.imwrite(filename, display_frame)
+            #     print(f"Saved frame to {filename}")
             
     except KeyboardInterrupt:
         print("\nTest interrupted by user")

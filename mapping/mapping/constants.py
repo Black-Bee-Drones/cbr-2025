@@ -42,7 +42,7 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 
 # YOLO detection parameters
 YOLO_MODEL_PATH = os.path.join(
-    get_package_share_directory("mapping"), "models", "yolov11n.onnx"
+    get_package_share_directory("mapping"), "models", "best.pt"
 )
 YOLO_CONFIDENCE_THRESHOLD = 0.7  
 YOLO_IMAGE_SIZE = 640 
@@ -55,7 +55,7 @@ CENTERING_TIMEOUT = 15  # seconds - max time for centering operation
 LAND_WAIT_TIME = 15  # seconds - wait time after landing before takeoff
 
 # Camera parameters
-CAMERA_SOURCE = "webcam"
+CAMERA_SOURCE = "imx219"
 IMAGE_CENTER_X = 640  # camera image center X (pixels)
 IMAGE_CENTER_Y = 360  # camera image center Y (pixels)
 
