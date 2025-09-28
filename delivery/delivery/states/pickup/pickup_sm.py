@@ -195,9 +195,7 @@ class ReacquireTarget(State):
         yasmin.YASMIN_LOG_ERROR(f"Timeout ({REACQUIRE_TARGET_TIMEOUT:.1f}s) without reaching target altitude {new_alt:.2f}m. Last altitude={current_alt:.2f}m")
         return ABORT
 
-# Pode se perder durante o align pq não faz a troca rápida de estados, aling
-# no pior caso vai dar quase um 360
-class AlingPkg(State):
+class AlignPkg(State):
     """
     Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
     """
@@ -315,7 +313,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "CENTER_PKG",
             CenterPkg(),
-            transitions={SUCCEED:"ALING_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
+            transitions={SUCCEED:"ALIGN_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
             "REACQUIRE_TARGET",
@@ -323,8 +321,8 @@ class PickupSM(StateMachine):
             transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT},
         )
         self.add_state(
-            "ALING_PKG",
-            AlingPkg(),
+            "ALIGN_PKG",
+            AlignPkg(),
             transitions={SUCCEED:"DESCEND_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
