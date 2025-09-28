@@ -19,6 +19,11 @@ setup(
     license="Apache-2.0",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["mangalarga = mapping.mangalarga:main"],
+        "console_scripts": [
+            "mangalarga = mapping.mangalarga:main",
+            "test_navigation = mapping.test.test_navigation:main",
+            "test_detection = mapping.test.test_detection:main",
+            "test_centralize = mapping.test.test_centralize:main",
+        ],
     },
 )
