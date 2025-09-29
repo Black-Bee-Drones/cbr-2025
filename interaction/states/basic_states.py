@@ -40,6 +40,8 @@ class Initialize(State):
             ground_altitude = mavdrone.get_rng_alt.data
             blackboard["ground_reference_altitude"] = ground_altitude
 
+            blackboard["rtl_land_counter"] = 0
+
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Error at Initialize: {e}")
 
