@@ -10,6 +10,7 @@ from interaction.states.basic_states import (
     Takeoff,
     FindHuman,
     StartGesture,
+    CheckCount,
     ReturnToLaunch,
     End
 )
@@ -32,7 +33,11 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "START_GESTURE", StartGesture, transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
+            "START_GESTURE", StartGesture, transitions={SUCCEED: "CHECK_COUNT", ABORT: "END"}
+        )
+
+        self.add_state(
+            "CHECK_COUNT", CheckCount, transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(
