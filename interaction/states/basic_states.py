@@ -43,6 +43,7 @@ class Initialize(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Error at Initialize: {e}")
 
+
 class Takeoff(State):
     """Arms the drone and takes off to search altitude."""
 
@@ -104,6 +105,7 @@ class Takeoff(State):
             yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
             return ABORT
         
+
 class FindHuman(State):
     """Starting the movement to find human."""
 
@@ -125,8 +127,7 @@ class FindHuman(State):
             return ABORT
 
 
-
-class FollowHuman(State):
+class StartGesture(State):
     """Starting Human Follow mode. Activating gesture control systems."""
     
     def __init__(self):
@@ -168,7 +169,12 @@ class FollowHuman(State):
         
         yasmin.YASMIN_LOG_INFO("Gesture Recognizer node started successfully")
 
+        return SUCCEED
 
+
+
+class CheckCount(State):
+    pass
 
 class ReturnToLaunch(State):
     """Returns the drone to the takeoff position using local coordinates and lands."""
