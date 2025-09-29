@@ -26,3 +26,9 @@ GESTURE_RECOGNIZER_NODE = "mav_gesture_recognizer"
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
 POSITION_TOLERANCE = 0.3  # meters - position precision tolerance
+
+
+# GESTURE TRIGGER / RTL COUNTING 
+RTL_COUNT_TOPIC = "/drone/land_count_trigger" # Tópico que publica cada Land gesture como trigger
+LAND_GESTURE_ID = 1
+RTL_REQUIRED_COUNT = 6

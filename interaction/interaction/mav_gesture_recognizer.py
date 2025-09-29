@@ -7,6 +7,7 @@ from cvzone.HandTrackingModule import HandDetector
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 import time
 import math
+from interaction.constants import RTL_COUNT_TOPIC, LAND_GESTURE_ID
 
 class GestureRecognizer(Node):
     """
@@ -52,6 +53,10 @@ class GestureRecognizer(Node):
 
         self.acao_pub = self.create_publisher(Int16, "/drone/hands_action", 10)
 
+        self.conta_land_pub = self.create_publisher(Int16, RTL_COUNT_TOPIC, 1) 
+        self.land_trigger_msg = Int16(data=1)
+        self.last_published_action_id = -1 
+
         self.declare_parameter("image_source", "oakd")
         self.image_source = self.get_parameter("image_source").get_parameter_value().string_value
         self.get_logger().info(f"Usando fonte de imagem: {self.image_source}")
@@ -67,6 +72,7 @@ class GestureRecognizer(Node):
         self.frame_time = None
 
         self.image_handler.run()
+
 
     def process(self, img: np.array) -> None:
         """
@@ -94,6 +100,10 @@ class GestureRecognizer(Node):
         if self.msg.data != -1:
             self.acao_pub.publish(self.msg)
             self.get_logger().info(f"Gesto Publicado: ID {self.msg.data}")
+
+        if self.msg.data == LAND_GESTURE_ID and self.msg.data != self.last_published_action_id:
+            self.conta_land_pub.publish(self.land_trigger_msg)
+            self.get_logger().info(f"RTL Land Trigger (ID {LAND_GESTURE_ID}) published.")
 
     def recognize_gesture(self, fingers_right: list, fingers_left: list) -> int:
         """
