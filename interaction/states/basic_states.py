@@ -8,6 +8,7 @@ from yasmin_ros.yasmin_node import YasminNode
 from mirela_sdk import position_controller
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.utils.process import ProcessUtils
+from std_msgs.msg import Int16 
 
 from interaction.constants import (
     TAKEOFF_ALTITUDE,
@@ -15,6 +16,8 @@ from interaction.constants import (
     ALTITUDE_TOLERANCE,
     GESTURE_CONTROLLER_PROCESS,
     GESTURE_RECOGNIZER_PROCESS,
+    RTL_COUNT_TOPIC,
+    RTL_REQUIRED_COUNT
 )
 
 class Initialize(State):
@@ -172,11 +175,53 @@ class StartGesture(State):
         yasmin.YASMIN_LOG_INFO("Gesture Recognizer node started successfully")
 
         return SUCCEED
-
-
+    
 
 class CheckCount(State):
-    pass
+    """ Monitors the 'rtl_land_counter' and triggers transition to RTL when the count reaches the limit (6). """
+
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+        self.node = YasminNode.get_instance()
+        self.land_count_sub = None
+
+        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback,1)
+        yasmin.YASMIN_LOG_INFO(f"RTL Count Subscriber configured on topic: {RTL_COUNT_TOPIC}")
+
+    def _count_callback(self, msg: Int16):
+        """Updates the 'rtl_land_counter' variable in the blackboard."""
+        
+        blackboard = self.node.get_blackboard()
+        current_count = blackboard.get("rtl_land_counter", 0)
+        
+        # O Recognizer publica '1' por trigger, então somamos o valor da msg
+        new_count = current_count + msg.data 
+        blackboard["rtl_land_counter"] = new_count
+
+        yasmin.YASMIN_LOG_INFO(f"RTL Count: {new_count}/{RTL_REQUIRED_COUNT}")
+
+    def execute(self, blackboard: Blackboard):
+        mavdrone: MavDrone = blackboard["mavdrone"]
+
+        while rclpy.ok():
+            current_count = blackboard.get("rtl_land_counter", 0)
+
+            if current_count >= RTL_REQUIRED_COUNT:
+                yasmin.YASMIN_LOG_INFO("RTL count reached 6. Triggering ReturnToLaunch.")
+                
+                if self.land_count_sub:
+                    self.node.destroy_subscription(self.land_count_sub)
+                    self.land_count_sub = None
+                    
+                return SUCCEED 
+
+            rclpy.spin_once(self.node, timeout_sec=0.1)
+
+        if self.land_count_sub:
+            self.node.destroy_subscription(self.land_count_sub)
+            self.land_count_sub = None
+            
+        return ABORT
 
 class ReturnToLaunch(State):
     """Returns the drone to the takeoff position using local coordinates and lands."""
