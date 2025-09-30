@@ -1,7 +1,3 @@
-# class name changed (change blackboards)
-# file name changed (fix imports)
-# detect filtering class parameter changed (fix detects)
-
 import cv2
 import numpy as np
 import os
@@ -147,8 +143,27 @@ class YOLODetector:
         Returns:
             Best detection or None if no detections
         """
-        # filter detections by desired class
-        filtered_detections = [d for d in detections if d["class_id"] == desired_class]
+
+        filtered_detections = []
+        base_detections = [d for d in detections if d["class_id"] == 0]
+        package_detections = [d for d in detections if d["class_id"] == 1]
+
+        # package detection
+        if desired_class == 1:
+            # checks if package is inside base
+            for package in package_detections:
+                px1, py1, px2, py2 = package["bbox"]
+                for base in base_detections:
+                    bx1, by1, bx2, by2 = base["bbox"]
+                    if px1 > bx1 and py1 > by1 and px2 < bx2 and py2 < by2:
+                        filtered_detections.append(package)
+            # if no package is inside base, return all package detections
+            if filtered_detections == []:
+                filtered_detections = package_detections
+
+        # base detection
+        if desired_class == 0:
+            filtered_detections = base_detections
         
         if not filtered_detections:
             return None
