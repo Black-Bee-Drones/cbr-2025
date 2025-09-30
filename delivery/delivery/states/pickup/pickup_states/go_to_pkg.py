@@ -34,7 +34,6 @@ class GoToPkg(State):
 
         yasmin.YASMIN_LOG_INFO(f"Next package position: {packages_positions}.")
         
-        position_controller : PositionController = blackboard.get("position_controller")
         if not position_controller:
             yasmin.YASMIN_LOG_ERROR("Position controller not avaible.")
             return ABORT
