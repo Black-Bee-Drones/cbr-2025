@@ -4,14 +4,16 @@ from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
 
 from .pickup_states import (
-    GoToPkg, 
-    CenterPkg, 
     ReacquireTarget, 
     AlignPkg, 
     DescendPkg, 
     PickPkg, 
-    CenterPkg, 
     CheckPkg,
+)
+
+from common_states import (
+    CenterOnDetection,
+    GoToTarget,
 )
 
 from delivery.states import (
@@ -25,19 +27,19 @@ class PickupSM(StateMachine):
         super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected", FAIL])
 
         self.add_state(
-            "GO_TO_PKG",
-            GoToPkg(),
-            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT},
+            "GO_TO_TARGET",
+            GoToTarget(),
+            transitions={SUCCEED:"CENTER_", ABORT: ABORT},
         )
         self.add_state(
-            "CENTER_PKG",
-            CenterPkg(),
+            "CENTER_ON_DETECTION",
+            CenterOnDetection(),
             transitions={SUCCEED:"ALIGN_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
             "REACQUIRE_TARGET",
             ReacquireTarget(),
-            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT},
+            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT},
         )
         self.add_state(
             "ALIGN_PKG",
@@ -47,7 +49,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "DESCEND_PKG",
             DescendPkg(),
-            transitions={SUCCEED:"CENTER_PKG", ABORT: ABORT, "height_limit": "LAND"},
+            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT, "height_limit": "LAND"},
         )
         self.add_state(
             "LAND",
@@ -67,7 +69,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "CHECK_PKG",
             CheckPkg(),
-            transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_PKG"},
+            transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_ON_DETECTION"},
         )
 
-        self.set_start_state("GO_TO_PKG")
+        self.set_start_state("GO_TO_TARGET")

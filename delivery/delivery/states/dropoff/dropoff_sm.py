@@ -4,10 +4,13 @@ from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 from .dropoff_states import (
-    GoToDelivery, 
-    CenterOnDetection, 
     MarkBaseAndTakeoff, 
     ReleasePkg, 
+)
+
+from common_states import (
+    CenterOnDetection, 
+    GoToTarget,
 )
 
 from delivery.states import (
@@ -20,8 +23,8 @@ class DropoffSM(StateMachine):
         super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
 
         self.add_state(
-            "GO_TO_DELIVERY",
-            GoToDelivery(),
+            "GO_TO_TARGET",
+            GoToTarget(),
             transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT},
         )
         self.add_state(
@@ -45,4 +48,4 @@ class DropoffSM(StateMachine):
             transitions={SUCCEED: SUCCEED, ABORT : ABORT, "next_pkg" : "next_pkg"},
         )
         
-        self.set_start_state("GO_TO_DELIVERY")
+        self.set_start_state("GO_TO_TARGET")
