@@ -84,7 +84,8 @@ class Takeoff(State):
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
             mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
-            time.sleep(5)
+            # Adjust initial position for correct RTL and Ground Reference
+            mavdrone.set_takeoff_position(blackboard["initial_position"])
             yasmin.YASMIN_LOG_INFO("Takeoff successful.")
             return SUCCEED
         except Exception as e:
