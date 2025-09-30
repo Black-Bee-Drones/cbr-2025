@@ -3,7 +3,7 @@
 from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
 
-from pickup.pickup_state import (
+from pickup.pickup_states import (
     GoToPkg, 
     CenterPkg, 
     ReacquireTarget, 
