@@ -13,11 +13,7 @@ from mirela_sdk.control.mavros import MavDrone
 #from mirela_sdk.image_processing import ImageHandler
 from mirela_sdk.image_processing.camera import ImageHandler
 
-<<<<<<< HEAD
-from delivery.utils import YOLOPackageDetector, YOLODeliverDetector
-=======
-from delivery.utils import PositionController, YOLODetector
->>>>>>> 194bb3e (refactor: yolo detection class)
+from delivery.utils import YOLODetector
 
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
