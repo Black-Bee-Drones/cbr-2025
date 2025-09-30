@@ -33,7 +33,7 @@ class PickupSM(StateMachine):
         )
         self.add_state(
             "CENTER_ON_DETECTION",
-            CenterOnDetection(),
+            CenterOnDetection(desired_class='package'),
             transitions={SUCCEED:"ALIGN_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(

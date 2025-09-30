@@ -23,8 +23,13 @@ class CenterOnDetection(State):
     Movimentação X, Y para centralizar o drone e o pacote
     """
 
-    def __init__(self):
+    def __init__(self, desired_class):
+        '''
+        Args:
+            desired_class: Class ID to filter detections ("base" or "package")
+        '''
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
+        self.desired_class = desired_class
 
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
@@ -36,11 +41,12 @@ class CenterOnDetection(State):
         yasmin.YASMIN_LOG_INFO("Starting centering procedure using YOLO detector...")
         start = time.time()
         while (time.time() - start) < CENTER_TIMEOUT:
-            error_x, error_y = image_handler.take_photo()
+            detection = image_handler.take_photo()
 
-            if error_x is None or error_y is None:
+            if 'center' not in detection.keys():
                 yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
-                return FAIL
+
+            error_x, error_y = detection['center']
 
             if (error_x <= CENTERING_TOLERANCE_PX) and (error_y <= CENTERING_TOLERANCE_PX):
                 yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
@@ -67,11 +73,9 @@ class CenterOnDetection(State):
         ImageHandler callback
         return: if error == None: there isn't Yolo detection
         """
-        detection = self.yolo_detector.detect(img)
+        detection = self.yolo_detector.detect(
+            image = img,
+            desired_class = self.desired_class,
+        )
 
-        if detection:
-            error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
-        else:
-            error_x, error_y = None
-
-        return error_x, error_y
+        return detection

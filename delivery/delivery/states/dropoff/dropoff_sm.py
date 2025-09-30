@@ -30,7 +30,7 @@ class DropoffSM(StateMachine):
         )
         self.add_state(
             "CENTER_ON_DETECTION",
-            CenterOnDetection(),
+            CenterOnDetection(desired_class='base'),
             transitions={SUCCEED: "DESCEND_TO_TARGET", ABORT: ABORT},
         )
         self.add_state (
