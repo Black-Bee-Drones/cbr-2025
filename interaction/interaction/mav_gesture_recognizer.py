@@ -53,8 +53,6 @@ class GestureRecognizer(Node):
 
         self.acao_pub = self.create_publisher(Int16, "/drone/hands_action", 10)
 
-        self.conta_land_pub = self.create_publisher(Int16, RTL_COUNT_TOPIC, 1) 
-        self.land_trigger_msg = Int16(data=1)
         self.last_published_action_id = -1 
 
         self.declare_parameter("image_source", "oakd")
@@ -101,10 +99,7 @@ class GestureRecognizer(Node):
             self.acao_pub.publish(self.msg)
             self.get_logger().info(f"Gesto Publicado: ID {self.msg.data}")
 
-        if self.msg.data == LAND_GESTURE_ID and self.msg.data != self.last_published_action_id:
-            self.conta_land_pub.publish(self.land_trigger_msg)
-            self.get_logger().info(f"RTL Land Trigger (ID {LAND_GESTURE_ID}) published.")
-
+        
     def recognize_gesture(self, fingers_right: list, fingers_left: list) -> int:
         """
         Reconhece o gesto com base na combinação da posição dos dedos.

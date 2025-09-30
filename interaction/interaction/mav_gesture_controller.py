@@ -27,6 +27,7 @@ class GestureController(Node):
         self.previous_action: int = -1
         self.action_start_time: float = time()
         self.command_sent: bool = False
+        self.land_pub = self.create_publisher
         
         self.continuous_actions: dict[int, tuple[str, callable]] = {
             -1: ("Parar", lambda: self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)),
@@ -41,7 +42,7 @@ class GestureController(Node):
         }
 
         self.single_actions: dict[int, tuple[str, callable]] = {
-            1: ("Pousar", lambda: self.mavdrone.land()),
+            1: ("Pousar", lambda: self.land_action()),
             15: ("Decolar", lambda: self.arm_takeoff_action()),
         }
         
@@ -52,6 +53,15 @@ class GestureController(Node):
         """
         self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
         sleep(SLEEP_AFTER_TAKEOFF)
+
+    def land_action(self):
+
+        self.land_pub.publish(Int16(data=1))
+        self.get_logger().info(f"RTL Land Trigger published.")
+
+        self.mavdrone.land()
+
+
 
 
     def _moviment_callback(self, msg: Int16) -> None:
