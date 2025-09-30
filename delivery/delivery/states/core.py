@@ -68,11 +68,8 @@ class Initialize(State):
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
-            yolo_pkg_detector = YOLOPackageDetector()
-            blackboard["yolo_pkg_detector"] = yolo_pkg_detector
-
-            yolo_detector = YOLODetector()
-            blackboard["yolo_deliver_detector"] = yolo_detector
+            yolo_pkg_detector = YOLODetector()
+            blackboard["yolo_detector"] = yolo_pkg_detector
 
             image_handler = ImageHandler(
                 node=YasminNode.get_instance(), image_source=IMAGE_SOURCE
@@ -95,7 +92,7 @@ class Takeoff(State):
             yasmin.YASMIN_LOG_ERROR("Mavdrone not initialized.")
             return ABORT
 
-        drone: MavDrone = blackboard["mavdrone"]
+        mavdrone: MavDrone = blackboard["mavdrone"]
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
             drone.arm_takeoff(TAKEOFF_ALTITUDE)
@@ -109,7 +106,7 @@ class Takeoff(State):
 class Land(State):
     def __init__(self, ):
         super().__init__(outcomes=[SUCCEED, ABORT])
-        self.drone : MavDrone = None
+        self.mavdrone : MavDrone = None
 
     def execute(self, blackboard : Blackboard):
         
@@ -117,10 +114,10 @@ class Land(State):
             yasmin.YASMIN_LOG_ERROR("Mandrone not initialized.")
             return ABORT
     
-        self.drone = blackboard["mavdrone"]
+        self.mavdrone = blackboard["mavdrone"]
 
         try:
-            self.drone.land()
+            self.mavdrone.land()
             time.sleep(5) #wait for landing to complete
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
             return SUCCEED
@@ -132,18 +129,18 @@ class Land(State):
 class ReturnToLaunch(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
-        self.drone : MavDrone = None
+        self.mavdrone : MavDrone = None
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR("Mavdrone not initialized.")
             return ABORT
         
-        self.drone: MavDrone = blackboard["mavdrone"]
+        self.mavdrone: MavDrone = blackboard["mavdrone"]
 
         yasmin.YASMIN_LOG_INFO("Returning to launch...")
         try:
-            self.drone.rtl(rtl_alt=TAKEOFF_ALTITUDE, rtl_strategy="gps_return")
+            self.mavdrone.rtl(rtl_alt=TAKEOFF_ALTITUDE, rtl_strategy="gps_return")
             yasmin.YASMIN_LOG_INFO("Return to launch initiated.")
             return SUCCEED
         except Exception as e:
@@ -153,19 +150,19 @@ class ReturnToLaunch(State):
 class End(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED])
-        self.drone : MavDrone = None
+        self.mavdrone : MavDrone = None
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR("Mavdrone not initialized.")
             return SUCCEED
 
-        self.drone: MavDrone = blackboard["mavdrone"]
+        self.mavdrone: MavDrone = blackboard["mavdrone"]
 
-        if self.drone and self.drone.get_state.armed:
+        if self.mavdrone and self.mavdrone.get_state.armed:
             yasmin.YASMIN_LOG_INFO("Drone is armed, attempting to land...")
             try:
-                self.drone.land()
+                self.mavdrone.land()
                 yasmin.YASMIN_LOG_INFO("Drone landed successfully.")
             except Exception as e:
                 yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
