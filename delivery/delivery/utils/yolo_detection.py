@@ -1,3 +1,7 @@
+# class name changed (change blackboards)
+# file name changed (fix imports)
+# detect filtering class parameter changed (fix detects)
+
 import cv2
 import numpy as np
 import os
@@ -23,12 +27,12 @@ from delivery.constants import (
 )
 
 
-class YOLODeliverDetector:
+class YOLODetector:
     """
-    YOLO-based landing base detector for CB5 Phase 1.
+    YOLO-based landing base and package detector for CB5 Phase 2.
 
     Handles loading YOLO model, running inference, and processing detections
-    for landing base recognition.
+    for landing base and package recognition.
     """
 
     def __init__(self, model_path: str = YOLO_MODEL_PATH):
@@ -66,20 +70,30 @@ class YOLODeliverDetector:
             print("   Using simulation mode for detection")
 
     def detect(
-        self, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None, desired_class: int = 0
+        self, desired_class: str, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None
     ) -> List[Dict[str, any]]:
         """
-        Detect landing bases in image.
+        Detect landing landing bases or packages in image.
 
         Args:
             image: Input image (BGR format)
             save_image: Whether to save detection images
             timestamp: Optional timestamp for filenames
-            desired_class: Class ID to filter detections (default 0 for landing base)
+            desired_class: Class ID to filter detections ("base" or "package")
 
         Returns:
             List of detections with bounding boxes and confidence scores
         """
+
+        if desired_class not in ["base", "package"]:
+            raise ValueError("desired_class must be 'base' or 'package'")
+
+        if desired_class == "base":
+            desired_class_id = 0
+        
+        if desired_class == "package":
+            desired_class_id = 1
+
         detections = []
 
         current_timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
@@ -118,17 +132,17 @@ class YOLODeliverDetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self.get_best_detection(detections, desired_class=desired_class)
+        return self.get_best_detection(desired_class=desired_class_id, detections=detections)
 
     def get_best_detection(
-        self, detections: List[Dict[str, any]], desired_class: int = 0
+        self, desired_class: int, detections: List[Dict[str, any]]
     ) -> Optional[Dict[str, any]]:
         """
         Get the best detection based on confidence and size.
 
         Args:
             detections: List of detections
-            desired_class: Class ID to filter detections (default 0 for landing base)
+            desired_class: Class ID to filter detections ("base" == 0, "package" == 1)
 
         Returns:
             Best detection or None if no detections

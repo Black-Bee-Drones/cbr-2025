@@ -5,7 +5,7 @@ import rclpy
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from yasmin_ros.yasmin_node import YasminNode
-from delivery.utils import YOLODeliverDetector
+from delivery.utils.yolo_detection import YOLODetector
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from delivery.constants import (
@@ -35,7 +35,7 @@ class CenterOnDetection(State):
             return ABORT
 
         self.mavdrone : MavDrone = blackboard["mavdrone"]
-        self.yolo_deliver_detector: YOLODeliverDetector = blackboard.get("yolo_deliver_detector")
+        self.yolo_deliver_detector: YOLODetector = blackboard.get("yolo_detector")
         current_detection = blackboard.get("current_detection")
         ground_reference = blackboard.get("ground_reference_altitude", 0.0)
         #target_search_altitude = blackboard.get("target_search_altitude", SEARCH_ALTITUDE)

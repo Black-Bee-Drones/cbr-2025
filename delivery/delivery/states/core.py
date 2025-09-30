@@ -13,7 +13,11 @@ from mirela_sdk.control.mavros import MavDrone
 #from mirela_sdk.image_processing import ImageHandler
 from mirela_sdk.image_processing.camera import ImageHandler
 
+<<<<<<< HEAD
 from delivery.utils import YOLOPackageDetector, YOLODeliverDetector
+=======
+from delivery.utils import PositionController, YOLODetector
+>>>>>>> 194bb3e (refactor: yolo detection class)
 
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
@@ -68,8 +72,8 @@ class Initialize(State):
             yolo_pkg_detector = YOLOPackageDetector()
             blackboard["yolo_pkg_detector"] = yolo_pkg_detector
 
-            yolo_deliver_detector = YOLODeliverDetector()
-            blackboard["yolo_deliver_detector"] = yolo_deliver_detector
+            yolo_detector = YOLODetector()
+            blackboard["yolo_deliver_detector"] = yolo_detector
 
             image_handler = ImageHandler(
                 node=YasminNode.get_instance(), image_source=IMAGE_SOURCE
