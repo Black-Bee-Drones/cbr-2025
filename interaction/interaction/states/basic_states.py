@@ -232,11 +232,16 @@ class ReturnToLaunch(State):
             return ABORT
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        takeoff_position = blackboard.get("takeoff_position")
-        mavdrone.set_takeoff_position(takeoff_position)
+
+        while mavdrone.get_state.armed:
+            yasmin.YASMIN_LOG_INFO("Drone is still armed, waiting for finishing landing...")
+            mavdrone.delay(1)
 
         mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
 
+        # Set initial position as takeoff position for RTL
+        takeoff_position = blackboard.get("takeoff_position")
+        mavdrone.set_takeoff_position(takeoff_position)
         mavdrone.rtl(
             rtl_alt=None,
             precision_radius=0.3,
