@@ -30,7 +30,11 @@ class Initialize(State):
     def execute(self, blackboard : Blackboard):
         try:
             yasmin.YASMIN_LOG_INFO("Initializing mission...")
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
+            blackboard["mavdrone"] = MavDrone(
+                node=YasminNode.get_instance(),
+                mavros=False,
+                indoor=True
+                )
             mavdrone: MavDrone = blackboard["mavdrone"]
 
 
