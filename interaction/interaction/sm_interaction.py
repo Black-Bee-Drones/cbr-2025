@@ -1,9 +1,7 @@
 import rclpy
-import time
 
-from yasmin import StateMachine, State
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
-from yasmin_ros.yasmin_node import YasminNode
+from yasmin import StateMachine
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 from interaction.states.basic_states import (
     Initialize, 
@@ -33,7 +31,7 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "START_GESTURE", StartGesture, transitions={SUCCEED: "CHECK_COUNT", ABORT: "END"}
+            "START_GESTURE", StartGesture, transitions={SUCCEED: "CHECK_COUNT", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(

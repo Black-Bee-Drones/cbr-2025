@@ -4,14 +4,18 @@ from std_msgs.msg import Int16
 from time import time, sleep
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 
-TAKEOFF_HEIGHT = 1.5
-VELOCITY_UP_DOWN = 0.3
-VELOCITY_SIDES = 0.5
-VELOCITY_IN_OUT = -0.5
-VELOCITY_YAW = 0.1
-ACTION_TIMEOUT = 0.2
-SLEEP_AFTER_TAKEOFF = 2.0
-SLEEP_AFTER_LAND = 1.0
+from interaction.constants import (
+    TAKEOFF_HEIGHT,
+    VELOCITY_UP_DOWN,
+    VELOCITY_SIDES,
+    VELOCITY_IN_OUT,
+    VELOCITY_YAW,
+    ACTION_TIMEOUT,
+    SLEEP_AFTER_TAKEOFF,
+    SLEEP_AFTER_LAND,
+    RTL_COUNT_TOPIC
+)
+
 
 class GestureController(Node):
     """
@@ -27,7 +31,7 @@ class GestureController(Node):
         self.previous_action: int = -1
         self.action_start_time: float = time()
         self.command_sent: bool = False
-        self.land_pub = self.create_publisher
+        self.land_pub = self.create_publisher(Int16, RTL_COUNT_TOPIC, 10)
         
         self.continuous_actions: dict[int, tuple[str, callable]] = {
             -1: ("Parar", lambda: self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)),
@@ -60,6 +64,7 @@ class GestureController(Node):
         self.get_logger().info(f"RTL Land Trigger published.")
 
         self.mavdrone.land()
+        self.mavdrone.delay(SLEEP_AFTER_LAND)
 
 
 

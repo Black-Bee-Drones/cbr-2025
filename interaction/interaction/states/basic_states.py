@@ -10,7 +10,7 @@ from mirela_sdk.utils.process import ProcessUtils
 from std_msgs.msg import Int16 
 
 from interaction.constants import (
-    TAKEOFF_ALTITUDE,
+    TAKEOFF_HEIGHT,
     TAKEOFF_TIMEOUT,
     ALTITUDE_TOLERANCE,
     GESTURE_CONTROLLER_PROCESS,
@@ -56,7 +56,7 @@ class Takeoff(State):
         
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {TAKEOFF_ALTITUDE}m...")
+        yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {TAKEOFF_HEIGHT}m...")
 
 
         # Store takeoff position for RTL
@@ -64,7 +64,7 @@ class Takeoff(State):
         blackboard["takeoff_position"] = takeoff_position
 
         try:
-            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
+            mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
 
             time.sleep(3)
 
@@ -75,7 +75,7 @@ class Takeoff(State):
                 current_alt = mavdrone.get_rng_alt.data
                 yasmin.YASMIN_LOG_INFO(f"Current altitude: {current_alt:.2f}m")
 
-                altitude_error = TAKEOFF_ALTITUDE - current_alt
+                altitude_error = TAKEOFF_HEIGHT - current_alt
 
                 if abs(altitude_error) < ALTITUDE_TOLERANCE:
                     yasmin.YASMIN_LOG_INFO(
@@ -112,8 +112,16 @@ class FindHuman(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
         
         try:
-            print()
-            mavdrone.offboard_position(3.0, -4.0, 0.0, 0.0)
+            yasmin.YASMIN_LOG_INFO("Navigating towards human position...")
+            mavdrone.offboard_position(
+                x=3.0,
+                y=-4.0,
+                z=0.0,
+                ground_reference=False,
+                precision_radius=0.15,
+                timeout=30,
+                strategy="default"
+                )
             return SUCCEED
 
         except Exception as e:
@@ -174,7 +182,7 @@ class CheckCount(State):
         self.node = YasminNode.get_instance()
         self.land_count_sub = None
 
-        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback,10)
+        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback, 10)
         yasmin.YASMIN_LOG_INFO(f"RTL Count Subscriber configured on topic: {RTL_COUNT_TOPIC}")
 
     def _count_callback(self, msg: Int16):
@@ -196,13 +204,20 @@ class CheckCount(State):
             current_count = blackboard.get("rtl_land_counter", 0)
 
             if current_count >= RTL_REQUIRED_COUNT:
-                yasmin.YASMIN_LOG_INFO("RTL count reached 6. Triggering ReturnToLaunch.")
+                yasmin.YASMIN_LOG_INFO("RTL count reached 6. Preparing for next state.")
                 
                 if self.land_count_sub:
                     self.node.destroy_subscription(self.land_count_sub)
                     self.land_count_sub = None
-                    
-                return SUCCEED 
+
+                if not ProcessUtils.kill_process(GESTURE_CONTROLLER_PROCESS):
+                    yasmin.YASMIN_LOG_ERROR("Failed to kill Gesture Controller process.")
+                    return ABORT
+                if not ProcessUtils.kill_process(GESTURE_RECOGNIZER_PROCESS):
+                    yasmin.YASMIN_LOG_ERROR("Failed to kill Gesture Recognizer process.")
+                    return ABORT
+                
+                return SUCCEED
 
             rclpy.spin_once(self.node, timeout_sec=0.1)
 
@@ -226,6 +241,9 @@ class ReturnToLaunch(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
         takeoff_position = blackboard.get("takeoff_position")
         mavdrone.set_takeoff_position(takeoff_position)
+
+        mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
+
         mavdrone.rtl(
             rtl_alt=None,
             precision_radius=0.3,
