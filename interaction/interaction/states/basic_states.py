@@ -31,10 +31,11 @@ class Initialize(State):
             blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
             mavdrone : MavDrone = blackboard["mavdrone"]
 
-            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
 
-            ground_altitude = mavdrone.get_rng_alt.data
-            blackboard["ground_reference_altitude"] = ground_altitude
+            # Store takeoff position for RTL
+            mavdrone.delay(0.1) # Callback processing delay
+            takeoff_position = mavdrone.get_position_as_target
+            blackboard["takeoff_position"] = takeoff_position
 
             blackboard["rtl_land_counter"] = 0
 
@@ -54,19 +55,11 @@ class Takeoff(State):
             yasmin.YASMIN_LOG_ERROR("MavDrone not available in Takeoff state.")
             return ABORT
         
-
         mavdrone: MavDrone = blackboard["mavdrone"]
         yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {TAKEOFF_HEIGHT}m...")
 
-
-        # Store takeoff position for RTL
-        takeoff_position = mavdrone.get_position
-        blackboard["takeoff_position"] = takeoff_position
-
         try:
             mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
-
-            time.sleep(3)
 
             start_time = time.time()
             while time.time() - start_time < TAKEOFF_TIMEOUT:
