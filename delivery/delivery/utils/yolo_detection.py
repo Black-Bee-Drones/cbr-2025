@@ -66,7 +66,7 @@ class YOLODetector:
             print("   Using simulation mode for detection")
 
     def detect(
-        self, desired_class: str, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None
+        self, desired_class: str, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None, inside_base: bool = False
     ) -> List[Dict[str, any]]:
         """
         Detect landing landing bases or packages in image.
@@ -76,6 +76,7 @@ class YOLODetector:
             save_image: Whether to save detection images
             timestamp: Optional timestamp for filenames
             desired_class: Class ID to filter detections ("base" or "package")
+            inside_base: detection of packages inside base only (False by default)
 
         Returns:
             List of detections with bounding boxes and confidence scores
@@ -128,10 +129,10 @@ class YOLODetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self.get_best_detection(desired_class=desired_class_id, detections=detections)
+        return self.get_best_detection(desired_class=desired_class_id, detections=detections, inside_base=inside_base)
 
     def get_best_detection(
-        self, desired_class: int, detections: List[Dict[str, any]]
+        self, desired_class: int, detections: List[Dict[str, any]], inside_base: bool = False
     ) -> Optional[Dict[str, any]]:
         """
         Get the best detection based on confidence and size.
@@ -139,6 +140,7 @@ class YOLODetector:
         Args:
             detections: List of detections
             desired_class: Class ID to filter detections ("base" == 0, "package" == 1)
+            inside_base: detection of packages inside base only (False by default)
 
         Returns:
             Best detection or None if no detections
@@ -157,8 +159,8 @@ class YOLODetector:
                     bx1, by1, bx2, by2 = base["bbox"]
                     if px1 > bx1 and py1 > by1 and px2 < bx2 and py2 < by2:
                         filtered_detections.append(package)
-            # if no package is inside base, return all package detections
-            if filtered_detections == []:
+            # if no package is inside base, return all package detections (skips when inside_base is True)
+            if filtered_detections == [] and not inside_base:
                 filtered_detections = package_detections
 
         # base detection

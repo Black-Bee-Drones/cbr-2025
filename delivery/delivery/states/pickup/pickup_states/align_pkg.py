@@ -34,7 +34,7 @@ class AlignPkg(State):
     
         mavdrone: MavDrone = blackboard["mavdrone"]
         self.image_handler: ImageHandler = blackboard["image_handler"]
-        self.yolo_pkg_detector : YOLOPackageDetector = blackboard.get["yolo_pkg_detector"]
+        self.yolo_detector : YOLODetector = blackboard.get["yolo_detector"]
 
         if not self.image_handler:
             yasmin.YASMIN_LOG_ERROR(
@@ -42,9 +42,9 @@ class AlignPkg(State):
             )
             return ABORT
         
-        if not self.yolo_pkg_detector:
+        if not self.yolo_detector:
             yasmin.YASMIN_LOG_ERROR(
-                "YoloPackageDetector not available in AlignPkg state."
+                "YoloDetector not available in AlignPkg state."
             )
             return ABORT
         
@@ -53,8 +53,8 @@ class AlignPkg(State):
         lost_detections = 0
 
         while time.time() - start < ALIGN_TIMEOUT:
-            detection = self.yolo_pkg_detector.detect(
-                self.image_handler.take_photo(), save_image=False
+            detection = self.yolo_detector.detect(
+                desired_class="package", image=self.image_handler.take_photo(), save_image=False
             )
             side_x, side_y = self.detection_boundingbox_size(detection)
             if not detection:
