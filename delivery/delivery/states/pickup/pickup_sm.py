@@ -6,7 +6,6 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
 from .pickup_states import (
     ReacquireTarget, 
     AlignPkg, 
-    DescendPkg, 
     PickPkg, 
     CheckPkg,
 )
@@ -14,6 +13,7 @@ from .pickup_states import (
 from common_states import (
     CenterOnDetection,
     GoToTarget,
+    DescendToTarget, 
 )
 
 from delivery.states import (
@@ -44,11 +44,11 @@ class PickupSM(StateMachine):
         self.add_state(
             "ALIGN_PKG",
             AlignPkg(),
-            transitions={SUCCEED:"DESCEND_PKG", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
+            transitions={SUCCEED:"DESCEND_TO_TARGET", ABORT: ABORT, FAIL: "REACQUIRE_TARGET"},
         )
         self.add_state(
-            "DESCEND_PKG",
-            DescendPkg(),
+            "DESCEND_TO_TARGET",
+            DescendToTarget(),
             transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT, "height_limit": "LAND"},
         )
         self.add_state(

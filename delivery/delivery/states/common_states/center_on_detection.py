@@ -7,7 +7,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
-from delivery.utils import YOLODeliverDetector
+from delivery.utils import YOLODetector
 
 
 from delivery.constants import (
@@ -29,7 +29,7 @@ class CenterOnDetection(State):
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
         image_handler: ImageHandler = blackboard["image_handler"]
-        self.yolo_pkg_detector: YOLODeliverDetector = blackboard["yolo_pkg_detector"]
+        self.yolo_detector: YOLODetector = blackboard["yolo_detector"]
 
         image_handler.image_processing_callback = self.image_processing_callback
 
@@ -67,10 +67,10 @@ class CenterOnDetection(State):
         ImageHandler callback
         return: if error == None: there isn't Yolo detection
         """
-        detection = self.yolo_pkg_detector.detect(img)
+        detection = self.yolo_detector.detect(img)
 
         if detection:
-            error_x, error_y = self.yolo_pkg_detector.calculate_centering_error(detection)
+            error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
         else:
             error_x, error_y = None
 

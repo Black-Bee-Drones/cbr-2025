@@ -60,16 +60,16 @@ class Initialize(State):
 
             blackboard["current_detection"] = None
 
-            #Flag to define Yolo and targets position
-            blackboard["target_type"] = {"package": 0, "base": 1}
+            #Flag to define if next target is a package or a base
+            blackboard["target_is_package"] = True
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
-            yolo_pkg_detector = YOLODetector()
-            blackboard["yolo_detector"] = yolo_pkg_detector
+            yolo_detector = YOLODetector()
+            blackboard["yolo_detector"] = yolo_detector
 
             image_handler = ImageHandler(
                 node=YasminNode.get_instance(), image_source=IMAGE_SOURCE
@@ -95,7 +95,7 @@ class Takeoff(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
-            drone.arm_takeoff(TAKEOFF_ALTITUDE)
+            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
             time.sleep(5)
             yasmin.YASMIN_LOG_INFO("Takeoff successful.")
             return SUCCEED
