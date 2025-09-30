@@ -64,6 +64,9 @@ class Initialize(State):
 
             blackboard["current_detection"] = None
 
+            #Flag to define Yolo and targets position
+            blackboard["target_type"] = {"package": 0, "base": 1}
+
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
             if not blackboard["deliver_positions"]:
@@ -129,7 +132,6 @@ class Land(State):
             yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
             return ABORT
             
-
         
 class ReturnToLaunch(State):
     def __init__(self):
