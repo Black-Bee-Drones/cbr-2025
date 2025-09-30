@@ -129,7 +129,13 @@ class ReturnToLaunch(State):
 
         yasmin.YASMIN_LOG_INFO("Returning to launch...")
         try:
-            self.mavdrone.rtl(rtl_alt=TAKEOFF_ALTITUDE, rtl_strategy="gps_return")
+            self.mavdrone.set_takeoff_position(blackboard["initial_position"])
+            self.mavdrone.rtl(
+                rtl_alt=TAKEOFF_ALTITUDE,
+                precision_radius=0.25,
+                rtl_strategy="PID",
+                land=True
+            )
             yasmin.YASMIN_LOG_INFO("Return to launch initiated.")
             return SUCCEED
         except Exception as e:
