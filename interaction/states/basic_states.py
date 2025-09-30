@@ -5,7 +5,6 @@ import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from yasmin_ros.yasmin_node import YasminNode
-from mirela_sdk import position_controller
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.utils.process import ProcessUtils
 from std_msgs.msg import Int16 
@@ -33,12 +32,6 @@ class Initialize(State):
             mavdrone : MavDrone = blackboard["mavdrone"]
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
-            initial_position = (
-                mavdrone.get_local_pos.pose.position.x,
-                mavdrone.get_local_pos.pose.position.y,
-                mavdrone.get_local_pos.pose.position.z,
-            )
-            blackboard["initial_position"] = initial_position
 
             ground_altitude = mavdrone.get_rng_alt.data
             blackboard["ground_reference_altitude"] = ground_altitude
@@ -67,11 +60,7 @@ class Takeoff(State):
 
 
         # Store takeoff position for RTL
-        takeoff_position = {
-            "local_x": mavdrone.get_local_pos.pose.position.x,
-            "local_y": mavdrone.get_local_pos.pose.position.y,
-            "local_z": mavdrone.get_local_pos.pose.position.z,
-        }
+        takeoff_position = mavdrone.get_position
         blackboard["takeoff_position"] = takeoff_position
 
         try:
@@ -185,7 +174,7 @@ class CheckCount(State):
         self.node = YasminNode.get_instance()
         self.land_count_sub = None
 
-        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback,1)
+        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback,10)
         yasmin.YASMIN_LOG_INFO(f"RTL Count Subscriber configured on topic: {RTL_COUNT_TOPIC}")
 
     def _count_callback(self, msg: Int16):
@@ -235,12 +224,14 @@ class ReturnToLaunch(State):
             return ABORT
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        position_controller = blackboard.get("position_controller")
         takeoff_position = blackboard.get("takeoff_position")
-
-        if not position_controller:
-            yasmin.YASMIN_LOG_ERROR("Position controller not available.")
-            return ABORT
+        mavdrone.set_takeoff_position(takeoff_position)
+        mavdrone.rtl(
+            rtl_alt=None,
+            precision_radius=0.3,
+            rtl_strategy="default",
+            land=True
+        )
 
         if not takeoff_position:
             yasmin.YASMIN_LOG_ERROR("Takeoff position not stored.")
