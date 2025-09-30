@@ -38,24 +38,8 @@ class Initialize(State):
             mavdrone: MavDrone = blackboard["mavdrone"]
 
 
-            rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
-            initial_position = (
-                mavdrone.get_local_pos.pose.position.x,
-                mavdrone.get_local_pos.pose.position.y,
-                mavdrone.get_local_pos.pose.position.z,
-            )
-            blackboard["initial_position"] = initial_position
-            
-            # Vai dar problema porque não armamos ainda
-            ground_altitude = mavdrone.get_rng_alt.range
-            blackboard["ground_reference_altitude"] = ground_altitude
-
-            yasmin.YASMIN_LOG_INFO(
-                f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
-            )
-            yasmin.YASMIN_LOG_INFO(
-                f"Ground reference altitude: {ground_altitude:.2f}m, Target search altitude: {ground_altitude + TAKEOFF_ALTITUDE:.2f}m"
-            )
+            mavdrone.delay(0.1) # Process callbacks
+            blackboard["initial_position"] = mavdrone.get_position_as_target
 
             blackboard["current_package"] = STARTING_PACKAGE_IDX
             blackboard["packages_positions"] = PACKAGE_POSITIONS
