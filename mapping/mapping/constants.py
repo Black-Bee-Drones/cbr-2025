@@ -4,19 +4,19 @@ import os
 # Arena dimensions
 ARENA_WIDTH = 8.0
 ARENA_HEIGHT = 8.0
-SEARCH_AREA_WIDTH = 7.0
-SEARCH_AREA_HEIGHT = 7.0
+SEARCH_AREA_WIDTH = 4.5
+SEARCH_AREA_HEIGHT = 4.5
 
 # Flight parameters
-TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitude
-SEARCH_ALTITUDE = 3.0   # meters - maintain during search
+TAKEOFF_ALTITUDE = 1.0  # meters - takeoff and search altitude
+SEARCH_ALTITUDE = 1.0   # meters - maintain during search
 CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 2.0m provides ~45% overlap for robust coverage
-GRID_SPACING = 2.0 
+GRID_SPACING = 1.5 
 WAYPOINT_VELOCITY = 0.8  # m/s - movement velocity between waypoints
 CENTERING_VELOCITY = 0.3  # m/s - velocity during precision centering
 
@@ -42,9 +42,9 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 
 # YOLO detection parameters
 YOLO_MODEL_PATH = os.path.join(
-    get_package_share_directory("mapping"), "models", "best.pt"
+    get_package_share_directory("mapping"), "models", "best.engine"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.7  
+YOLO_CONFIDENCE_THRESHOLD = 0.9  
 YOLO_IMAGE_SIZE = 640 
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 
@@ -62,6 +62,6 @@ IMAGE_CENTER_Y = 360  # camera image center Y (pixels)
 # Movement tolerances
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
-POSITION_TOLERANCE = 0.3  # meters - position precision tolerance
+POSITION_TOLERANCE = 0.10  # meters - position precision tolerance
 
 
