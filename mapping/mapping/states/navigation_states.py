@@ -33,13 +33,13 @@ class NavigateToWaypoint(State):
             return ABORT
 
         mavdrone = blackboard["mavdrone"]
-        grid_waypoints = blackboard.get("grid_waypoints")
+        grid_waypoints = blackboard["grid_waypoints"]
         if not grid_waypoints:
             yasmin.YASMIN_LOG_ERROR("Grid waypoints not available.")
             return ABORT
 
         # Mark previous waypoint as visited if exists
-        current_waypoint = blackboard.get("current_target_waypoint")
+        current_waypoint = blackboard["current_target_waypoint"]
         if current_waypoint:
             grid_waypoints.mark_waypoint_visited(current_waypoint["index"])
             progress = grid_waypoints.get_progress()
@@ -48,12 +48,11 @@ class NavigateToWaypoint(State):
             )
 
         # Check if mission complete
-        visited_bases = blackboard.get("visited_bases", [])
+        visited_bases = blackboard["visited_bases"]
         if len(visited_bases) >= 6:
             yasmin.YASMIN_LOG_INFO("All 6 landing bases visited! Mission complete.")
             return "ALL_COMPLETE"
 
-        # Get next waypoint
         target_waypoint = grid_waypoints.get_next_waypoint()
         if not target_waypoint:
             yasmin.YASMIN_LOG_INFO("All waypoints completed!")
@@ -66,16 +65,18 @@ class NavigateToWaypoint(State):
         grid_waypoints.advance_to_next()
 
         try:
-            # Get current position and navigate
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-            current_pos = mavdrone.get_visual_pos.pose.position
-            
+            current_pos = mavdrone.get_visual_pos.pose.pose.position
+
+            yasmin.YASMIN_LOG_INFO(f"Current pos: {current_pos}")
+            yasmin.YASMIN_LOG_INFO(f"Target: (x: {target_waypoint['x']}, y: {target_waypoint['y']})")
+           
             mavdrone.offboard_position(
                 x=target_waypoint["x"] - current_pos.x,
                 y=target_waypoint["y"] - current_pos.y,
                 z=0.0,
                 precision_radius=POSITION_TOLERANCE,
-                timeout_sec=SEARCH_TIMEOUT,
+                timeout_sec=None,
                 strategy="PID"
             )
 
@@ -100,14 +101,20 @@ class CaptureAndDetect(State):
             yasmin.YASMIN_LOG_ERROR("MavDrone not available in CaptureAndDetect state.")
             return ABORT
 
-        yolo_detector: YOLODetector = blackboard.get("yolo_detector")
+        yolo_detector: YOLODetector = blackboard["yolo_detector"]
         if not yolo_detector:
             yasmin.YASMIN_LOG_ERROR("YOLO detector not available.")
             return ABORT
 
-        current_waypoint = blackboard.get("current_target_waypoint")
+        current_waypoint = blackboard["current_target_waypoint"]
         if not current_waypoint:
             yasmin.YASMIN_LOG_ERROR("Current waypoint not available.")
+            return ABORT
+        
+        try:
+            self.image_handler.open()
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Failed to open camera: {e}")
             return ABORT
 
         yasmin.YASMIN_LOG_INFO(
@@ -135,7 +142,7 @@ class CaptureAndDetect(State):
                 # Check if this detection is near a previously visited base
                 mavdrone = blackboard["mavdrone"]
                 current_pos = mavdrone.get_local_pos.pose.position
-                visited_bases = blackboard.get("visited_bases", [])
+                visited_bases = blackboard["visited_bases"]
                 
                 is_duplicate = False
                 for base in visited_bases:

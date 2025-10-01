@@ -56,7 +56,7 @@ class YOLODetector:
 
         if os.path.exists(self.model_path):
             try:
-                self.model = YOLO(self.model_path, task='detect')
+                self.model = YOLO(self.model_path, task='detect', verbose=True)
                 print(f"- YOLO model loaded: {self.model_path}")
             except Exception as e:
                 print(f"  Failed to load YOLO model: {e}")
@@ -248,6 +248,6 @@ class YOLODetector:
             if save_image:
                 self._save_detection_image(image, [detection], timestamp)
 
-            return [detection]
+            return detection
 
-        return []
+        return None

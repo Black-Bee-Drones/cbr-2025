@@ -42,8 +42,8 @@ class CenterOnDetection(State):
             return ABORT
 
         self.mavdrone = blackboard["mavdrone"]
-        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
-        current_detection = blackboard.get("current_detection")
+        self.yolo_detector: YOLODetector = blackboard["yolo_detector"]
+        current_detection = blackboard["current_detection"]
 
         if not self.yolo_detector or not current_detection:
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
@@ -176,12 +176,12 @@ class LandAndWait(State):
             
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
             landing_position = {
-                "x": mavdrone.get_visual_pos.pose.position.x,
-                "y": mavdrone.get_visual_pos.pose.position.y,
-                "z": mavdrone.get_visual_pos.pose.position.z,
+                "x": mavdrone.get_visual_pos.pose.pose.position.x,
+                "y": mavdrone.get_visual_pos.pose.pose.position.y,
+                "z": mavdrone.get_visual_pos.pose.pose.position.z,
                 "timestamp": time.time(),
             }
-            visited_bases = blackboard.get("visited_bases", [])
+            visited_bases = blackboard["visited_bases"]
             visited_bases.append(landing_position)
             blackboard["visited_bases"] = visited_bases
 
