@@ -27,19 +27,19 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "FIND_HUMAN", FindHuman, transitions={SUCCEED: "START_GESTURE", ABORT: "RETURN_TO_LAUNCH"}
+            "FIND_HUMAN", FindHuman(), transitions={SUCCEED: "START_GESTURE", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(
-            "START_GESTURE", StartGesture, transitions={SUCCEED: "CHECK_COUNT", ABORT: "RETURN_TO_LAUNCH"}
+            "START_GESTURE", StartGesture(), transitions={SUCCEED: "CHECK_COUNT", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(
-            "CHECK_COUNT", CheckCount, transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
+            "CHECK_COUNT", CheckCount(), transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(
-            "RETURN_TO_LAUNCH", ReturnToLaunch, transitions={SUCCEED: "END", ABORT:"END"}
+            "RETURN_TO_LAUNCH", ReturnToLaunch(), transitions={SUCCEED: "END", ABORT:"END"}
         )
 
         self.add_state("END", End(), transitions={SUCCEED: SUCCEED})

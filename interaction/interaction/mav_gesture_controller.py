@@ -67,8 +67,6 @@ class GestureController(Node):
         self.mavdrone.delay(SLEEP_AFTER_LAND)
 
 
-
-
     def _moviment_callback(self, msg: Int16) -> None:
         """
         Callback para processar os comandos de gestos recebidos.

@@ -55,7 +55,7 @@ class GestureRecognizer(Node):
 
         self.last_published_action_id = -1 
 
-        self.declare_parameter("image_source", "oakd")
+        self.declare_parameter("image_source", "webcam")
         self.image_source = self.get_parameter("image_source").get_parameter_value().string_value
         self.get_logger().info(f"Usando fonte de imagem: {self.image_source}")
 
@@ -64,7 +64,6 @@ class GestureRecognizer(Node):
             image_source=self.image_source,
             image_processing_callback=self.process,
             show_result="Gesture Recognizer",
-            oakd_num=1,
         )
 
         self.frame_time = None

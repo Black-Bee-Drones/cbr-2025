@@ -7,7 +7,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from yasmin_ros.yasmin_node import YasminNode
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.utils.process import ProcessUtils
-from std_msgs.msg import Int16 
+from std_msgs.msg import Int16
 
 from interaction.constants import (
     TAKEOFF_HEIGHT,
@@ -22,31 +22,35 @@ from interaction.constants import (
 class Initialize(State):
     """Initializes the drone connection and checks system status."""
 
-    def __init__(self, outcomes):
+    def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
     def execute(self, blackboard: Blackboard):
         
         try:
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance())
+            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), mavros=False, indoor=False)
             mavdrone : MavDrone = blackboard["mavdrone"]
-
-
+            
             # Store takeoff position for RTL
             mavdrone.delay(0.1) # Callback processing delay
             takeoff_position = mavdrone.get_position_as_target
+            mavdrone.set_takeoff_position()
             blackboard["takeoff_position"] = takeoff_position
 
             blackboard["rtl_land_counter"] = 0
 
+            return SUCCEED
+
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Error at Initialize: {e}")
+
+            return ABORT
 
 
 class Takeoff(State):
     """Arms the drone and takes off to search altitude."""
 
-    def __init__(self, outcomes):
+    def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
     def execute(self, blackboard: Blackboard):
@@ -110,9 +114,9 @@ class FindHuman(State):
                 x=3.0,
                 y=-4.0,
                 z=0.0,
-                ground_reference=False,
+                ground_reference=True,
                 precision_radius=0.15,
-                timeout=30,
+                timeout_sec=30,
                 strategy="default"
                 )
             return SUCCEED
@@ -136,8 +140,7 @@ class StartGesture(State):
         ProcessUtils.kill_process(GESTURE_CONTROLLER_PROCESS)
 
         gesture_controller_cmd = (
-            "ros2 run interaction mav_gesture_controller "
-            "--ros-args "
+            "ros2 run interaction gesture_controller"
         )
 
         if not ProcessUtils.start_process(gesture_controller_cmd, GESTURE_CONTROLLER_PROCESS):
@@ -150,8 +153,7 @@ class StartGesture(State):
         ProcessUtils.kill_process(GESTURE_RECOGNIZER_PROCESS)
 
         gesture_recognizer_cmd = (
-            "ros2 run interaction mav_gesture_controller "
-            "--ros-args "
+            "ros2 run interaction gesture_recognizer"
         )
 
         if not ProcessUtils.start_process(gesture_recognizer_cmd, GESTURE_RECOGNIZER_PROCESS):
@@ -181,20 +183,20 @@ class CheckCount(State):
     def _count_callback(self, msg: Int16):
         """Updates the 'rtl_land_counter' variable in the blackboard."""
         
-        blackboard = self.node.get_blackboard()
-        current_count = blackboard.get("rtl_land_counter", 0)
-        
-        # O Recognizer publica '1' por trigger, então somamos o valor da msg
-        new_count = current_count + msg.data 
-        blackboard["rtl_land_counter"] = new_count
+        if not hasattr(self, '_blackboard'):
+            time.sleep(0.1)
+        current_count = self._blackboard["rtl_land_counter"]
+        current_count += 1
+        self._blackboard["rtl_land_counter"] = current_count
 
-        yasmin.YASMIN_LOG_INFO(f"RTL Count: {new_count}/{RTL_REQUIRED_COUNT}")
+        yasmin.YASMIN_LOG_INFO(f"RTL Count: {current_count}/{RTL_REQUIRED_COUNT}")
 
     def execute(self, blackboard: Blackboard):
+        self._blackboard = blackboard
         mavdrone: MavDrone = blackboard["mavdrone"]
 
         while rclpy.ok():
-            current_count = blackboard.get("rtl_land_counter", 0)
+            current_count = blackboard["rtl_land_counter"]
 
             if current_count >= RTL_REQUIRED_COUNT:
                 yasmin.YASMIN_LOG_INFO("RTL count reached 6. Preparing for next state.")
