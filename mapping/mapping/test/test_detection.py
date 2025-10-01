@@ -36,7 +36,8 @@ def test_detection():
         image_source=CAMERA_SOURCE,
         config=IMX219Config(sensor_id=0, width=1280, height=720, flip=2),
     )
-    time.sleep(3)  
+    time.sleep(2) 
+    image_handler.open() 
     yolo_detector = YOLODetector(YOLO_MODEL_PATH)
     
     frame_count = 0
@@ -44,30 +45,28 @@ def test_detection():
     
     try:
         while True:
-            frame = image_handler.take_photo()
+            try:
+                frame = image_handler.take_photo()
+            except RuntimeError as e:
+                print(f"Camera error: {e}")
+                break
             if frame is None:
                 print("Failed to capture frame")
                 continue
-            
             frame_count += 1
- 
             detection = yolo_detector.detect(frame, save_image=True)
-            
-            display_frame = frame.copy()
+            display_frame = frame
             cv2.line(display_frame, (IMAGE_CENTER_X - 20, IMAGE_CENTER_Y),
                     (IMAGE_CENTER_X + 20, IMAGE_CENTER_Y), (0, 0, 255), 2)
             cv2.line(display_frame, (IMAGE_CENTER_X, IMAGE_CENTER_Y - 20),
                     (IMAGE_CENTER_X, IMAGE_CENTER_Y + 20), (0, 0, 255), 2)
-            
             cv2.circle(display_frame, (IMAGE_CENTER_X, IMAGE_CENTER_Y),
                       CENTERING_TOLERANCE_PX, (0, 255, 255), 1)
-            
             if detection:
                 detection_count += 1
-                
-                bbox = detection["bbox"]
-                center = detection["center"]
-                confidence = detection["confidence"]
+                bbox = detection['bbox']
+                center = detection['center']
+                confidence = detection['confidence']
         
                 cv2.rectangle(display_frame, (bbox[0], bbox[1]),
                             (bbox[2], bbox[3]), (0, 255, 0), 2)
@@ -104,19 +103,20 @@ def test_detection():
                        
             #cv2.imshow("YOLO Detection Test", display_frame)
             
-            # key = cv2.waitKey(1) & 0xFF
-            # if key == ord('q'):
-            #     break
-            # elif key == ord('s'):
-            #     timestamp = int(time.time() * 1000)
-            #     filename = f"{DETECTION_SAVE_PATH}/test_frame_{timestamp}.jpg"
-            #     cv2.imwrite(filename, display_frame)
-            #     print(f"Saved frame to {filename}")
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+            elif key == ord('s'):
+                timestamp = int(time.time() * 1000)
+                filename = f"{DETECTION_SAVE_PATH}/test_frame_{timestamp}.jpg"
+                cv2.imwrite(filename, display_frame)
+                print(f"Saved frame to {filename}")
             
     except KeyboardInterrupt:
         print("\nTest interrupted by user")
     
     finally:
+        image_handler.close()  # Explicitly close camera
         cv2.destroyAllWindows()
         print(f"\nTest Summary:")
         print(f"- Total frames: {frame_count}")
