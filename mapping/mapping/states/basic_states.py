@@ -39,7 +39,7 @@ class Initialize(State):
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
 
-            pose = mavdrone.get_visual_pos.pose.pose.position
+            pose = mavdrone.get_vision_pos.pose.pose.position
             initial_position = (
                 pose.x,
                 pose.y,
@@ -116,7 +116,7 @@ class Takeoff(State):
 
         if blackboard["takeoff_position"] is None:
             rclpy.spin_once(self.node, timeout_sec=0.1)
-            pose = mavdrone.get_visual_pos.pose.pose.position
+            pose = mavdrone.get_vision_pos.pose.pose.position
             takeoff_position = (
                 pose.x,
                 pose.y,
@@ -126,9 +126,9 @@ class Takeoff(State):
             yasmin.YASMIN_LOG_INFO(f"Stored takeoff position: ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
 
         try:
-            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
+            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE-1)
 
-            time.sleep(3)
+            mavdrone.delay(3)
 
             start_time = time.time()
             while time.time() - start_time < TAKEOFF_TIMEOUT:
@@ -198,7 +198,7 @@ class ReturnToLaunch(State):
         try:
             # Get current position
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-            current_pos = mavdrone.get_visual_pos.pose.pose.position
+            current_pos = mavdrone.get_vision_pos.pose.pose.position
             
             yasmin.YASMIN_LOG_INFO(f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
         

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from yasmin import StateMachine, State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
 from yasmin_ros.yasmin_node import YasminNode
 
 from mapping.states import (
@@ -31,38 +31,29 @@ class CentralizeTestStateMachine(StateMachine):
         self.add_state("NAVIGATE", NavigateToWaypoint(),
                       transitions={
                           SUCCEED: "CAPTURE",
-                          "ALL_COMPLETE": "RTL",
-                          ABORT: "RTL"
+                          "ALL_COMPLETE": "LAND",
+                          ABORT: "LAND"
                       })
         
         self.add_state("CAPTURE", CaptureAndDetect(),
                       transitions={
-                          SUCCEED: "RTL",
+                          SUCCEED: "LAND",
                           "DETECTION_FOUND": "CENTER",
-                          ABORT: "RTL"
+                          ABORT: "LAND"
                       })
 
         self.add_state("CENTER", CenterOnDetection(),
                       transitions={
                           SUCCEED: "LAND",
-                          ABORT: "RTL",
-                          TIMEOUT: "RTL"
+                          ABORT: "LAND",
+                          TIMEOUT: "LAND"
                       })
 
         self.add_state("LAND", LandAndWait(),
                       transitions={
-                          SUCCEED: "TAKEOFF_AFTER",
-                          ABORT: "RTL"
+                          SUCCEED: "END",
+                          ABORT: "END"
                       })
-        
-        self.add_state("TAKEOFF_AFTER", Takeoff(),
-                      transitions={
-                          SUCCEED: "RTL",
-                          ABORT: "RTL"
-                      })
-
-        self.add_state("RTL", ReturnToLaunch(),
-                      transitions={SUCCEED: "END", ABORT: "END"})
 
         self.add_state("END", End(),
                       transitions={SUCCEED: SUCCEED})

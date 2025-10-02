@@ -66,7 +66,7 @@ class NavigateToWaypoint(State):
 
         try:
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-            current_pos = mavdrone.get_visual_pos.pose.pose.position
+            current_pos = mavdrone.get_vision_pos.pose.pose.position
 
             yasmin.YASMIN_LOG_INFO(f"Current pos: {current_pos}")
             yasmin.YASMIN_LOG_INFO(f"Target: (x: {target_waypoint['x']}, y: {target_waypoint['y']})")
@@ -81,6 +81,12 @@ class NavigateToWaypoint(State):
             )
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
+
+            mavdrone.offboard_velocity_timer(0.25, 0.0, 0.0, 0.0, time=2)
+
+            mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+            time.sleep(7)
+
             return SUCCEED
 
         except Exception as e:
@@ -141,7 +147,7 @@ class CaptureAndDetect(State):
             if detection:
                 # Check if this detection is near a previously visited base
                 mavdrone = blackboard["mavdrone"]
-                current_pos = mavdrone.get_local_pos.pose.position
+                current_pos = mavdrone.get_vision_pos.pose.pose.position
                 visited_bases = blackboard["visited_bases"]
                 
                 is_duplicate = False
@@ -175,5 +181,7 @@ class CaptureAndDetect(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Capture and detect failed: {e}")
             return ABORT
+        finally:
+            self.image_handler.close()
 
 

@@ -11,6 +11,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
 from yasmin_ros.yasmin_node import YasminNode
 
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.image_processing.camera import IMX219Config
 
 from mapping.utils import YOLODetector
 from mapping.constants import (
@@ -18,6 +19,8 @@ from mapping.constants import (
     CENTERING_TOLERANCE_PX,
     CENTERING_TIMEOUT,
     CENTERING_VELOCITY,
+    CENTERING_VEL_MAX,
+    CENTERING_VEL_MIN,
     CENTERING_ALTITUDE,
     LAND_WAIT_TIME,
     CAMERA_SOURCE,
@@ -34,6 +37,7 @@ class CenterOnDetection(State):
         self.image_handler = ImageHandler(
             node=self.node,
             image_source=CAMERA_SOURCE,
+            config=IMX219Config(sensor_id=0, width=1640, height=1232)
         )
 
     def execute(self, blackboard: Blackboard):
@@ -47,6 +51,12 @@ class CenterOnDetection(State):
 
         if not self.yolo_detector or not current_detection:
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
+            return ABORT
+        
+        try:
+            self.image_handler.open()
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Failed to open camera: {e}")
             return ABORT
 
         yasmin.YASMIN_LOG_INFO("Starting two-phase centering on detected landing base...")
@@ -74,6 +84,12 @@ class CenterOnDetection(State):
             self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
             return ABORT
 
+    @staticmethod
+    def saturate_abs(value):
+        if value == 0:
+            return 0.0
+        return max(CENTERING_VEL_MIN, min(CENTERING_VEL_MAX, abs(value))) * (1 if value > 0 else -1)
+
     def _phase1_center_at_altitude(self) -> bool:
         """Phase 1: Center on target while maintaining current altitude."""
         start_time = time.time()
@@ -94,21 +110,22 @@ class CenterOnDetection(State):
                     break
                 continue
 
-            if self.yolo_detector.is_centered(detection, CENTERING_TOLERANCE_PX):
+            error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
+
+            if abs(error_x) < 50 and abs(error_y) < 50:
                 yasmin.YASMIN_LOG_INFO("Phase 1: Target centered")
                 self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
                 centered = True
                 break
 
-            error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
-            vel_x = -error_y * CENTERING_P_GAIN
-            vel_y = -error_x * CENTERING_P_GAIN
-            vel_x = max(-CENTERING_VELOCITY, min(CENTERING_VELOCITY, vel_x))
-            vel_y = max(-CENTERING_VELOCITY, min(CENTERING_VELOCITY, vel_y))
+            vel_x = error_y * CENTERING_P_GAIN
+            vel_y = error_x * CENTERING_P_GAIN
+            vel_x = self.saturate_abs(vel_x)
+            vel_y = self.saturate_abs(vel_y)
 
             self.mavdrone.offboard_velocity(vel_x, vel_y, 0.0, 0.0, ground_reference=False)
             
-            yasmin.YASMIN_LOG_DEBUG(
+            yasmin.YASMIN_LOG_INFO(
                 f"Phase 1: error=({error_x:.0f},{error_y:.0f})px, vel=({vel_x:.2f},{vel_y:.2f})m/s"
             )
 
@@ -139,16 +156,16 @@ class CenterOnDetection(State):
             vel_x, vel_y = 0.0, 0.0
             if detection:
                 error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
-                vel_x = -error_y * CENTERING_P_GAIN * 0.7  # Reduced gain during descent
-                vel_y = -error_x * CENTERING_P_GAIN * 0.7
-                vel_x = max(-0.2, min(0.2, vel_x))
-                vel_y = max(-0.2, min(0.2, vel_y))
+                vel_x = error_y * CENTERING_P_GAIN * 0.7  # Reduced gain during descent
+                vel_y = error_x * CENTERING_P_GAIN * 0.7
+                vel_x = self.saturate_abs(vel_x) if abs(error_y) > 50 else 0.0
+                vel_y = self.saturate_abs(vel_y) if abs(error_x) > 50 else 0.0
 
-            vel_z = -0.2 
+            vel_z = -0.1 
             self.mavdrone.offboard_velocity(vel_x, vel_y, vel_z, 0.0, ground_reference=False)
             
-            yasmin.YASMIN_LOG_DEBUG(
-                f"Phase 2: alt={current_lidar:.2f}m, vel=({vel_x:.2f},{vel_y:.2f},{vel_z:.2f})m/s"
+            yasmin.YASMIN_LOG_INFO(
+                f"Phase 2: alt={current_lidar:.2f}m, error=({error_x},{error_y}) vel=({vel_x:.2f},{vel_y:.2f},{vel_z:.2f})m/s"
             )
 
         self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
@@ -176,9 +193,9 @@ class LandAndWait(State):
             
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
             landing_position = {
-                "x": mavdrone.get_visual_pos.pose.pose.position.x,
-                "y": mavdrone.get_visual_pos.pose.pose.position.y,
-                "z": mavdrone.get_visual_pos.pose.pose.position.z,
+                "x": mavdrone.get_vision_pos.pose.pose.position.x,
+                "y": mavdrone.get_vision_pos.pose.pose.position.y,
+                "z": mavdrone.get_vision_pos.pose.pose.position.z,
                 "timestamp": time.time(),
             }
             visited_bases = blackboard["visited_bases"]

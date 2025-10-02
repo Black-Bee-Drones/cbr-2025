@@ -1,4 +1,4 @@
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 import os
 
 # Arena dimensions
@@ -8,17 +8,19 @@ SEARCH_AREA_WIDTH = 4.5
 SEARCH_AREA_HEIGHT = 4.5
 
 # Flight parameters
-TAKEOFF_ALTITUDE = 1.0  # meters - takeoff and search altitude
+TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitude
 SEARCH_ALTITUDE = 1.0   # meters - maintain during search
-CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
+CENTERING_ALTITUDE = 1.0  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 2.0m provides ~45% overlap for robust coverage
 GRID_SPACING = 1.5 
-WAYPOINT_VELOCITY = 0.8  # m/s - movement velocity between waypoints
-CENTERING_VELOCITY = 0.3  # m/s - velocity during precision centering
+WAYPOINT_VELOCITY = 0.4  # m/s - movement velocity between waypoints
+CENTERING_VELOCITY = 0.14  # m/s - velocity during precision centering
+CENTERING_VEL_MAX = 0.2
+CENTERING_VEL_MIN = 0.07
 
 # Grid pattern configuration
 GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
@@ -44,20 +46,22 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("mapping"), "models", "best.engine"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.9  
+YOLO_CONFIDENCE_THRESHOLD = 0.85  
 YOLO_IMAGE_SIZE = 640 
-DETECTION_SAVE_PATH = "detections/"  # save detection images
+DETECTION_SAVE_PATH = os.path.join(
+    get_package_prefix('mapping').replace('install', 'src'), "detections"
+) 
 
 # Centering control parameters
-CENTERING_P_GAIN = 0.002  # P controller gain for centering (m/s per pixel)
-CENTERING_TOLERANCE_PX = 20  # pixel tolerance for considering centered
-CENTERING_TIMEOUT = 15  # seconds - max time for centering operation
+CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
+CENTERING_TOLERANCE_PX = 200  # pixel tolerance for considering centered
+CENTERING_TIMEOUT = 30  # seconds - max time for centering operation
 LAND_WAIT_TIME = 15  # seconds - wait time after landing before takeoff
 
 # Camera parameters
 CAMERA_SOURCE = "imx219"
-IMAGE_CENTER_X = 640  # camera image center X (pixels)
-IMAGE_CENTER_Y = 360  # camera image center Y (pixels)
+IMAGE_CENTER_X = 960  # camera image center X (pixels)
+IMAGE_CENTER_Y = 540  # camera image center Y (pixels)
 
 # Movement tolerances
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped

@@ -34,7 +34,7 @@ def test_detection():
     image_handler = ImageHandler(
         node=node, 
         image_source=CAMERA_SOURCE,
-        config=IMX219Config(sensor_id=0, width=1280, height=720, flip=2),
+        config=IMX219Config(sensor_id=0, width=1640, height=1232),
     )
     time.sleep(2) 
     image_handler.open() 
@@ -106,7 +106,7 @@ def test_detection():
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 break
-            elif key == ord('s'):
+            else: #elif key == ord('s'):
                 timestamp = int(time.time() * 1000)
                 filename = f"{DETECTION_SAVE_PATH}/test_frame_{timestamp}.jpg"
                 cv2.imwrite(filename, display_frame)
