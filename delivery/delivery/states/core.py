@@ -34,9 +34,8 @@ class Initialize(State):
                 node=YasminNode.get_instance(),
                 mavros=False,
                 indoor=True
-                )
+            )
             mavdrone: MavDrone = blackboard["mavdrone"]
-
 
             mavdrone.delay(0.1) # Process callbacks
             blackboard["initial_position"] = mavdrone.get_position_as_target
@@ -49,20 +48,25 @@ class Initialize(State):
             blackboard["current_detection"] = None
 
             #Flag to define if next target is a package or a base
-            blackboard["target_is_package"] = True
+            blackboard["target_is_package"] = True  # I guess it's depreciated, because it's set in Class.__init__
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
-            yolo_detector = YOLODetector()
-            blackboard["yolo_detector"] = yolo_detector
+            blackboard["image_handler"] = ImageHandler(
+                node=YasminNode.get_instance(), 
+                image_source=IMAGE_SOURCE,
+                image_processing_callback=lambda frame: frame
+            )
 
-            image_handler = ImageHandler(
-                node=YasminNode.get_instance(), image_source=IMAGE_SOURCE
-                )
-            blackboard["image_handler"] = image_handler
+            blackboard["yolo_detector"] = YOLODetector()
+
+            yasmin.YASMIN_LOG_INFO("Take photo for first Yolo detection")
+            frame = blackboard["image_handler"].take_photo()
+            yasmin.YASMIN_LOG_INFO("Run first Yolo detection...")
+            blackboard["yolo_detector"].detect(frame)
 
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED
