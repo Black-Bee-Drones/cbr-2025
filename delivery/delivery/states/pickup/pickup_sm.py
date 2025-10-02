@@ -29,7 +29,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "GO_TO_TARGET",
             GoToTarget(),
-            transitions={SUCCEED:"CENTER_", ABORT: ABORT},
+            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT},
         )
         self.add_state(
             "CENTER_ON_DETECTION",

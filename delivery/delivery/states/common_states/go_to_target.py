@@ -9,14 +9,19 @@ from delivery.constants import (
     SEARCH_TIMEOUT,
 )
 
-
+#current package pode ser atualizado aqui
 class GoToTarget(State):
     """
     Sends drone to current target (base or package) location.
     """
 
-    def __init__(self):
+    def __init__(self, desired_class):
+        '''
+        Args:
+            desired_class: Class ID to filter detections ("base" or "package")
+        '''
         super().__init__(outcomes = [SUCCEED, ABORT])
+        self.desired_class = desired_class
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
@@ -27,30 +32,27 @@ class GoToTarget(State):
 
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        target_is_package = blackboard.get("target_is_package")
-
         #Checks if target is package or base
-        if target_is_package:
+        if self.desired_class == "package":
             target_positions = blackboard.get("packages_positions")
-        else:
+        elif self.desired_class == "base":
             target_positions = blackboard.get("deliver_positions")
+        else:
+            raise TypeError("Parameter desired_class should be 'package' or 'base'.")
         
         if not target_positions:
             yasmin.YASMIN_LOG_ERROR(f"Target positions not available.")
             return ABORT
 
-        current_target = blackboard.get("current_package")
+        current_target = blackboard["current_package"]
         current_target_pos = target_positions[current_target]
 
         yasmin.YASMIN_LOG_INFO(f"Next target position: {current_target_pos}.")
 
         try:
-
-            #Alguma coisa nisso aqui vai mudar pra configurar que as posições enviadas
-            #são em relação ao takeoff (modificação aguarda commit no mirela_sdk)
             mavdrone.offboard_position(
                 x=current_target_pos["y"], y=current_target_pos["x"], 
-                z=0.0, timeout_sec=SEARCH_TIMEOUT,
+                z=0.0, timeout_sec=SEARCH_TIMEOUT, ground_reference=True
             )
 
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")

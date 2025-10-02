@@ -32,6 +32,12 @@ class CenterOnDetection(State):
         self.desired_class = desired_class
 
     def execute(self, blackboard : Blackboard):
+        if "mavdrone" not in blackboard:
+            yasmin.YASMIN_LOG_ERROR(
+                "MavDrone not available in GoToTarget state."
+            )
+            return ABORT
+
         mavdrone: MavDrone = blackboard["mavdrone"]
         image_handler: ImageHandler = blackboard["image_handler"]
         self.yolo_detector: YOLODetector = blackboard["yolo_detector"]
@@ -45,6 +51,7 @@ class CenterOnDetection(State):
 
             if 'center' not in detection.keys():
                 yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
+                #Colocar um return aqui, mas aumentar o numero de vezes que isso pode acontecer
 
             error_x, error_y = detection['center']
 
