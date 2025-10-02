@@ -129,9 +129,9 @@ class YOLODetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self.get_best_detection(desired_class=desired_class_id, detections=detections, inside_base=inside_base)
+        return self._get_best_detection(desired_class=desired_class_id, detections=detections, inside_base=inside_base)
 
-    def get_best_detection(
+    def _get_best_detection(
         self, desired_class: int, detections: List[Dict[str, any]], inside_base: bool = False
     ) -> Optional[Dict[str, any]]:
         """

@@ -16,7 +16,7 @@ DELIVER_POSITIONS = [{}]
 
 # YOLO detection parameters
 YOLO_MODEL_PATH = os.path.join(
-    get_package_share_directory("delivery"), "models", "yolov11n.onnx"
+    get_package_share_directory("delivery"), "models", "best.pt"
 )
 YOLO_CONFIDENCE_THRESHOLD = 0.7  
 YOLO_IMAGE_SIZE = 640 

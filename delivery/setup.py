@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             "delivery_task = delivery.mangalarga:main",
+            "cam_test_node = delivery.utils.cam_test_node:main",
         ],
     },
 )
