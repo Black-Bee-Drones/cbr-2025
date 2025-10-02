@@ -10,15 +10,12 @@ from .pickup_states import (
     CheckPkg,
 )
 
-from common_states import (
-    CenterOnDetection,
-    GoToTarget,
-    DescendToTarget, 
-)
-
 from delivery.states import (
     Takeoff,
     Land,
+    CenterOnDetection,
+    GoToTarget,
+    DescendToTarget, 
 )
 
 

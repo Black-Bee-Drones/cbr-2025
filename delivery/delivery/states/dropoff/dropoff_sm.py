@@ -7,15 +7,12 @@ from .dropoff_states import (
     ReleasePkg, 
 )
 
-from common_states import (
-    CenterOnDetection, 
-    GoToTarget,
-    DescendToTarget
-)
-
 from delivery.states import (
     Land,
-    Takeoff
+    Takeoff,
+    CenterOnDetection, 
+    GoToTarget,
+    DescendToTarget,
 )
 
 
