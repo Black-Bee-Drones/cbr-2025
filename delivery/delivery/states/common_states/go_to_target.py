@@ -21,7 +21,9 @@ class GoToTarget(State):
             desired_class: Class ID to filter detections ("base" or "package")
         '''
         super().__init__(outcomes = [SUCCEED, ABORT])
-        self.desired_class = desired_class
+        self._desired_class = desired_class.lower()
+        if self._desired_class not in ("base" or "package"):
+            raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
         if "mavdrone" not in blackboard:
@@ -33,13 +35,11 @@ class GoToTarget(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
 
         #Checks if target is package or base
-        if self.desired_class == "package":
-            target_positions = blackboard.get("packages_positions")
-        elif self.desired_class == "base":
+        if self._desired_class == "base":
             target_positions = blackboard.get("deliver_positions")
-        else:
-            raise TypeError("Parameter desired_class should be 'package' or 'base'.")
-        
+        elif self._desired_class == "package":
+            target_positions = blackboard.get("packages_positions")
+
         if not target_positions:
             yasmin.YASMIN_LOG_ERROR(f"Target positions not available.")
             return ABORT
@@ -51,8 +51,11 @@ class GoToTarget(State):
 
         try:
             mavdrone.offboard_position(
-                x=current_target_pos["y"], y=current_target_pos["x"], 
-                z=0.0, timeout_sec=SEARCH_TIMEOUT, ground_reference=True
+                x=current_target_pos["y"], 
+                y=current_target_pos["x"], 
+                z=0.0, 
+                timeout_sec=SEARCH_TIMEOUT, 
+                ground_reference=True
             )
 
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
