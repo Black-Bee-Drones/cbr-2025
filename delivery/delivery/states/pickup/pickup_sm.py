@@ -66,7 +66,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "CHECK_PKG",
             CheckPkg(),
-            transitions={SUCCEED: SUCCEED, ABORT : ABORT, "pkg_detected" : "CENTER_ON_DETECTION"},
+            transitions={SUCCEED: "CENTER_ON_DETECTION", ABORT : ABORT},
         )
 
         self.set_start_state("GO_TO_TARGET")
