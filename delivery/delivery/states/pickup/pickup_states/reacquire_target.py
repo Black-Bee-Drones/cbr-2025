@@ -23,7 +23,7 @@ class ReacquireTarget(State):
     Up to search package
     """
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
 
     def execute(self, blackboard : Blackboard):
         mavdrone: MavDrone = blackboard["mavdrone"]
@@ -34,16 +34,16 @@ class ReacquireTarget(State):
 
         if new_alt >= MAX_ALTITUDE:
             yasmin.YASMIN_LOG_ERROR("Target altitude exceeds maximum allowed limit.")
-            return ABORT
+            return "next_pkg"
 
         yasmin.YASMIN_LOG_INFO("Starting ascent.")
         start = time.time()
         while (time.time() - start) < REACQUIRE_TARGET_TIMEOUT:
-            current_alt = mavdrone.get_rel_alt.data
+            current_alt = mavdrone.get_rng_alt.range
 
             if current_alt >= MAX_ALTITUDE:
                 yasmin.YASMIN_LOG_ERROR(f"Aborting: current altitude {current_alt:.2f}m >= max limit {MAX_ALTITUDE:.2f}m")
-                return ABORT
+                return "next_pkg"
 
             error_z = new_alt - current_alt
 

@@ -7,6 +7,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 from constants import (
     CENTERING_ALTITUDE,
     TAKEOFF_ALTITUDE,
+    MAX_ALTITUDE
 )
 
 
@@ -34,9 +35,9 @@ class DescendToTarget(State):
                 yasmin.YASMIN_LOG_INFO("Height limit achieved. Descending finished.")
                 return "height_limit"
             
-            max_distance = TAKEOFF_ALTITUDE - CENTERING_ALTITUDE
+            max_distance = MAX_ALTITUDE - CENTERING_ALTITUDE
             kp = (current_altitude - CENTERING_ALTITUDE) / max_distance 
-            descending_distance = 0.60 * kp 
+            descending_distance = 0.80 * kp 
             mavdrone.offboard_position(0.0, 0.0, descending_distance)
             
             yasmin.YASMIN_LOG_INFO(f"Descending: {descending_distance} m")

@@ -15,6 +15,7 @@ from delivery.constants import (
     CENTER_TIMEOUT,
     POSITION_CONTROLLER_KP_XY,
     MAX_VELOCITY_XY,
+    MIN_DETECTIONS_LOST
 )
 
 
@@ -39,19 +40,39 @@ class CenterOnDetection(State):
             return ABORT
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        image_handler: ImageHandler = blackboard["image_handler"]
-        self.yolo_detector: YOLODetector = blackboard["yolo_detector"]
+        image_handler: ImageHandler = blackboard.get("image_handler")
+        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
+
+        if not image_handler:
+            yasmin.YASMIN_LOG_ERROR(
+                "ImageHandler not available in CenterOnDetection state."
+            )
+            return ABORT
+        
+        if not self.yolo_detector:
+            yasmin.YASMIN_LOG_ERROR(
+                "YoloDetector not available in CenterOnDetection state."
+            )
+            return ABORT
 
         image_handler.image_processing_callback = self.image_processing_callback
 
         yasmin.YASMIN_LOG_INFO("Starting centering procedure using YOLO detector...")
         start = time.time()
+
+        lost_detections = 0
+
         while (time.time() - start) < CENTER_TIMEOUT:
             detection = image_handler.take_photo()
 
             if 'center' not in detection.keys():
+                lost_detections += 1
+
+            # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
+            if lost_detections > MIN_DETECTIONS_LOST:
                 yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
-                #Colocar um return aqui, mas aumentar o numero de vezes que isso pode acontecer
+                return FAIL
+
 
             error_x, error_y = detection['center']
 

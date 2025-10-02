@@ -24,7 +24,7 @@ from delivery.states import (
 
 class PickupSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "height_limit", "pkg_detected", FAIL])
+        super().__init__(outcomes=[SUCCEED, ABORT, FAIL, "height_limit", "pkg_detected", "next_pkg"])
 
         self.add_state(
             "GO_TO_TARGET",
@@ -39,7 +39,7 @@ class PickupSM(StateMachine):
         self.add_state(
             "REACQUIRE_TARGET",
             ReacquireTarget(),
-            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT},
+            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT, "next_pkg": "next_pkg"},
         )
         self.add_state(
             "ALIGN_PKG",
