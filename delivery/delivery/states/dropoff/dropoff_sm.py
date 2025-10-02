@@ -1,11 +1,7 @@
 # Main State Machine for Delivery
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT
-
-from .dropoff_states import (
-    ReleasePkg, 
-)
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
 
 from delivery.states import (
     Land,
@@ -13,6 +9,7 @@ from delivery.states import (
     CenterOnDetection, 
     GoToTarget,
     DescendToTarget,
+    GripperController,
 )
 
 
@@ -42,8 +39,8 @@ class DropoffSM(StateMachine):
         )
         self.add_state(
             "RELEASE_PKG",
-            ReleasePkg(),
-            transitions={SUCCEED: "TAKEOFF", ABORT: ABORT},
+            GripperController(action='drop'),
+            transitions={SUCCEED: "TAKEOFF", ABORT: ABORT, FAIL: "TAKEOFF"},  # FAIL -> if error in mavdrone.do_servo()
         )
         self.add_state(
             "TAKEOFF",

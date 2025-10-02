@@ -1,12 +1,11 @@
 # Main State Machine for Delivery
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
 
 from .pickup_states import (
     ReacquireTarget, 
     AlignPkg, 
-    PickPkg, 
     CheckPkg,
 )
 
@@ -16,6 +15,7 @@ from delivery.states import (
     CenterOnDetection,
     GoToTarget,
     DescendToTarget, 
+    GripperController,
 )
 
 
@@ -55,8 +55,8 @@ class PickupSM(StateMachine):
         )
         self.add_state(
             "PICK_PKG",
-            PickPkg(),
-            transitions={SUCCEED:"TAKEOFF", ABORT: ABORT},
+            GripperController(action="pick"),
+            transitions={SUCCEED:"TAKEOFF", ABORT: ABORT, FAIL: 'TAKEOFF'},  # FAIL -> if error in mavdrone.do_servo()
         )
         self.add_state(
             "TAKEOFF",

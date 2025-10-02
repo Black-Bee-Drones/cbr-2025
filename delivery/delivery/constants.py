@@ -60,3 +60,8 @@ MIN_DETECTIONS_LOST = 5
 # Vertical limit
 MAX_ALTITUDE = 5.0  # meters
 TARGET_UP_ALTITUDE = 0.5  # meters - how high the drone will climb if it doesn't find the package
+
+# Servo motor value
+SERVO_PIN_OUT = 1
+SERVO_PICK_PWM = 1
+SERVO_DROP_PWM = 1
