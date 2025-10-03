@@ -10,10 +10,13 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from delivery.states import (
     Initialize,
     Takeoff,
-    PickupSM,
-    DropoffSM,
     ReturnToLaunch,
     End,
+)
+
+from delivery.state_machines import (
+    DropoffSM,
+    PickupSM,
 )
 
 

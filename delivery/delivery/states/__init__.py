@@ -5,18 +5,14 @@ from .core import (
     ReturnToLaunch,
     End,
 )
-from .common_states import (
-    CenterOnDetection,
-    GoToTarget,
-    ReacquireTarget,
-    GripperController,
-)
-from .pickup import(
-    PickupSM,
-)
-from .dropoff import(
-    DropoffSM,
-)
+from .center_on_detection import CenterOnDetection
+from .go_to_target import GoToTarget
+from .reacquire_target import ReacquireTarget
+from .gripper_controller import GripperController
+
+from .align_pkg import AlignPkg
+from .check_pkg import CheckPkg
+
 
 __all__ = [
     "Initialize",
@@ -28,6 +24,6 @@ __all__ = [
     'GoToTarget',
     'ReacquireTarget',
     'GripperController',
-    "PickupSM",
-    "DropoffSM",
+    "AlignPkg",
+    "CheckPkg",
 ]

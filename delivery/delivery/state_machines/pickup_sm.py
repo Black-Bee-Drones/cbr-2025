@@ -3,11 +3,6 @@
 from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
 
-from .pickup_states import ( 
-    AlignPkg, 
-    CheckPkg,
-)
-
 from delivery.states import (
     Takeoff,
     Land,
@@ -15,6 +10,8 @@ from delivery.states import (
     GoToTarget,
     ReacquireTarget,
     GripperController,
+    AlignPkg,
+    CheckPkg,
 )
 
 
