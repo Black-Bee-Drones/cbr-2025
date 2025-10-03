@@ -1,7 +1,7 @@
 # Main State Machine for Dropoff
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, FAIL, TIMEOUT, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from delivery.states import (
     Takeoff,
@@ -21,15 +21,15 @@ class DropoffSM(StateMachine):
             "GO_TO_NEXT_BASE",
             GoToTarget(desired_class="base"),
             transitions={
-                SUCCEED : "CENTER_ON_DETECTION",
+                SUCCEED : "CENTER",
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "CENTER_ON_DETECTION",
+            "CENTER",
             CenterOnDetection(desired_class='base'),
             transitions={
-                SUCCEED : "DESCEND_TO_TARGET",
+                SUCCEED : "DESCEND",
                 FAIL    : "ASCEND",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
@@ -38,20 +38,18 @@ class DropoffSM(StateMachine):
             "ASCEND",
             ReacquireTarget(direction="up"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION",
-                FAIL           : "CENTER_ON_DETECTION",
-                "height_limit" : "next_pkg", 
+                SUCCEED        : "CENTER",
+                FAIL           : "GO_TO_NEXT_BASE",
                 ABORT          : ABORT,
             },
         )
         self.add_state (
-            "DESCEND_TO_TARGET",
+            "DESCEND",
             ReacquireTarget(direction="down"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION", 
-                FAIL           : "CENTER_ON_DETECTION",
-                "height_limit" : "LAND", 
-                ABORT          : ABORT, 
+                SUCCEED        : "CENTER",
+                FAIL           : "LAND",
+                ABORT          : ABORT,
             },
         )
         self.add_state(
@@ -67,7 +65,6 @@ class DropoffSM(StateMachine):
             GripperController(action="open"),
             transitions={
                 SUCCEED: "TAKEOFF",
-                FAIL: "TAKEOFF",  # if error in mavdrone.do_servo()
                 ABORT: ABORT,
             },
         )
@@ -79,5 +76,5 @@ class DropoffSM(StateMachine):
                 ABORT      : ABORT,
             },
         )
-    
+
         self.set_start_state("GO_TO_NEXT_BASE")

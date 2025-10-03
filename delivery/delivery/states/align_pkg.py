@@ -5,7 +5,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, FAIL, TIMEOUT, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 from delivery.utils import YOLODetector
 
 
@@ -24,12 +24,12 @@ class AlignPkg(State):
 
     Outcome of the state:
         - SUCCEED: Target aligned successfully.
-        - FAIL: Could not align target within allowed time.
+        - FAIL: Target not detected for too long or timeout.
         - ABORT: Required components not available.
     """
 
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, FAIL, TIMEOUT, ABORT])
+        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
 
     def execute(self, blackboard : Blackboard):
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
@@ -95,6 +95,4 @@ class AlignPkg(State):
                     angular_z = vel_yaw,
                 )
         yasmin.YASMIN_LOG_ERROR("Align timeout.")
-        return TIMEOUT
-
-    
+        return FAIL

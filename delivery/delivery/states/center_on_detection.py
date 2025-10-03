@@ -6,7 +6,7 @@ from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, FAIL, TIMEOUT, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from delivery.utils import YOLODetector
 
@@ -25,7 +25,7 @@ class CenterOnDetection(State):
 
     Outcome of the state:
         - SUCCEED: Target centered successfully.
-        - FAIL: Could not center target within allowed time.
+        - FAIL: Target not detected for too long or timeout.
         - ABORT: Required components not available.
     """
 
@@ -37,7 +37,7 @@ class CenterOnDetection(State):
         Raises:
             TypeError: If `desired_class` is not "base" or "package".
         """
-        super().__init__(outcomes=[SUCCEED, FAIL, TIMEOUT, ABORT])
+        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
         self._desired_class = desired_class.lower()
         if self._desired_class not in ("base", "package"):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
@@ -107,5 +107,5 @@ class CenterOnDetection(State):
                 )
 
                 detections_lost = 0
-        yasmin.YASMIN_LOG_ERROR(f"Timeout ({CENTER_TIMEOUT:.1f}s) while trying to center target.")
+        yasmin.YASMIN_LOG_ERROR("CenterOnDetection timeout.")
         return FAIL

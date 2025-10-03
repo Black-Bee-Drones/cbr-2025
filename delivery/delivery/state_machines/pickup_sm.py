@@ -1,7 +1,7 @@
 # Main State Machine for Pickup
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from delivery.states import (
     Takeoff,
@@ -17,18 +17,18 @@ from delivery.states import (
 
 class PickupSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
+        super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
             "GO_TO_NEXT_PACKAGE",
             GoToTarget(desired_class="package"),
             transitions={
-                SUCCEED : "CENTER_ON_DETECTION",
+                SUCCEED : "CENTER",
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "CENTER_ON_DETECTION",
+            "CENTER",
             CenterOnDetection(desired_class='package'),
             transitions={
                 SUCCEED : "ALIGN_PKG",
@@ -40,29 +40,27 @@ class PickupSM(StateMachine):
             "ASCEND",
             ReacquireTarget(direction="up"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION",
-                FAIL           : "CENTER_ON_DETECTION",
-                "height_limit" : "next_pkg",
-                ABORT          : ABORT,
+                SUCCEED : "CENTER",
+                FAIL    : "GO_TO_NEXT_PACKAGE",
+                ABORT   : ABORT,
             },
         )
         self.add_state(
             "ALIGN_PKG",
             AlignPkg(),
             transitions={
-                SUCCEED:"DESCEND_TO_TARGET", 
-                FAIL: "ASCEND",  # Target not detected for too long.
-                ABORT: ABORT, 
+                SUCCEED : "DESCEND",
+                FAIL    : "ASCEND",
+                ABORT   : ABORT,
             },
         )
         self.add_state(
-            "DESCEND_TO_TARGET",
+            "DESCEND",
             ReacquireTarget(direction="down"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION",
-                FAIL           : "CENTER_ON_DETECTION",
-                "height_limit" : "LAND",
-                ABORT          : ABORT,
+                SUCCEED : "CENTER",
+                FAIL    : "OPEN_GRIPPER",
+                ABORT   : ABORT,
             },
         )
         self.add_state(
@@ -70,7 +68,6 @@ class PickupSM(StateMachine):
             GripperController(action="open"),
             transitions={
                 SUCCEED : "LAND",
-                FAIL    : "LAND",  # if error in mavdrone.do_servo(), I guess I should ABORT.
                 ABORT   : ABORT,
             },
         )
@@ -87,7 +84,6 @@ class PickupSM(StateMachine):
             GripperController(action="close"),
             transitions={
                 SUCCEED : "TAKEOFF",
-                FAIL    : "TAKEOFF",  # if error in mavdrone.do_servo()
                 ABORT   : ABORT,
             },
         )
@@ -104,7 +100,7 @@ class PickupSM(StateMachine):
             CheckPkg(),
             transitions={
                 SUCCEED : SUCCEED,
-                FAIL    : "CENTER_ON_DETECTION",
+                FAIL    : "CENTER",
                 ABORT   : ABORT,
             },
         )

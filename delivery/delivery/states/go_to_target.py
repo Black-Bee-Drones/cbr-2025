@@ -24,9 +24,9 @@ class GoToTarget(State):
             desired_class: Class ID to filter detections ("base" or "package")
 
         Raises:
-            TypeError: If `desired_class` is not `"base"` or `"package"`.
+            TypeError: If desired_class is not "base" or "package".
         '''
-        super().__init__(outcomes = [SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT])
 
         self._desired_class = desired_class.lower()
         if self._desired_class not in ("base", "package"):
@@ -38,14 +38,12 @@ class GoToTarget(State):
             return ABORT
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        current_target = blackboard["next_package"]
-
         if self._desired_class == "base":
             target_positions = blackboard["deliver_positions"]
             
         elif self._desired_class == "package":
-            blackboard["next_package"] += 1
             target_positions = blackboard["packages_positions"]
+            blackboard["next_package"] += 1
 
         if not target_positions:
             yasmin.YASMIN_LOG_ERROR("Target positions not available.")

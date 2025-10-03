@@ -4,7 +4,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from delivery.constants import (
     REACQUIRE_TIMEOUT,
@@ -24,9 +24,7 @@ class ReacquireTarget(State):
 
     Outcome of the state:
         - SUCCEED: Target altitude reached successfully.
-        - ABORT: Required components (e.g., `mavdrone`) not available.
-        - FAIL: Target altitude not reached within allowed time.
-        - "height_limit": Movement exceeded maximum or minimum allowed altitude.
+        - FAIL: Target altitude not reached within allowed time or timeout.
         - ABORT: Required components (e.g., `mavdrone`) not available.
     """
     def __init__(self, direction: str):
@@ -37,7 +35,8 @@ class ReacquireTarget(State):
         Raises:
             TypeError: If `direction` is not "up" or "down".
         """
-        super().__init__(outcomes=[SUCCEED, ABORT, FAIL, "height_limit"])
+        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
+
         self._direction = direction.lower()
         if self._direction not in ("up", "down"):
             raise TypeError("Parameter direction should be 'up' or 'down'.")
@@ -55,7 +54,7 @@ class ReacquireTarget(State):
 
             if new_alt >= MAX_ALTITUDE:
                 yasmin.YASMIN_LOG_INFO("Target altitude exceeds maximum allowed limit.")
-                return "height_limit"
+                return FAIL
 
         elif self._direction == 'down':
             new_alt = current_alt - TARGET_DOWN_ALTITUDE
@@ -70,10 +69,10 @@ class ReacquireTarget(State):
 
             if (self._direction == 'up') and (new_alt - current_alt <= POSITION_CONTROLLER_TOLERANCE_Z):
                     yasmin.YASMIN_LOG_WARN(f"Ascending height limit reached: current altitude {current_alt:.2f}m >= max limit {MAX_ALTITUDE}m")
-                    return "height_limit"
+                    return FAIL
             elif (self._direction == 'down') and (current_alt - new_alt <= POSITION_CONTROLLER_TOLERANCE_Z):
                     yasmin.YASMIN_LOG_INFO(f"Descending height limit reached: current altitude {current_alt:.2f}m <= max limit {MIN_CENTERING_ALTITUDE}m")
-                    return "height_limit"
+                    return FAIL
 
             error_z = new_alt - current_alt
 
