@@ -42,7 +42,7 @@ class Delivery(StateMachine):
         self.add_state(
             "DROPOFF",
             DropoffSM(),
-            transitions={SUCCEED:"RETURN_TO_LAUNCH", ABORT:"RETURN_TO_LAUNCH", "next_pkg": "PICKUP"},
+            transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"},
         )
         self.add_state(
             "RETURN_TO_LAUNCH",
@@ -55,21 +55,21 @@ class Delivery(StateMachine):
 
 def main():
     rclpy.init()
+
     set_ros_loggers()
-    sm = Delivery()
 
-    YasminViewerPub("YASMIN_DEMO", sm)
+    delivery_sm = Delivery()
 
-    # Execute the FSM
+    YasminViewerPub("YASMIN_DEMO", delivery_sm)
+
     try:
-        yasmin.YASMIN_LOG_ERROR(sm.validate())
-        outcome = sm()
-        yasmin.YASMIN_LOG_INFO(outcome)
+        yasmin.YASMIN_LOG_ERROR(delivery_sm.validate())
+        final_outcome = delivery_sm()
+        yasmin.YASMIN_LOG_INFO(final_outcome)
     except KeyboardInterrupt:
-        if sm.is_running():
-            sm.cancel_state()
+        if delivery_sm.is_running():
+            delivery_sm.cancel_state()
 
-    # Shutdown ROS 2 if it's running
     if rclpy.ok():
         rclpy.shutdown()
 

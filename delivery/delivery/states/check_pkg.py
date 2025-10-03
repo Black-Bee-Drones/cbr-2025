@@ -4,7 +4,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from delivery.utils import YOLODetector
 

@@ -1,7 +1,7 @@
 # Main State Machine for Dropoff
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, TIMEOUT, ABORT
 
 from delivery.states import (
     Takeoff,
@@ -15,13 +15,13 @@ from delivery.states import (
 
 class DropoffSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
+        super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
-            "GO_TO_BASE",
+            "GO_TO_NEXT_BASE",
             GoToTarget(desired_class="base"),
             transitions={
-                SUCCEED : "CENTER_ON_DETECTION", 
+                SUCCEED : "CENTER_ON_DETECTION",
                 ABORT   : ABORT,
             },
         )
@@ -41,7 +41,7 @@ class DropoffSM(StateMachine):
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
                 TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : 'next_pkg', ###################################
+                "height_limit" : "GO_TO_NEXT_BASE",
                 ABORT          : ABORT,
             },
         )
@@ -49,17 +49,17 @@ class DropoffSM(StateMachine):
             "DESCEND_TO_TARGET",
             ReacquireTarget(direction="down"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION", 
+                SUCCEED        : "CENTER_ON_DETECTION",
                 TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : "LAND", 
-                ABORT          : "next_pkg", 
+                "height_limit" : "LAND",
+                ABORT          : ABORT
             },
         )
         self.add_state(
             "LAND",
             Land(),
             transitions={
-                SUCCEED : "DROP_PKG", 
+                SUCCEED : "DROP_PKG",
                 ABORT   : ABORT,
             },
         )
@@ -67,18 +67,18 @@ class DropoffSM(StateMachine):
             "DROP_PKG",
             GripperController(action="open"),
             transitions={
-                SUCCEED: "TAKEOFF", 
+                SUCCEED: "TAKEOFF",
                 FAIL: "TAKEOFF",  # if error in mavdrone.do_servo()
-                ABORT: ABORT, 
+                ABORT: ABORT,
             },
         )
         self.add_state(
             "TAKEOFF",
             Takeoff(),
             transitions={
-                SUCCEED    : SUCCEED, 
-                ABORT      : ABORT, 
+                SUCCEED    : SUCCEED,
+                ABORT      : ABORT,
             },
         )
-        
-        self.set_start_state("GO_TO_BASE")
+    
+        self.set_start_state("GO_TO_NEXT_BASE")

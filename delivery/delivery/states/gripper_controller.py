@@ -2,7 +2,7 @@ import time
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 
@@ -19,8 +19,8 @@ class GripperController(State):
 
     Outcome of the state:
         SUCCEED: Gripper action executed successfully.
-        ABORT: `mavdrone` not available in the blackboard.
         FAIL: Gripper control command failed.
+        ABORT: `mavdrone` not available in the blackboard.
     """
     def __init__(self, action: str):
         """
@@ -30,7 +30,7 @@ class GripperController(State):
         Raises:
             TypeError: If `action` is not "close" or "open".
         """
-        super().__init__(outcomes=[SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
         self._action = action.lower()
         if self._action not in ("close", "open"):
             raise TypeError("Parameter action should be 'close' or 'open'.")

@@ -157,7 +157,7 @@ class YOLODetector:
         Returns:
             Best detection or None if no detections
         """
-        
+
         if not detections:
             return None
 
@@ -242,7 +242,7 @@ class YOLODetector:
         )
 
         filename = f"{DETECTION_SAVE_PATH}/detection_{self.detection_count:04d}_{timestamp}.jpg"
-        cv2.imwrite(filename, annotated_image)  
+        cv2.imwrite(filename, annotated_image) 
         self.detection_count += 1
 
     def _simulate_detection(

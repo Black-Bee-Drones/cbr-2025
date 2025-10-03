@@ -26,8 +26,8 @@ DELIVER_POSITIONS = [{}]
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("delivery"), "models", "best.pt"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.2  
-YOLO_IMAGE_SIZE = 640 
+YOLO_CONFIDENCE_THRESHOLD = 0.2 
+YOLO_IMAGE_SIZE = 640
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Camera
@@ -46,7 +46,7 @@ POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
 POSITION_CONTROLLER_MAX_VELOCITY_XY = 0.8
 POSITION_CONTROLLER_MAX_VELOCITY_Z = 0.5
 POSITION_CONTROLLER_MAX_VELOCITY_YAW = 0.3  # rad/s
-POSITION_CONTROLLER_TOLERANCE_XY = 0.1  # Meters, XY tolerance for considering the PID at the target 
+POSITION_CONTROLLER_TOLERANCE_XY = 0.1  # Meters, XY tolerance for considering the PID at the target
 POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
 POSITION_CONTROLLER_TOLERANCE_YAW = 0.05  # Rad, Yaw tolerance for considering the PID at the target    # I guess never used because use pkg proportion on AlignPkg
 

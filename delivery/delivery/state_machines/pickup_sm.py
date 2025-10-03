@@ -17,20 +17,20 @@ from delivery.states import (
 
 class PickupSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, FAIL, "next_pkg"])
+        super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
-            "GO_TO_PACKAGE",
+            "GO_TO_NEXT_PACKAGE",
             GoToTarget(desired_class="package"),
             transitions={
-                SUCCEED : "CENTER_ON_DETECTION", 
-                ABORT   : ABORT
+                SUCCEED : "CENTER_ON_DETECTION",
+                ABORT   : ABORT,
             },
         )
         self.add_state(
             "CENTER_ON_DETECTION",
             CenterOnDetection(desired_class='package'),
-            transitions={    
+            transitions={
                 SUCCEED : "ALIGN_PKG",
                 FAIL    : "ASCEND_TO_TARGET",  # Target not detected for too long.
                 TIMEOUT : "ALIGN_PKG",
@@ -43,7 +43,7 @@ class PickupSM(StateMachine):
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
                 TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : 'next_pkg',
+                "height_limit" : "GO_TO_NEXT_PACKAGE",
                 ABORT          : ABORT,
             },
         )
@@ -51,10 +51,10 @@ class PickupSM(StateMachine):
             "ALIGN_PKG",
             AlignPkg(),
             transitions={
-                SUCCEED:"DESCEND_TO_TARGET", 
-                FAIL: "ASCEND_TO_TARGET",  # Target not detected for too long.
+                SUCCEED : "DESCEND_TO_TARGET",
+                FAIL    : "ASCEND_TO_TARGET",  # Target not detected for too long.
                 TIMEOUT : "ASCEND_TO_TARGET",
-                ABORT: ABORT, 
+                ABORT   : ABORT,
             },
         )
         self.add_state(
@@ -71,16 +71,16 @@ class PickupSM(StateMachine):
             "OPEN_GRIPPER",
             GripperController(action="open"),
             transitions={
-                SUCCEED : "LAND", 
-                FAIL    : "LAND",  # if error in mavdrone.do_servo()
-                ABORT   : ABORT, 
+                SUCCEED : "LAND",
+                FAIL    : "LAND",  # if error in mavdrone.do_servo(), I guess I should ABORT.
+                ABORT   : ABORT,
             },
         )
         self.add_state(
             "LAND",
             Land(),
             transitions={
-                SUCCEED :"PICK_PKG", 
+                SUCCEED :"PICK_PKG",
                 ABORT   : ABORT,
             },
         )
@@ -88,16 +88,16 @@ class PickupSM(StateMachine):
             "PICK_PKG",
             GripperController(action="close"),
             transitions={
-                SUCCEED : "TAKEOFF", 
+                SUCCEED : "TAKEOFF",
                 FAIL    : "TAKEOFF",  # if error in mavdrone.do_servo()
-                ABORT   : ABORT, 
+                ABORT   : ABORT,
             },
         )
         self.add_state(
             "TAKEOFF",
             Takeoff(),
             transitions={
-                SUCCEED : "CHECK_PKG", 
+                SUCCEED : "CHECK_PKG",
                 ABORT   : ABORT,
             },
         )
@@ -105,10 +105,10 @@ class PickupSM(StateMachine):
             "CHECK_PKG",
             CheckPkg(),
             transitions={
-                SUCCEED : SUCCEED, 
+                SUCCEED : SUCCEED,
                 FAIL    : "CENTER_ON_DETECTION",
-                ABORT   : ABORT, 
+                ABORT   : ABORT,
             },
         )
 
-        self.set_start_state("GO_TO_PACKAGE")
+        self.set_start_state("GO_TO_NEXT_PACKAGE")

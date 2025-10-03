@@ -4,7 +4,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
+from yasmin_ros.basic_outcomes import SUCCEED, TIMEOUT, ABORT
 
 from delivery.constants import (
     REACQUIRE_TIMEOUT,
@@ -24,9 +24,9 @@ class ReacquireTarget(State):
 
     Outcome of the state:
         - SUCCEED: Target altitude reached successfully.
-        - ABORT: Required components (e.g., `mavdrone`) not available.
         - TIMEOUT: Target altitude not reached within allowed time.
         - "height_limit": Movement exceeded maximum or minimum allowed altitude.
+        - ABORT: Required components (e.g., `mavdrone`) not available.
     """
     def __init__(self, direction: str):
         """
@@ -36,7 +36,7 @@ class ReacquireTarget(State):
         Raises:
             TypeError: If `direction` is not "up" or "down".
         """
-        super().__init__(outcomes=[SUCCEED, ABORT, TIMEOUT, "height_limit"])
+        super().__init__(outcomes=[SUCCEED, TIMEOUT, "height_limit", ABORT])
         self._direction = direction.lower()
         if self._direction not in ("up" or "down"):
             raise TypeError("Parameter direction should be 'up' or 'down'.")

@@ -13,15 +13,15 @@ from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 from delivery.utils import YOLODetector
 
 from delivery.constants import (
-    TAKEOFF_ALTITUDE, 
-    STARTING_PACKAGE_IDX, 
-    PACKAGE_POSITIONS, 
-    DELIVER_POSITIONS, 
-    IMAGE_SOURCE, 
-    IMAGE_CALCULUS_OFFSET_X, 
-    CAMERA_RESOLUTION_WIDTH, 
-    CAMERA_RESOLUTION_HEIGHT, 
-    CAMERA_PIXELS_PER_DEGREE, 
+    TAKEOFF_ALTITUDE,
+    STARTING_PACKAGE_IDX,
+    PACKAGE_POSITIONS,
+    DELIVER_POSITIONS,
+    IMAGE_SOURCE,
+    IMAGE_CALCULUS_OFFSET_X,
+    CAMERA_RESOLUTION_WIDTH,
+    CAMERA_RESOLUTION_HEIGHT,
+    CAMERA_PIXELS_PER_DEGREE,
 )
 
 
@@ -38,7 +38,6 @@ class Initialize(State):
             blackboard["packages_positions"] = PACKAGE_POSITIONS
             blackboard["deliver_positions"] = DELIVER_POSITIONS
             blackboard["visited_bases"] = []
-            blackboard["current_detection"] = None
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_ERROR("Package positions not declared.")
@@ -63,7 +62,7 @@ class Initialize(State):
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageHandler...")
             blackboard["image_handler"] = ImageHandler(
-                node=YasminNode.get_instance(), 
+                node=YasminNode.get_instance(),
                 image_source=IMAGE_SOURCE,
                 image_processing_callback=lambda frame: frame
             )
@@ -75,7 +74,7 @@ class Initialize(State):
 
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED
-        
+    
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Failed to initialize: {e}")
             return ABORT

@@ -12,7 +12,7 @@ from delivery.constants import (
 
 # colcon build --symlink-install --packages-select delivery
 # source install/setup.bash
-# ros2 run delivery cam_test_node 
+# ros2 run delivery cam_test_node
 
 class CamTest(Node):
     """
@@ -42,7 +42,7 @@ class CamTest(Node):
         if result:
             cls_id = result["class_id"]
             x1, y1, x2, y2 = result["bbox"]
-            
+
             det_info = (cls_id, x1, y1, x2 - x1, y2 - y1)
             self.get_logger().info(f"Detection: {det_info}")
             self.last_detections = [det_info]

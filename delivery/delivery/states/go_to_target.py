@@ -60,10 +60,10 @@ class GoToTarget(State):
 
         try:
             mavdrone.offboard_position(
-                x=current_target_pos["y"], 
-                y=current_target_pos["x"], 
-                z=0.0, 
-                timeout_sec=SEARCH_TIMEOUT, 
+                x=current_target_pos["y"],
+                y=current_target_pos["x"],
+                z=0.0,
+                timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True
             )
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
