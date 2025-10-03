@@ -1,4 +1,3 @@
-import rclpy
 import time
 
 import yasmin
@@ -6,8 +5,6 @@ from yasmin import Blackboard
 from yasmin import State
 from yasmin_ros.yasmin_node import YasminNode
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
-
-import time
 
 from mirela_sdk.control.mavros import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
@@ -32,7 +29,7 @@ class Initialize(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
-    def execute(self, blackboard : Blackboard):
+    def execute(self, blackboard: Blackboard):
         try:
             yasmin.YASMIN_LOG_INFO("Initializing mission...")
 
@@ -43,9 +40,9 @@ class Initialize(State):
             blackboard["visited_bases"] = []
             blackboard["current_detection"] = None
 
-            if not blackboard.get("packages_positions"):
+            if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_WARN("Package positions not declared.")
-            if not blackboard.get("deliver_positions"):
+            if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
             yasmin.YASMIN_LOG_INFO("Initializing MavDrone...")
@@ -89,11 +86,11 @@ class Takeoff(State):
         super().__init__(outcomes=[SUCCEED, ABORT])
         self._update_initial_position = update_initial_position
 
-    def execute(self, blackboard : Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in Takeoff state.")
+    def execute(self, blackboard: Blackboard):
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
         if self._update_initial_position:
             yasmin.YASMIN_LOG_INFO('Update inicial position.')
@@ -115,11 +112,11 @@ class Land(State):
         super().__init__(outcomes=[SUCCEED, ABORT])
         self._rtl = rtl
 
-    def execute(self, blackboard : Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in Land state.")
+    def execute(self, blackboard: Blackboard):
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
         if self._rtl:
             yasmin.YASMIN_LOG_INFO("Returning to launch...")
@@ -141,7 +138,7 @@ class Land(State):
 
         try:
             mavdrone.land()
-            time.sleep(5) #wait for landing to complete
+            time.sleep(5)  # wait for landing to complete
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
             return SUCCEED
 

@@ -26,21 +26,21 @@ class CheckPkg(State):
         super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
 
     def execute(self, blackboard: Blackboard):
-        image_handler: ImageHandler = blackboard.get("image_handler")
-        if not image_handler:
-            yasmin.YASMIN_LOG_ERROR("ImageHandler not available in CenterOnDetection state.")
+        if ("image_handler" not in blackboard) or not blackboard["image_handler"]:
+            yasmin.YASMIN_LOG_ERROR(f"image_handler not available in {self.__class__.__name__} state.")
             return ABORT
+        image_handler: ImageHandler = blackboard["image_handler"]
 
-        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
-        if not self.yolo_detector:
-            yasmin.YASMIN_LOG_ERROR("YoloDetector not available in CenterOnDetection state.")
+        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
             return ABORT
+        yolo_detector: YOLODetector = blackboard["yolo_detector"]
 
         for _ in range(DETECTIONS_LOST_TOLERANCE):
             time.sleep(1)
             frame = image_handler.take_photo()
 
-            detection = self.yolo_detector.detect(
+            detection = yolo_detector.detect(
                 image = frame,
                 desired_class = "package",
                 inside_base = True,

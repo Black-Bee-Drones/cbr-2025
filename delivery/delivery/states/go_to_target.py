@@ -32,10 +32,10 @@ class GoToTarget(State):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in CenterOnDetection state.")
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
         if self._desired_class == "base":
             target_positions = blackboard.get("deliver_positions")

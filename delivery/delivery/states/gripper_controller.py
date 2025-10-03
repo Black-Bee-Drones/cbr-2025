@@ -36,10 +36,10 @@ class GripperController(State):
             raise TypeError("Parameter action should be 'close' or 'open'.")
 
     def execute(self, blackboard: Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in GripperController state.")
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
         if self._action=="close":
             pwm_value = SERVO_CLOSE_PWM

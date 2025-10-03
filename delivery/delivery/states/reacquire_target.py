@@ -42,10 +42,10 @@ class ReacquireTarget(State):
             raise TypeError("Parameter direction should be 'up' or 'down'.")
 
     def execute(self, blackboard : Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in DescendToTarget state.")
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
         current_alt = mavdrone.get_rng_alt.range
 

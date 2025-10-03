@@ -33,20 +33,20 @@ class AlignPkg(State):
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
 
     def execute(self, blackboard : Blackboard):
-        mavdrone: MavDrone = blackboard.get("mavdrone")
-        if not mavdrone:
-            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in CenterOnDetection state.")
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
 
-        image_handler: ImageHandler = blackboard.get("image_handler")
-        if not image_handler:
-            yasmin.YASMIN_LOG_ERROR("ImageHandler not available in CenterOnDetection state.")
+        if ("image_handler" not in blackboard) or not blackboard["image_handler"]:
+            yasmin.YASMIN_LOG_ERROR(f"image_handler not available in {self.__class__.__name__} state.")
             return ABORT
+        image_handler: ImageHandler = blackboard["image_handler"]
 
-        yolo_detector: YOLODetector = blackboard.get("yolo_detector")
-        if not yolo_detector:
-            yasmin.YASMIN_LOG_ERROR("YoloDetector not available in CenterOnDetection state.")
+        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
             return ABORT
+        yolo_detector: YOLODetector = blackboard["yolo_detector"]
 
         yasmin.YASMIN_LOG_INFO("Starting aligning procedure using YOLO detector...")
         detections_lost = 0
@@ -54,7 +54,7 @@ class AlignPkg(State):
         while time.time() - start < ALIGN_TIMEOUT:
             frame = image_handler.take_photo()
 
-            detection = self.yolo_detector.detect(
+            detection = yolo_detector.detect(
                 image = frame,
                 desired_class = "package",
             )
