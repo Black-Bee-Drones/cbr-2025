@@ -65,7 +65,7 @@ class DropoffSM(StateMachine):
         )
         self.add_state(
             "DROP_PKG",
-            GripperController(action='drop'),
+            GripperController(action="open"),
             transitions={
                 SUCCEED: "TAKEOFF", 
                 FAIL: "TAKEOFF",  # if error in mavdrone.do_servo()

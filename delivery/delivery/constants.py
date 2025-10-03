@@ -52,5 +52,5 @@ POSITION_CONTROLLER_TOLERANCE_YAW = 0.05  # Rad, Yaw tolerance for considering t
 
 # Servo motor value
 SERVO_PIN_OUT = 1
-SERVO_PICK_PWM = 1
-SERVO_DROP_PWM = 1
+SERVO_OPEN_PWM = 1
+SERVO_CLOSE_PWM = 1

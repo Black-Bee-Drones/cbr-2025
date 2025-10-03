@@ -1,3 +1,5 @@
+import time
+
 import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
@@ -6,8 +8,8 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from delivery.constants import (
     SERVO_PIN_OUT,
-    SERVO_PICK_PWM,
-    SERVO_DROP_PWM,
+    SERVO_CLOSE_PWM,
+    SERVO_OPEN_PWM,
 )
 
 
@@ -23,15 +25,15 @@ class GripperController(State):
     def __init__(self, action: str):
         """
         Args:
-            action (str): Gripper action. Must be "pick" or "drop"
+            action (str): Gripper action. Must be "close" or "open"
 
         Raises:
-            TypeError: If `action` is not "pick" or "drop".
+            TypeError: If `action` is not "close" or "open".
         """
         super().__init__(outcomes=[SUCCEED, ABORT])
         self._action = action.lower()
-        if self._action not in ("pick", "drop"):
-            raise TypeError("Parameter action should be 'pick' or 'drop'.")
+        if self._action not in ("close", "open"):
+            raise TypeError("Parameter action should be 'close' or 'open'.")
 
     def execute(self, blackboard: Blackboard):
         mavdrone: MavDrone = blackboard.get("mavdrone")
@@ -39,10 +41,10 @@ class GripperController(State):
             yasmin.YASMIN_LOG_ERROR("Mavdrone not available in GripperController state.")
             return ABORT
 
-        if self._action=="pick":
-            pwm_value = SERVO_PICK_PWM
-        elif self._action=="drop":
-            pwm_value = SERVO_DROP_PWM
+        if self._action=="close":
+            pwm_value = SERVO_CLOSE_PWM
+        elif self._action=="open":
+            pwm_value = SERVO_OPEN_PWM
 
         try:
             yasmin.YASMIN_LOG_INFO(f"{self._action} package, pwm_value={pwm_value}")
@@ -50,6 +52,7 @@ class GripperController(State):
                 aux_out=SERVO_PIN_OUT,
                 pwm_value=pwm_value,
             )
+            time.sleep(3)
             yasmin.YASMIN_LOG_INFO("GripperController executado.")
             return SUCCEED
         except:

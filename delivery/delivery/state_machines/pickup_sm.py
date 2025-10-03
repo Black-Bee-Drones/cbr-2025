@@ -63,8 +63,17 @@ class PickupSM(StateMachine):
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
                 TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : 'LAND',
+                "height_limit" : 'OPEN_GRIPPER',
                 ABORT          : ABORT,
+            },
+        )
+        self.add_state(
+            "OPEN_GRIPPER",
+            GripperController(action="open"),
+            transitions={
+                SUCCEED : "LAND", 
+                FAIL    : "LAND",  # if error in mavdrone.do_servo()
+                ABORT   : ABORT, 
             },
         )
         self.add_state(
@@ -77,7 +86,7 @@ class PickupSM(StateMachine):
         )
         self.add_state(
             "PICK_PKG",
-            GripperController(action="pick"),
+            GripperController(action="close"),
             transitions={
                 SUCCEED : "TAKEOFF", 
                 FAIL    : "TAKEOFF",  # if error in mavdrone.do_servo()

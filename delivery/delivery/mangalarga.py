@@ -11,8 +11,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from delivery.states import (
     Initialize,
     Takeoff,
-    ReturnToLaunch,
-    End,
+    Land,
 )
 
 from delivery.state_machines import (
@@ -23,12 +22,12 @@ from delivery.state_machines import (
 
 class Delivery(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
+        super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
             "INITIALIZE",
             Initialize(),
-            transitions={SUCCEED:"TAKEOFF", ABORT:"END"},
+            transitions={SUCCEED:"TAKEOFF", ABORT:ABORT},
         )
         self.add_state(
             "TAKEOFF",
@@ -47,13 +46,8 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "RETURN_TO_LAUNCH",
-            ReturnToLaunch(),
-            transitions={SUCCEED:"END", ABORT:"END"},
-        )
-        self.add_state(
-            "END",
-            End(),
-            transitions={SUCCEED: SUCCEED},
+            Land(rtl=True),
+            transitions={SUCCEED:SUCCEED, ABORT:ABORT},
         )
 
         self.set_start_state("INITIALIZE")

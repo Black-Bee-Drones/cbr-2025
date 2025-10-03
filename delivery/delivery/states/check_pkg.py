@@ -43,6 +43,7 @@ class CheckPkg(State):
             detection = self.yolo_detector.detect(
                 image = frame,
                 desired_class = "package",
+                inside_base = True,
             )
 
             if detection:
