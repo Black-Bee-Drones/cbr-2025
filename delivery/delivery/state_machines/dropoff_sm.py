@@ -47,7 +47,7 @@ class DropoffSM(StateMachine):
         )
         self.add_state (
             "DESCEND_TO_TARGET",
-            DescendToTarget(),
+            ReacquireTarget(direction="down"),
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION", 
                 TIMEOUT        : "CENTER_ON_DETECTION",

@@ -1,4 +1,5 @@
 # Main State Machine for Delivery
+
 import rclpy
 
 import yasmin
@@ -63,7 +64,6 @@ def main():
     set_ros_loggers()
     sm = Delivery()
 
-    
     YasminViewerPub("YASMIN_DEMO", sm)
 
     # Execute the FSM
@@ -78,6 +78,7 @@ def main():
     # Shutdown ROS 2 if it's running
     if rclpy.ok():
         rclpy.shutdown()
+
 
 if __name__ == "__main__":
     main()

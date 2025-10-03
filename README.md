@@ -48,57 +48,79 @@ stateDiagram-v2
     TAKEOFF --> RETURN_TO_LAUNCH: ABORT
 
     state PICKUP {
-        direction LR
-        [*] --> GO_TO_PKG
-        GO_TO_PKG --> CENTER_PKG: SUCCEED
-        GO_TO_PKG --> an_ABORT_P1: ABORT
+        [*] --> GO_TO_PACKAGE
 
-        CENTER_PKG --> ALING_PKG: SUCCEED
-        CENTER_PKG --> an_ABORT_P1: ABORT
+        GO_TO_PACKAGE --> CENTER_ON_DETECTION: SUCCEED
+        GO_TO_PACKAGE --> [*]: ABORT
 
-        ALING_PKG --> DESCEND_PKG: SUCCEED
-        ALING_PKG --> an_ABORT_P1: ABORT
+        CENTER_ON_DETECTION --> ALIGN_PKG: SUCCEED
+        CENTER_ON_DETECTION --> ASCEND_TO_TARGET: FAIL
+        CENTER_ON_DETECTION --> ALIGN_PKG: TIMEOUT
+        CENTER_ON_DETECTION --> [*]: ABORT
 
-        DESCEND_PKG --> CENTER_PKG: SUCCEED
-        DESCEND_PKG --> LAND: height_limit
-        DESCEND_PKG --> an_ABORT_P1: ABORT
+        ASCEND_TO_TARGET --> CENTER_ON_DETECTION: SUCCEED
+        ASCEND_TO_TARGET --> CENTER_ON_DETECTION: TIMEOUT
+        ASCEND_TO_TARGET --> [*]: ABORT
+        ASCEND_TO_TARGET --> [*]: height_limit / next_pkg
+
+        ALIGN_PKG --> DESCEND_TO_TARGET: SUCCEED
+        ALIGN_PKG --> ASCEND_TO_TARGET: FAIL
+        ALIGN_PKG --> ASCEND_TO_TARGET: TIMEOUT
+        ALIGN_PKG --> [*]: ABORT
+
+        DESCEND_TO_TARGET --> CENTER_ON_DETECTION: SUCCEED
+        DESCEND_TO_TARGET --> CENTER_ON_DETECTION: TIMEOUT
+        DESCEND_TO_TARGET --> LAND: height_limit
+        DESCEND_TO_TARGET --> [*]: ABORT
 
         LAND --> PICK_PKG: SUCCEED
-        LAND --> an_ABORT_P1: ABORT
+        LAND --> [*]: ABORT
 
-        PICK_PKG --> p_TAKEOFF: SUCCEED
-        PICK_PKG --> an_ABORT_P1: ABORT
+        PICK_PKG --> TAKEOFF: SUCCEED
+        PICK_PKG --> TAKEOFF: FAIL
+        PICK_PKG --> [*]: ABORT
 
-        p_TAKEOFF: Takeoff
-        p_TAKEOFF --> CHECK_PKG: SUCCEED
-        p_TAKEOFF --> an_ABORT_P1: ABORT
+        TAKEOFF --> CHECK_PKG: SUCCEED
+        TAKEOFF --> [*]: ABORT
 
-        CHECK_PKG --> CENTER_PKG: pkg_detected
         CHECK_PKG --> [*]: SUCCEED
-        CHECK_PKG --> an_ABORT_P1: ABORT
-
-        an_ABORT_P1: ABORT
-        an_ABORT_P1 --> [*]
+        CHECK_PKG --> CENTER_ON_DETECTION: FAIL
+        CHECK_PKG --> [*]: ABORT
     }
 
     PICKUP --> DROPOFF: SUCCEED
     PICKUP --> RETURN_TO_LAUNCH: ABORT
 
     state DROPOFF {
-        direction LR
-        [*] --> GO_TO_DELIVERY
-        GO_TO_DELIVERY --> RELEASE_PKG: SUCCEED
-        GO_TO_DELIVERY --> an_ABORT_D1: ABORT
+        [*] --> GO_TO_BASE
 
-        RELEASE_PKG --> d_TAKEOFF: SUCCEED
-        RELEASE_PKG --> an_ABORT_D1: ABORT
+        GO_TO_BASE --> CENTER_ON_DETECTION: SUCCEED
+        GO_TO_BASE --> [*]: ABORT
 
-        d_TAKEOFF: Takeoff
-        d_TAKEOFF --> [*]: SUCCEED
-        d_TAKEOFF --> an_ABORT_D1: ABORT
+        CENTER_ON_DETECTION --> DESCEND_TO_TARGET: SUCCEED
+        CENTER_ON_DETECTION --> ASCEND_TO_TARGET: FAIL
+        CENTER_ON_DETECTION --> DESCEND_TO_TARGET: TIMEOUT
+        CENTER_ON_DETECTION --> [*]: ABORT
 
-        an_ABORT_D1: ABORT
-        an_ABORT_D1 --> [*]
+        ASCEND_TO_TARGET --> CENTER_ON_DETECTION: SUCCEED
+        ASCEND_TO_TARGET --> CENTER_ON_DETECTION: TIMEOUT
+        ASCEND_TO_TARGET --> [*]: ABORT
+        ASCEND_TO_TARGET --> [*]: height_limit / next_pkg
+
+        DESCEND_TO_TARGET --> CENTER_ON_DETECTION: SUCCEED
+        DESCEND_TO_TARGET --> CENTER_ON_DETECTION: TIMEOUT
+        DESCEND_TO_TARGET --> LAND: height_limit
+        DESCEND_TO_TARGET --> [*]: ABORT / next_pkg
+
+        LAND --> DROP_PKG: SUCCEED
+        LAND --> [*]: ABORT
+
+        DROP_PKG --> TAKEOFF: SUCCEED
+        DROP_PKG --> TAKEOFF: FAIL
+        DROP_PKG --> [*]: ABORT
+
+        TAKEOFF --> [*]: SUCCEED
+        TAKEOFF --> [*]: ABORT
     }
 
     DROPOFF --> RETURN_TO_LAUNCH: SUCCEED
@@ -108,5 +130,5 @@ stateDiagram-v2
     RETURN_TO_LAUNCH --> END: SUCCEED
     RETURN_TO_LAUNCH --> END: ABORT
 
-    END --> [*]
+    END --> [*]: SUCCEED
 ```
