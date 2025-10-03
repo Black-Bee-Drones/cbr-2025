@@ -30,18 +30,17 @@ class DropoffSM(StateMachine):
             CenterOnDetection(desired_class='base'),
             transitions={
                 SUCCEED : "DESCEND_TO_TARGET",
-                FAIL    : "ASCEND_TO_TARGET",  # Target not detected for too long.
-                TIMEOUT : "DESCEND_TO_TARGET",
+                FAIL    : "ASCEND",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "ASCEND_TO_TARGET",
+            "ASCEND",
             ReacquireTarget(direction="up"),
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
-                TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : "GO_TO_NEXT_BASE",
+                FAIL           : "CENTER_ON_DETECTION",
+                "height_limit" : "next_pkg", 
                 ABORT          : ABORT,
             },
         )
@@ -49,10 +48,10 @@ class DropoffSM(StateMachine):
             "DESCEND_TO_TARGET",
             ReacquireTarget(direction="down"),
             transitions={
-                SUCCEED        : "CENTER_ON_DETECTION",
-                TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : "LAND",
-                ABORT          : ABORT
+                SUCCEED        : "CENTER_ON_DETECTION", 
+                FAIL           : "CENTER_ON_DETECTION",
+                "height_limit" : "LAND", 
+                ABORT          : ABORT, 
             },
         )
         self.add_state(

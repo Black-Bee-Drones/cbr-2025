@@ -25,8 +25,7 @@ class CenterOnDetection(State):
 
     Outcome of the state:
         - SUCCEED: Target centered successfully.
-        - FAIL: Target not detected for too long.
-        - TIMEOUT: Could not center target within allowed time.
+        - FAIL: Could not center target within allowed time.
         - ABORT: Required components not available.
     """
 
@@ -40,7 +39,7 @@ class CenterOnDetection(State):
         """
         super().__init__(outcomes=[SUCCEED, FAIL, TIMEOUT, ABORT])
         self._desired_class = desired_class.lower()
-        if self._desired_class not in ("base" or "package"):
+        if self._desired_class not in ("base", "package"):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard: Blackboard):
@@ -106,5 +105,7 @@ class CenterOnDetection(State):
                     linear_z = 0.0,
                     angular_z = 0.0,
                 )
+
+                detections_lost = 0
         yasmin.YASMIN_LOG_ERROR(f"Timeout ({CENTER_TIMEOUT:.1f}s) while trying to center target.")
-        return TIMEOUT
+        return FAIL

@@ -17,7 +17,7 @@ from delivery.states import (
 
 class PickupSM(StateMachine):
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT, "next_pkg"])
 
         self.add_state(
             "GO_TO_NEXT_PACKAGE",
@@ -32,18 +32,17 @@ class PickupSM(StateMachine):
             CenterOnDetection(desired_class='package'),
             transitions={
                 SUCCEED : "ALIGN_PKG",
-                FAIL    : "ASCEND_TO_TARGET",  # Target not detected for too long.
-                TIMEOUT : "ALIGN_PKG",
+                FAIL    : "ASCEND",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "ASCEND_TO_TARGET",
+            "ASCEND",
             ReacquireTarget(direction="up"),
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
-                TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : "GO_TO_NEXT_PACKAGE",
+                FAIL           : "CENTER_ON_DETECTION",
+                "height_limit" : "next_pkg",
                 ABORT          : ABORT,
             },
         )
@@ -51,10 +50,9 @@ class PickupSM(StateMachine):
             "ALIGN_PKG",
             AlignPkg(),
             transitions={
-                SUCCEED : "DESCEND_TO_TARGET",
-                FAIL    : "ASCEND_TO_TARGET",  # Target not detected for too long.
-                TIMEOUT : "ASCEND_TO_TARGET",
-                ABORT   : ABORT,
+                SUCCEED:"DESCEND_TO_TARGET", 
+                FAIL: "ASCEND",  # Target not detected for too long.
+                ABORT: ABORT, 
             },
         )
         self.add_state(
@@ -62,8 +60,8 @@ class PickupSM(StateMachine):
             ReacquireTarget(direction="down"),
             transitions={
                 SUCCEED        : "CENTER_ON_DETECTION",
-                TIMEOUT        : "CENTER_ON_DETECTION",
-                "height_limit" : 'OPEN_GRIPPER',
+                FAIL           : "CENTER_ON_DETECTION",
+                "height_limit" : "LAND",
                 ABORT          : ABORT,
             },
         )

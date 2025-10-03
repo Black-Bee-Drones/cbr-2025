@@ -47,8 +47,8 @@ class CheckPkg(State):
             )
 
             if detection:
-                yasmin.YASMIN_LOG_INFO("CheckPkg: pacote detectado!!!")
+                yasmin.YASMIN_LOG_INFO("CheckPkg: package detected!!!")
                 return FAIL
 
-        yasmin.YASMIN_LOG_INFO("CheckPkg: Nenhum pacote detectado após 3 tentativas.")
+        yasmin.YASMIN_LOG_INFO(f"CheckPkg: no package was detected after {DETECTIONS_LOST_TOLERANCE} attempts.")
         return SUCCEED

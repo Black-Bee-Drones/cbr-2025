@@ -24,8 +24,7 @@ class AlignPkg(State):
 
     Outcome of the state:
         - SUCCEED: Target aligned successfully.
-        - FAIL: Target not detected for too long.
-        - TIMEOUT: Could not align target within allowed time.
+        - FAIL: Could not align target within allowed time.
         - ABORT: Required components not available.
     """
 
@@ -64,7 +63,7 @@ class AlignPkg(State):
 
                 # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
                 if detections_lost > DETECTIONS_LOST_TOLERANCE:
-                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Fail aligning.")
+                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Failed aligning.")
                     return FAIL
 
             else:

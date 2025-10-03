@@ -30,7 +30,7 @@ class GripperController(State):
         Raises:
             TypeError: If `action` is not "close" or "open".
         """
-        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
+        super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
         self._action = action.lower()
         if self._action not in ("close", "open"):
             raise TypeError("Parameter action should be 'close' or 'open'.")
@@ -53,8 +53,8 @@ class GripperController(State):
                 pwm_value=pwm_value,
             )
             time.sleep(3)
-            yasmin.YASMIN_LOG_INFO("GripperController executado.")
+            yasmin.YASMIN_LOG_INFO("GripperController executed.")
             return SUCCEED
         except:
-            yasmin.YASMIN_LOG_INFO('Fail to control gripper')
+            yasmin.YASMIN_LOG_INFO('Failed to control gripper')
             return FAIL
