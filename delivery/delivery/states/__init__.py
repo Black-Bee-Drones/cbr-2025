@@ -3,6 +3,7 @@ from .core import (
     Takeoff,
     Land,
 )
+
 from .center_on_detection import CenterOnDetection
 from .go_to_target import GoToTarget
 from .reacquire_target import ReacquireTarget
@@ -16,8 +17,6 @@ __all__ = [
     "Initialize",
     "Takeoff",
     "Land",
-    "ReturnToLaunch",
-    "End",
     'CenterOnDetection',
     'GoToTarget',
     'ReacquireTarget',
