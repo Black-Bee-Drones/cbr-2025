@@ -12,15 +12,10 @@ from delivery.constants import (
     DETECTIONS_LOST_TOLERANCE,
 )
 
-from yasmin_ros.basic_outcomes import (
-    SUCCEED,
-    ABORT,
-)
 
 class CheckPkg(State):
     """
     Status to check if the package was picked up.
-
 
     Outcome of the state:
         - SUCCEED: No package detected after multiple attempts (package is gone).

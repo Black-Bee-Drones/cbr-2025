@@ -10,18 +10,23 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 import time
 
 from mirela_sdk.control.mavros import MavDrone
-#from mirela_sdk.image_processing import ImageHandler
 from mirela_sdk.image_processing.camera import ImageHandler
+from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 
 from delivery.utils import YOLODetector
 
 from delivery.constants import (
-    TAKEOFF_ALTITUDE,
-    STARTING_PACKAGE_IDX,
-    PACKAGE_POSITIONS,
-    DELIVER_POSITIONS,
-    IMAGE_SOURCE
+    TAKEOFF_ALTITUDE, 
+    STARTING_PACKAGE_IDX, 
+    PACKAGE_POSITIONS, 
+    DELIVER_POSITIONS, 
+    IMAGE_SOURCE, 
+    IMAGE_CALCULUS_OFFSET_X, 
+    CAMERA_RESOLUTION_WIDTH, 
+    CAMERA_RESOLUTION_HEIGHT, 
+    CAMERA_PIXELS_PER_DEGREE, 
 )
+
 
 class Initialize(State):
     def __init__(self):
@@ -55,6 +60,14 @@ class Initialize(State):
             if not blackboard["deliver_positions"]:
                 yasmin.YASMIN_LOG_WARN("Deliver positions not declared.")
 
+            blackboard["image_calculus"] = ImageCalculus()
+            blackboard["image_calculus"].update_camera_offset(x=IMAGE_CALCULUS_OFFSET_X)
+            blackboard["image_calculus"].update_pixels_per_degree(pixels_per_degree=CAMERA_PIXELS_PER_DEGREE)
+            blackboard["image_calculus"].update_camera_resolution(
+                width=CAMERA_RESOLUTION_WIDTH,
+                height=CAMERA_RESOLUTION_HEIGHT,
+            )
+
             blackboard["image_handler"] = ImageHandler(
                 node=YasminNode.get_instance(), 
                 image_source=IMAGE_SOURCE,
@@ -74,6 +87,7 @@ class Initialize(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Failed to initialize: {e}")
             return ABORT
+
 
 class Takeoff(State):
     def __init__(self):
@@ -95,7 +109,8 @@ class Takeoff(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
             return ABORT
-        
+
+
 class Land(State):
     def __init__(self, ):
         super().__init__(outcomes=[SUCCEED, ABORT])
@@ -144,7 +159,8 @@ class ReturnToLaunch(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Return to launch failed: {e}")
             return ABORT
-        
+
+
 class End(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED])

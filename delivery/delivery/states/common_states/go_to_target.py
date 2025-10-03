@@ -5,20 +5,26 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from delivery.constants import (
-    TAKEOFF_ALTITUDE,
     SEARCH_TIMEOUT,
 )
 
-#current package pode ser atualizado aqui
+
 class GoToTarget(State):
     """
-    Sends drone to current target (base or package) location.
+    State that sends the drone to the current target position (base or package).
+
+    Outcome of the state:
+        - SUCCEED: Drone successfully reached the target position.
+        - ABORT: Navigation failed or required data is missing.
     """
 
     def __init__(self, desired_class):
         '''
         Args:
             desired_class: Class ID to filter detections ("base" or "package")
+
+        Raises:
+            TypeError: If `desired_class` is not `"base"` or `"package"`.
         '''
         super().__init__(outcomes = [SUCCEED, ABORT])
         self._desired_class = desired_class.lower()
@@ -26,15 +32,11 @@ class GoToTarget(State):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
-        if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR(
-                "MavDrone not available in GoToTarget state."
-            )
+        mavdrone: MavDrone = blackboard.get("mavdrone")
+        if not mavdrone:
+            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in CenterOnDetection state.")
             return ABORT
 
-        mavdrone: MavDrone = blackboard["mavdrone"]
-
-        #Checks if target is package or base
         if self._desired_class == "base":
             target_positions = blackboard.get("deliver_positions")
         elif self._desired_class == "package":
@@ -57,11 +59,8 @@ class GoToTarget(State):
                 timeout_sec=SEARCH_TIMEOUT, 
                 ground_reference=True
             )
-
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
             return SUCCEED
-
-            
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Navigation failed: {e}")
             return ABORT

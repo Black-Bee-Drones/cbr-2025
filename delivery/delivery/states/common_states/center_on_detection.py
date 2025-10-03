@@ -54,13 +54,13 @@ class CenterOnDetection(State):
             yasmin.YASMIN_LOG_ERROR("ImageHandler not available in CenterOnDetection state.")
             return ABORT
 
-        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
-        if not self.yolo_detector:
+        yolo_detector: YOLODetector = blackboard.get("yolo_detector")
+        if not yolo_detector:
             yasmin.YASMIN_LOG_ERROR("YoloDetector not available in CenterOnDetection state.")
             return ABORT
 
-        self.image_calculus: ImageCalculus = blackboard.get("image_calculus")
-        if not self.image_calculus:
+        image_calculus: ImageCalculus = blackboard.get("image_calculus")
+        if not image_calculus:
             yasmin.YASMIN_LOG_ERROR("ImageCalculus not available in CenterOnDetection state.")
             return ABORT
 
@@ -70,7 +70,7 @@ class CenterOnDetection(State):
         while (time.time() - start) < CENTER_TIMEOUT:
             frame = image_handler.take_photo()
 
-            detection = self.yolo_detector.detect(
+            detection = yolo_detector.detect(
                 image = frame,
                 desired_class = self._desired_class,
             )
@@ -80,11 +80,11 @@ class CenterOnDetection(State):
 
                 # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
                 if detections_lost > DETECTIONS_LOST_TOLERANCE:
-                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
+                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Fail centering.")
                     return FAIL
 
             else:
-                error_x, error_y, error_z = self.image_calculus.calculate_vector_from_drone_to_ground(
+                error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
                     altura = mavdrone.get_rng_alt.range,
                     target_pixel = detection['center'],
                 )

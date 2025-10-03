@@ -1,90 +1,101 @@
 import time
-from typing import Tuple, Dict
 
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
 from delivery.utils import YOLODetector
 
 
 from delivery.constants import (
     ALIGN_TIMEOUT,
-    ALIGN_X_PROPORTION, 
-    DETECTIONS_LOST_TOLERANCE,
+    PACKAGE_PROPORTION_ALIGN,
+    DETECTIONS_LOST_TOLERANCE, 
+    POSITION_CONTROLLER_KP_YAW, 
+    POSITION_CONTROLLER_MAX_VELOCITY_YAW, 
 )
 
 
 class AlignPkg(State):
     """
-    Movimentação Yaw no drone até atingir as proporções laterais corretas do bounding box
+    State to control drone movement in YAW to align on a detected target using YOLO.
+
+    Outcome of the state:
+        - SUCCEED: Target aligned successfully.
+        - FAIL: Target not detected for too long.
+        - ABORT: Required components not available.
+        - TIMEOUT: Could not align target within allowed time.
     """
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
 
     def execute(self, blackboard : Blackboard):
-        if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR(
-                "MavDrone not available in AlignPkg state."
-            )
+        mavdrone: MavDrone = blackboard.get("mavdrone")
+        if not mavdrone:
+            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in CenterOnDetection state.")
             return ABORT
-    
-        mavdrone: MavDrone = blackboard["mavdrone"]
-        self.image_handler: ImageHandler = blackboard["image_handler"]
-        self.yolo_detector : YOLODetector = blackboard.get["yolo_detector"]
 
-        if not self.image_handler:
-            yasmin.YASMIN_LOG_ERROR(
-                "ImageHandler not available in AlignPkg state."
-            )
+        image_handler: ImageHandler = blackboard.get("image_handler")
+        if not image_handler:
+            yasmin.YASMIN_LOG_ERROR("ImageHandler not available in CenterOnDetection state.")
             return ABORT
-        
-        if not self.yolo_detector:
-            yasmin.YASMIN_LOG_ERROR(
-                "YoloDetector not available in AlignPkg state."
-            )
+
+        yolo_detector: YOLODetector = blackboard.get("yolo_detector")
+        if not yolo_detector:
+            yasmin.YASMIN_LOG_ERROR("YoloDetector not available in CenterOnDetection state.")
             return ABORT
-        
-        
+
+        yasmin.YASMIN_LOG_INFO("Starting aligning procedure using YOLO detector...")
+        detections_lost = 0
         start = time.time()
-        lost_detections = 0
-
         while time.time() - start < ALIGN_TIMEOUT:
+            frame = image_handler.take_photo()
+
             detection = self.yolo_detector.detect(
-                desired_class="package", image=self.image_handler.take_photo(), save_image=False
+                image = frame,
+                desired_class = "package",
             )
-            side_x, side_y = self.detection_boundingbox_size(detection)
-            if not detection:
-                lost_detections += 1
-                yasmin.YASMIN_LOG_ERROR(f"Missed {lost_detections} detections.")
-                if lost_detections > DETECTIONS_LOST_TOLERANCE:
-                    yasmin.YASMIN_LOG_ERROR(F"Lost package, restarting package detection.")
+
+            if 'bbox' not in detection.keys():
+                detections_lost += 1
+
+                # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
+                if detections_lost > DETECTIONS_LOST_TOLERANCE:
+                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Fail aligning.")
                     return FAIL
-            elif side_y < (side_x * ALIGN_X_PROPORTION):
-                mavdrone.offboard_velocity(0, 0, 0, 0.1, True)
-                lost_detections = 0
+
             else:
-                yasmin.YASMIN_LOG_INFO(
-                    "Drone fully aligned with package."
+                detections_lost = 0
+
+                side_x = abs(detection["bbox"][2] - detection["bbox"][0])
+                side_y = abs(detection["bbox"][3] - detection["bbox"][1])
+
+                side_max = max(side_x, side_y)
+                side_min = min(side_x, side_y)
+
+                package_proportion = side_max/side_min
+
+                if package_proportion >= PACKAGE_PROPORTION_ALIGN:
+                    yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
+                    return SUCCEED
+
+                error_yaw = 0.5  # rad
+
+                vel_yaw = error_yaw * POSITION_CONTROLLER_KP_YAW
+
+                vel_yaw = max(-POSITION_CONTROLLER_MAX_VELOCITY_YAW, min(POSITION_CONTROLLER_MAX_VELOCITY_YAW, vel_yaw))
+
+                yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_yaw={error_yaw:.2f}, angular_z={vel_yaw:.2f}")
+                mavdrone.offboard_velocity(
+                    linear_x = 0.0,
+                    linear_y = 0.0,
+                    linear_z = 0.0,
+                    angular_z = vel_yaw,
                 )
-                return SUCCEED
-        
         yasmin.YASMIN_LOG_ERROR("Align timeout.")
-        return ABORT
+        return TIMEOUT
 
-    def detection_boundingbox_size(best_detection : Dict[str, any]) -> Tuple[float, float]:
-
-        """
-        Processing detection bounding box
-        Returns sides of the detected bounding box
-        [side x, side y]
-        """
-
-        side_x = best_detection["bbox"][2] - best_detection["bbox"][0]
-        side_y = best_detection["bbox"][3] - best_detection["bbox"][1]
-
-        return [side_x, side_y]
     
