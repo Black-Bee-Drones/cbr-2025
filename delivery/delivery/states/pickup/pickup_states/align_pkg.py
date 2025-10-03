@@ -12,8 +12,8 @@ from delivery.utils import YOLODetector
 
 from delivery.constants import (
     ALIGN_TIMEOUT,
-    ALIGN_X_PROPORTION,
-    MIN_DETECTIONS_LOST,
+    ALIGN_X_PROPORTION, 
+    DETECTIONS_LOST_TOLERANCE,
 )
 
 
@@ -60,7 +60,7 @@ class AlignPkg(State):
             if not detection:
                 lost_detections += 1
                 yasmin.YASMIN_LOG_ERROR(f"Missed {lost_detections} detections.")
-                if lost_detections > MIN_DETECTIONS_LOST:
+                if lost_detections > DETECTIONS_LOST_TOLERANCE:
                     yasmin.YASMIN_LOG_ERROR(F"Lost package, restarting package detection.")
                     return FAIL
             elif side_y < (side_x * ALIGN_X_PROPORTION):

@@ -19,13 +19,21 @@ class DropoffSM(StateMachine):
 
         self.add_state(
             "GO_TO_TARGET",
-            GoToTarget(),
-            transitions={SUCCEED:"CENTER_ON_DETECTION", ABORT: ABORT},
+            GoToTarget(desired_class="base"),
+            transitions={
+                SUCCEED:"CENTER_ON_DETECTION", 
+                ABORT: ABORT
+            },
         )
         self.add_state(
             "CENTER_ON_DETECTION",
             CenterOnDetection(desired_class='base'),
-            transitions={SUCCEED: "DESCEND_TO_TARGET", ABORT: ABORT},
+            transitions={
+                SUCCEED: "DESCEND_TO_TARGET",  # Target centered successfully.
+                FAIL: ABORT,  # Target not detected for too long.
+                ABORT: ABORT,  # Required components not available.
+                TIMEOUT: ABORT,  # Could not center target within allowed time.
+            },
         )
         self.add_state (
             "DESCEND_TO_TARGET",

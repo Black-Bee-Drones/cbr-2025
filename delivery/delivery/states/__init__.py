@@ -8,7 +8,7 @@ from .core import (
 from .common_states import (
     CenterOnDetection,
     GoToTarget,
-    DescendToTarget,
+    ReacquireTarget,
     GripperController,
 )
 from .pickup import(
@@ -26,7 +26,7 @@ __all__ = [
     "End",
     'CenterOnDetection',
     'GoToTarget',
-    'DescendToTarget',
+    'ReacquireTarget',
     'GripperController',
     "PickupSM",
     "DropoffSM",

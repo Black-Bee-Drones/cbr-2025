@@ -102,18 +102,17 @@ class Land(State):
         self.mavdrone : MavDrone = None
 
     def execute(self, blackboard : Blackboard):
-        
-        if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR("Mandrone not initialized.")
+        mavdrone: MavDrone = blackboard.get("mavdrone")
+        if not mavdrone:
+            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in DescendToTarget state.")
             return ABORT
-    
-        self.mavdrone = blackboard["mavdrone"]
 
         try:
             self.mavdrone.land()
             time.sleep(5) #wait for landing to complete
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
             return SUCCEED
+
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
             return ABORT

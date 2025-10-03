@@ -1,109 +1,110 @@
 import time
-from typing import Tuple
 
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL
+from yasmin_ros.basic_outcomes import SUCCEED, ABORT, FAIL, TIMEOUT
+
 from delivery.utils import YOLODetector
 
-
 from delivery.constants import (
-    CENTERING_TOLERANCE_PX,
-    CENTER_TIMEOUT,
     POSITION_CONTROLLER_KP_XY,
-    MAX_VELOCITY_XY,
-    MIN_DETECTIONS_LOST
+    POSITION_CONTROLLER_TOLERANCE_XY,
+    POSITION_CONTROLLER_MAX_VELOCITY_XY,
+    CENTER_TIMEOUT,
+    DETECTIONS_LOST_TOLERANCE,
 )
 
 
 class CenterOnDetection(State):
     """
-    Movimentação X, Y para centralizar o drone e o pacote
+    State to control drone movement in X and Y to center on a detected target using YOLO.
+
+    Outcome of the state:
+        - SUCCEED: Target centered successfully.
+        - FAIL: Target not detected for too long.
+        - ABORT: Required components not available.
+        - TIMEOUT: Could not center target within allowed time.
     """
 
-    def __init__(self, desired_class):
-        '''
+    def __init__(self, desired_class: str):
+        """
         Args:
-            desired_class: Class ID to filter detections ("base" or "package")
-        '''
-        super().__init__(outcomes=[SUCCEED, ABORT, FAIL])
-        self.desired_class = desired_class
+            desired_class (str): Class ID to filter detections. Must be "base" or "package".
 
-    def execute(self, blackboard : Blackboard):
-        if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR(
-                "MavDrone not available in GoToTarget state."
-            )
+        Raises:
+            TypeError: If `desired_class` is not "base" or "package".
+        """
+        super().__init__(outcomes=[SUCCEED, FAIL, ABORT, TIMEOUT])
+        self._desired_class = desired_class.lower()
+        if self._desired_class not in ("base" or "package"):
+            raise TypeError("Parameter desired_class should be 'base' or 'package'.")
+
+    def execute(self, blackboard: Blackboard):
+        mavdrone: MavDrone = blackboard.get("mavdrone")
+        if not mavdrone:
+            yasmin.YASMIN_LOG_ERROR("Mavdrone not available in CenterOnDetection state.")
             return ABORT
 
-        mavdrone: MavDrone = blackboard["mavdrone"]
         image_handler: ImageHandler = blackboard.get("image_handler")
-        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
-
         if not image_handler:
-            yasmin.YASMIN_LOG_ERROR(
-                "ImageHandler not available in CenterOnDetection state."
-            )
-            return ABORT
-        
-        if not self.yolo_detector:
-            yasmin.YASMIN_LOG_ERROR(
-                "YoloDetector not available in CenterOnDetection state."
-            )
+            yasmin.YASMIN_LOG_ERROR("ImageHandler not available in CenterOnDetection state.")
             return ABORT
 
-        image_handler.image_processing_callback = self.image_processing_callback
+        self.yolo_detector: YOLODetector = blackboard.get("yolo_detector")
+        if not self.yolo_detector:
+            yasmin.YASMIN_LOG_ERROR("YoloDetector not available in CenterOnDetection state.")
+            return ABORT
+
+        self.image_calculus: ImageCalculus = blackboard.get("image_calculus")
+        if not self.image_calculus:
+            yasmin.YASMIN_LOG_ERROR("ImageCalculus not available in CenterOnDetection state.")
+            return ABORT
 
         yasmin.YASMIN_LOG_INFO("Starting centering procedure using YOLO detector...")
+        detections_lost = 0
         start = time.time()
-
-        lost_detections = 0
-
         while (time.time() - start) < CENTER_TIMEOUT:
-            detection = image_handler.take_photo()
+            frame = image_handler.take_photo()
+
+            detection = self.yolo_detector.detect(
+                image = frame,
+                desired_class = self._desired_class,
+            )
 
             if 'center' not in detection.keys():
-                lost_detections += 1
+                detections_lost += 1
 
-            # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
-            if lost_detections > MIN_DETECTIONS_LOST:
-                yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
-                return FAIL
+                # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
+                if detections_lost > DETECTIONS_LOST_TOLERANCE:
+                    yasmin.YASMIN_LOG_ERROR("No target detected in image. Aborting centering.")
+                    return FAIL
 
+            else:
+                error_x, error_y, error_z = self.image_calculus.calculate_vector_from_drone_to_ground(
+                    altura = mavdrone.get_rng_alt.range,
+                    target_pixel = detection['center'],
+                )
 
-            error_x, error_y = detection['center']
+                if (error_x**2 + error_y**2) <= (POSITION_CONTROLLER_TOLERANCE_XY**2):
+                    yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
+                    return SUCCEED
 
-            if (error_x <= CENTERING_TOLERANCE_PX) and (error_y <= CENTERING_TOLERANCE_PX):
-                yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
-                return SUCCEED
-            
-            vel_x = error_x * POSITION_CONTROLLER_KP_XY
-            vel_y = error_y * POSITION_CONTROLLER_KP_XY
+                vel_x = error_x * POSITION_CONTROLLER_KP_XY
+                vel_y = error_y * POSITION_CONTROLLER_KP_XY
 
-            vel_x = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_x))
-            vel_y = max(-MAX_VELOCITY_XY, min(MAX_VELOCITY_XY, vel_y))
+                vel_x = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_x))
+                vel_y = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_y))
 
-            yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_x={error_x:.2f}, error_y={error_y:.2f}, linear_x={vel_x:.2f}, linear_y={vel_y:.2f}")
-            mavdrone.offboard_velocity(
-                linear_x = vel_x,
-                linear_y = vel_y,
-                linear_z = 0.0,
-                angular_z = 0.0,
-            )
+                yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_x={error_x:.2f}, error_y={error_y:.2f}, linear_x={vel_x:.2f}, linear_y={vel_y:.2f}")
+                mavdrone.offboard_velocity(
+                    linear_x = vel_x,
+                    linear_y = vel_y,
+                    linear_z = 0.0,
+                    angular_z = 0.0,
+                )
         yasmin.YASMIN_LOG_ERROR(f"Timeout ({CENTER_TIMEOUT:.1f}s) while trying to center target.")
-        return FAIL
-
-    def image_processing_callback(self, img) -> Tuple[float, float]:
-        """
-        ImageHandler callback
-        return: if error == None: there isn't Yolo detection
-        """
-        detection = self.yolo_detector.detect(
-            image = img,
-            desired_class = self.desired_class,
-        )
-
-        return detection
+        return TIMEOUT
