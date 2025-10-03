@@ -82,27 +82,19 @@ class YOLODetector:
             List of detections with bounding boxes and confidence scores
         """
 
-        if desired_class not in ["base", "package"]:
-            raise ValueError("desired_class must be 'base' or 'package'")
-
-        if desired_class == "base":
-            desired_class_id = 0
-        
-        if desired_class == "package":
-            desired_class_id = 1
-
+        print(f"Detecting {desired_class}...")
         detections = []
 
         current_timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
 
         if self.model is None or not YOLO_AVAILABLE:
+            print("  YOLO model not loaded - using simulation")
             return self._simulate_detection(image, save_image, current_timestamp)
 
         try:
             results = self.model(
                 image, imgsz=self.image_size, conf=self.confidence_threshold
             )
-
             for result in results:
                 boxes = result.boxes
                 if boxes is not None:
@@ -123,55 +115,54 @@ class YOLODetector:
                         }
                         detections.append(detection)
 
-            if detections and save_image:
-                self._save_detection_image(image, detections, current_timestamp)
+            filtered_detections = []
+            base_detections = [d for d in detections if d["class_id"] == 0]
+            package_detections = [d for d in detections if d["class_id"] == 1]
+
+            # package detection
+            if desired_class == "package":
+                if inside_base:
+                    # checks only package inside base
+                    for package in package_detections:
+                        px1, py1, px2, py2 = package["bbox"]
+                        for base in base_detections:
+                            bx1, by1, bx2, by2 = base["bbox"]
+                            if px1 > bx1 and py1 > by1 and px2 < bx2 and py2 < by2:
+                                filtered_detections.append(package)
+                else:
+                    # all packages
+                    filtered_detections = package_detections
+
+            # base detection
+            if desired_class == "base":
+                filtered_detections = base_detections
+
+            if filtered_detections and save_image:
+                self._save_detection_image(image, filtered_detections, current_timestamp)
 
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self._get_best_detection(desired_class=desired_class_id, detections=detections, inside_base=inside_base)
+        return self._get_best_detection(detections=filtered_detections)
 
     def _get_best_detection(
-        self, desired_class: int, detections: List[Dict[str, any]], inside_base: bool = False
+        self, detections: List[Dict[str, any]]
     ) -> Optional[Dict[str, any]]:
         """
         Get the best detection based on confidence and size.
 
         Args:
-            detections: List of detections
             desired_class: Class ID to filter detections ("base" == 0, "package" == 1)
-            inside_base: detection of packages inside base only (False by default)
 
         Returns:
             Best detection or None if no detections
         """
-
-        filtered_detections = []
-        base_detections = [d for d in detections if d["class_id"] == 0]
-        package_detections = [d for d in detections if d["class_id"] == 1]
-
-        # package detection
-        if desired_class == 1:
-            # checks if package is inside base
-            for package in package_detections:
-                px1, py1, px2, py2 = package["bbox"]
-                for base in base_detections:
-                    bx1, by1, bx2, by2 = base["bbox"]
-                    if px1 > bx1 and py1 > by1 and px2 < bx2 and py2 < by2:
-                        filtered_detections.append(package)
-            # if no package is inside base, return all package detections (skips when inside_base is True)
-            if filtered_detections == [] and not inside_base:
-                filtered_detections = package_detections
-
-        # base detection
-        if desired_class == 0:
-            filtered_detections = base_detections
         
-        if not filtered_detections:
+        if not detections:
             return None
 
         # return detection with highest confidence * area
-        best_detection = max(filtered_detections, key=lambda d: d["confidence"] * d["area"])
+        best_detection = max(detections, key=lambda d: d["confidence"] * d["area"])
         return best_detection
 
     def calculate_centering_error(self, detection: Dict[str, any]) -> Tuple[int, int]:

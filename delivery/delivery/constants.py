@@ -18,7 +18,7 @@ DELIVER_POSITIONS = [{}]
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("delivery"), "models", "best.pt"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.7  
+YOLO_CONFIDENCE_THRESHOLD = 0.2  
 YOLO_IMAGE_SIZE = 640 
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 

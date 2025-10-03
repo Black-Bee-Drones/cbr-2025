@@ -37,23 +37,23 @@ class CamTest(Node):
             self.get_logger().warn("Empty frame received")
             return
 
-        results = self.detector.detect(desired_class="package",image=frame, save_image=False)
+        result = self.detector.detect(desired_class="package", image=frame, save_image=False)
 
-        dets = []
-        for r in results:
-            cls_id = r["class_id"]
-            x1, y1, x2, y2 = r["bbox"]
-            dets.append((cls_id, x1, y1, x2 - x1, y2 - y1))
-            # desenhar na imagem
+        if result:
+            cls_id = result["class_id"]
+            x1, y1, x2, y2 = result["bbox"]
+            
+            det_info = (cls_id, x1, y1, x2 - x1, y2 - y1)
+            self.get_logger().info(f"Detection: {det_info}")
+            self.last_detections = [det_info]
+
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            if(cls_id == 0):
-                label = f"base {r['confidence']:.2f}"
-            if(cls_id == 1):
-                label = f"package {r['confidence']:.2f}"
+            label = f"{result['class_id']} {result['confidence']:.2f}"
             cv2.putText(frame, label, (x1, y1 - 4),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
-
-        self.last_detections = dets
+        else:
+            self.get_logger().info("No package detected.")
+            self.last_detections = []
 
         cv2.imshow("Camera Test YOLO", frame)
         cv2.waitKey(1)
