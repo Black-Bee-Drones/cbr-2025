@@ -48,7 +48,7 @@ POSITION_CONTROLLER_MAX_VELOCITY_Z = 0.5
 POSITION_CONTROLLER_MAX_VELOCITY_YAW = 0.3  # rad/s
 POSITION_CONTROLLER_TOLERANCE_XY = 0.1  # Meters, XY tolerance for considering the PID at the target
 POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
-POSITION_CONTROLLER_TOLERANCE_YAW = 0.05  # Rad, Yaw tolerance for considering the PID at the target    # I guess never used because use pkg proportion on AlignPkg
+POSITION_CONTROLLER_TOLERANCE_YAW = 0.1  # Rad, Yaw tolerance for considering the PID at the target    # I guess never used because use pkg proportion on AlignPkg
 
 # Servo motor value
 SERVO_PIN_OUT = 1

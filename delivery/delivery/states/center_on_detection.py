@@ -83,6 +83,8 @@ class CenterOnDetection(State):
                     return FAIL
 
             else:
+                detections_lost = 0
+
                 error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
                     altura = mavdrone.get_rng_alt.range,
                     target_pixel = detection['center'],
@@ -105,7 +107,5 @@ class CenterOnDetection(State):
                     linear_z = 0.0,
                     angular_z = 0.0,
                 )
-
-                detections_lost = 0
         yasmin.YASMIN_LOG_ERROR("CenterOnDetection timeout.")
         return FAIL

@@ -8,7 +8,6 @@ from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 from delivery.utils import YOLODetector
 
-
 from delivery.constants import (
     ALIGN_TIMEOUT,
     PACKAGE_PROPORTION_ALIGN,
@@ -81,13 +80,11 @@ class AlignPkg(State):
                     yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
                     return SUCCEED
 
-                error_yaw = 0.5  # rad
-
-                vel_yaw = error_yaw * POSITION_CONTROLLER_KP_YAW
+                vel_yaw = POSITION_CONTROLLER_KP_YAW
 
                 vel_yaw = max(-POSITION_CONTROLLER_MAX_VELOCITY_YAW, min(POSITION_CONTROLLER_MAX_VELOCITY_YAW, vel_yaw))
 
-                yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_yaw={error_yaw:.2f}, angular_z={vel_yaw:.2f}")
+                yasmin.YASMIN_LOG_INFO(f"Adjusting position: proportion={package_proportion:.2f}, angular_z={vel_yaw:.2f}")
                 mavdrone.offboard_velocity(
                     linear_x = 0.0,
                     linear_y = 0.0,
