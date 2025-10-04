@@ -1,7 +1,7 @@
 # Main State Machine for Pickup
 
 from yasmin import StateMachine
-from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, CANCEL, ABORT
 
 from delivery.states import (
     Takeoff,
@@ -101,6 +101,7 @@ class PickupSM(StateMachine):
             transitions={
                 SUCCEED : SUCCEED,
                 FAIL    : "CENTER",
+                CANCEL  : "GO_TO_NEXT_PACKAGE",
                 ABORT   : ABORT,
             },
         )

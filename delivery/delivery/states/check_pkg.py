@@ -4,7 +4,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 import yasmin
 from yasmin import State, Blackboard
-from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
+from yasmin_ros.basic_outcomes import SUCCEED, FAIL, CANCEL, ABORT
 
 from delivery.utils import YOLODetector
 
@@ -23,7 +23,7 @@ class CheckPkg(State):
         - ABORT: Required components not available (e.g., ImageHandler, YOLODetector).
     """
     def __init__(self):
-        super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
+        super().__init__(outcomes=[SUCCEED, FAIL, CANCEL, ABORT])
 
     def execute(self, blackboard: Blackboard):
         if ("image_handler" not in blackboard) or not blackboard["image_handler"]:
@@ -43,12 +43,22 @@ class CheckPkg(State):
             detection = yolo_detector.detect(
                 image = frame,
                 desired_class = "package",
-                inside_base = True,
+                inside_base = False,
             )
 
             if detection:
-                yasmin.YASMIN_LOG_INFO("CheckPkg: package detected!!!")
-                return FAIL
+                detection = yolo_detector.detect(
+                    image = frame,
+                    desired_class = "package",
+                    inside_base = True,
+                )
+
+                if detection:
+                    yasmin.YASMIN_LOG_INFO("CheckPkg: package detected inside the base!!!")
+                    return FAIL
+                else:
+                    yasmin.YASMIN_LOG_INFO("CheckPkg: package detected outside the base!!!")
+                    return CANCEL
 
         yasmin.YASMIN_LOG_INFO(f"CheckPkg: no package was detected after {DETECTIONS_LOST_TOLERANCE} attempts.")
         return SUCCEED

@@ -31,8 +31,8 @@ Executa centralização horizontalmente com a detecção (que pode ser o pacote 
 Verifica se o pacote foi coletado corretamente.
 - **SUCCEED**: Não detectou mais o pacote (foi coletado).
 - **FAIL**: O pacote ainda foi detectado na base.
+- **CANCEL** O pacote foi detectado fora da base.
 - **ABORT**: Algum elemento do blackboard não existe.
-*Adicionar um **CANCEL** quando ele identificar o pacote fora da base.
 
 ## GoToTarget
 Vai até a base ou até o pacote.
