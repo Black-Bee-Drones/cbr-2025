@@ -23,7 +23,7 @@ class AlignPkg(State):
 
     Outcome of the state:
         - SUCCEED: Target aligned successfully.
-        - FAIL: Target not detected for too long or timeout.
+        - FAIL: Lost packet detection or timeout.
         - ABORT: Required components not available.
     """
 

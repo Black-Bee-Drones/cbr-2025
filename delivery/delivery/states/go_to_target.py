@@ -39,29 +39,29 @@ class GoToTarget(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
 
         if self._desired_class == "base":
-            target_positions = blackboard["deliver_positions"]
+            all_positions = blackboard["deliver_positions"]
             
         elif self._desired_class == "package":
-            target_positions = blackboard["packages_positions"]
+            all_positions = blackboard["packages_positions"]
             blackboard["next_package"] += 1
 
-        if not target_positions:
+        if not all_positions:
             yasmin.YASMIN_LOG_ERROR("Target positions not available.")
             return ABORT
 
-        current_target = blackboard["next_package"]
-        if current_target >= len(target_positions):
+        package_id = blackboard["next_package"]
+        if package_id >= len(all_positions):
             yasmin.YASMIN_LOG_INFO("Finish package delivery.")
             return ABORT
 
-        current_target_pos = target_positions[current_target]
+        target_position = all_positions[package_id]
 
-        yasmin.YASMIN_LOG_INFO(f"Next target position: {current_target_pos}.")
+        yasmin.YASMIN_LOG_INFO(f"Next target position: {target_position}.")
 
         try:
             mavdrone.offboard_position(
-                x=current_target_pos["y"],
-                y=current_target_pos["x"],
+                x=target_position["y"],
+                y=target_position["x"],
                 z=0.0,
                 timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True
