@@ -64,7 +64,6 @@ class GoToTarget(State):
                 y=target_position["x"],
                 z=0.0,
                 timeout_sec=SEARCH_TIMEOUT,
-                ground_reference=True
             )
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
             return SUCCEED

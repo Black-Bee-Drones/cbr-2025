@@ -31,7 +31,7 @@ Executa centralização horizontalmente com a detecção (que pode ser o pacote 
 Verifica se o pacote foi coletado corretamente.
 - **SUCCEED**: Não detectou mais o pacote (foi coletado).
 - **FAIL**: O pacote ainda foi detectado na base.
-- **CANCEL** O pacote foi detectado fora da base.
+- **CANCEL**: O pacote foi detectado fora da base.
 - **ABORT**: Algum elemento do blackboard não existe.
 
 ## GoToTarget
@@ -46,6 +46,6 @@ Executa a abertura ou o fechamento da garra.
 
 ## ReacquireTarget
 Faz o drone subir ou descer um pouco para tentar recuperar a detecção.
-- **SUCCEED**: Conseguiu atingir a altura desejada.
-- **FAIL**: Não conseguiu atingir a altura desejada ou ocorreu timeout.
+- **SUCCEED**: Conseguiu atingir a altura desejada ou ocorreu timeout.
+- **FAIL**: Não conseguiu atingir a altura desejada.
 - **ABORT**: Algum elemento do blackboard não existe.

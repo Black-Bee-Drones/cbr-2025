@@ -137,7 +137,7 @@ class YOLODetector:
             if desired_class == "base":
                 filtered_detections = base_detections
 
-            if filtered_detections and save_image:
+            if save_image:
                 self._save_detection_image(image, filtered_detections, current_timestamp)
 
         except Exception as e:

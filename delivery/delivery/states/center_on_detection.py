@@ -74,7 +74,7 @@ class CenterOnDetection(State):
                 desired_class = self._desired_class,
             )
 
-            if 'center' not in detection.keys():
+            if not detection:
                 detections_lost += 1
 
                 # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
@@ -90,17 +90,19 @@ class CenterOnDetection(State):
                     target_pixel = detection['center'],
                 )
 
+                error_x = - error_x
+
                 if (error_x**2 + error_y**2) <= (POSITION_CONTROLLER_TOLERANCE_XY**2):
                     yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                     return SUCCEED
 
-                vel_x = error_x * POSITION_CONTROLLER_KP_XY
-                vel_y = error_y * POSITION_CONTROLLER_KP_XY
+                vel_x = - error_x * POSITION_CONTROLLER_KP_XY
+                vel_y = - error_y * POSITION_CONTROLLER_KP_XY
 
                 vel_x = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_x))
                 vel_y = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_y))
 
-                yasmin.YASMIN_LOG_INFO(f"Adjusting position: error_x={error_x:.2f}, error_y={error_y:.2f}, linear_x={vel_x:.2f}, linear_y={vel_y:.2f}")
+                yasmin.YASMIN_LOG_INFO(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}")
                 mavdrone.offboard_velocity(
                     linear_x = vel_x,
                     linear_y = vel_y,
