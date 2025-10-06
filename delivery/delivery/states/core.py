@@ -7,10 +7,10 @@ from yasmin_ros.yasmin_node import YasminNode
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 from mirela_sdk.control.mavros import MavDrone
-from mirela_sdk.image_processing.camera import ImageHandler, IMX219Config
+from mirela_sdk.image_processing.camera import ImageHandler
 from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 
-from delivery.utils import YOLODetector
+from delivery.utils import YOLODetectorCross, YOLODetectorPkg
 
 from delivery.constants import (
     TAKEOFF_ALTITUDE,
@@ -66,11 +66,15 @@ class Initialize(State):
                 image_source=IMAGE_SOURCE,
             )
             blackboard["image_handler"].open()
-
-            yasmin.YASMIN_LOG_INFO("Initializing YOLODetector and run first detection...")
-            blackboard["yolo_detector"] = YOLODetector()
             frame = blackboard["image_handler"].take_photo()
-            blackboard["yolo_detector"].detect(image=frame, desired_class="base")
+
+            yasmin.YASMIN_LOG_INFO("Initializing YOLODetectorCross and run first detection...")
+            blackboard["yolo_detector_cross"] = YOLODetectorCross()
+            blackboard["yolo_detector_cross"].detect(image=frame)
+
+            yasmin.YASMIN_LOG_INFO("Initializing YOLODetectorPkg and run first detection...")
+            blackboard["yolo_detector_pkg"] = YOLODetectorPkg()
+            blackboard["yolo_detector_pkg"].detect(image=frame, desired_class="base")
 
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED

@@ -14,7 +14,7 @@ except ImportError:
     YOLO_AVAILABLE = False
 
 from delivery.constants import (
-    YOLO_MODEL_PATH,
+    YOLO_MODEL_PATH_PKG,
     YOLO_CONFIDENCE_THRESHOLD,
     YOLO_IMAGE_SIZE,
     DETECTION_SAVE_PATH,
@@ -23,7 +23,7 @@ from delivery.constants import (
 )
 
 
-class YOLODetector:
+class YOLODetectorPkg:
     """
     YOLO-based landing base and package detector for CB5 Phase 2.
 
@@ -31,7 +31,7 @@ class YOLODetector:
     for landing base and package recognition.
     """
 
-    def __init__(self, model_path: str = YOLO_MODEL_PATH):
+    def __init__(self, model_path: str = YOLO_MODEL_PATH_PKG):
         """
         Initialize YOLO detector.
 

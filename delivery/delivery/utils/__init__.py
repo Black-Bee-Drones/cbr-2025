@@ -1,6 +1,8 @@
-from .yolo_detection import YOLODetector
+from .yolo_detector_cross import YOLODetectorCross
+from .yolo_detector_pkg import YOLODetectorPkg
 
 
 __all__ = [
-    "YOLODetector",
+    "YOLODetectorCross",
+    "YOLODetectorPkg",
 ]

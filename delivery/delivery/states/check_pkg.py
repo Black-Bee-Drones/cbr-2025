@@ -6,7 +6,7 @@ import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, FAIL, CANCEL, ABORT
 
-from delivery.utils import YOLODetector
+from delivery.utils import YOLODetectorPkg
 
 from delivery.constants import (
     DETECTIONS_LOST_TOLERANCE,
@@ -31,23 +31,23 @@ class CheckPkg(State):
             return ABORT
         image_handler: ImageHandler = blackboard["image_handler"]
 
-        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
-            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
+        if ("yolo_detector_pkg" not in blackboard) or not blackboard["yolo_detector_pkg"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector_pkg not available in {self.__class__.__name__} state.")
             return ABORT
-        yolo_detector: YOLODetector = blackboard["yolo_detector"]
+        yolo_detector_pkg: YOLODetectorPkg = blackboard["yolo_detector_pkg"]
 
         for _ in range(DETECTIONS_LOST_TOLERANCE):
             time.sleep(1)
             frame = image_handler.take_photo()
 
-            detection = yolo_detector.detect(
+            detection = yolo_detector_pkg.detect(
                 image = frame,
                 desired_class = "package",
                 inside_base = False,
             )
 
             if detection:
-                detection = yolo_detector.detect(
+                detection = yolo_detector_pkg.detect(
                     image = frame,
                     desired_class = "package",
                     inside_base = True,
