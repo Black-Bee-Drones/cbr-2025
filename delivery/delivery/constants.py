@@ -40,7 +40,6 @@ YOLO_MODEL_PATH_CROSS = os.path.join(
     get_package_share_directory("delivery"), "models", "best_tc.pt"
 )
 YOLO_CONFIDENCE_THRESHOLD = 0.2 
-YOLO_IMAGE_SIZE = 640
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Camera
@@ -49,8 +48,6 @@ IMAGE_CALCULUS_OFFSET_X = 0.15
 CAMERA_PIXELS_PER_DEGREE = 25
 CAMERA_RESOLUTION_WIDTH = 640
 CAMERA_RESOLUTION_HEIGHT = 480
-IMAGE_CENTER_X = CAMERA_RESOLUTION_WIDTH // 2
-IMAGE_CENTER_Y = CAMERA_RESOLUTION_HEIGHT // 2
 
 # Position control parameters
 POSITION_CONTROLLER_KP_XY = 0.5  # Proportional gain for XY movement

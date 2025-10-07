@@ -7,7 +7,7 @@ import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 
-from delivery.utils import YOLODetectorCross, YOLODetectorPkg, ImageCalculus
+from delivery.utils import YoloDetector, ImageCalculus
 
 from delivery.constants import (
     POSITION_CONTROLLER_KP_XY,
@@ -31,15 +31,15 @@ class CenterOnDetection(State):
     def __init__(self, desired_class: str):
         """
         Args:
-            desired_class (str): Class ID to filter detections. Must be "base" or "package".
+            desired_class (str): Class ID to filter detections. Must be "cross" or "package".
 
         Raises:
-            TypeError: If `desired_class` is not "base" or "package".
+            TypeError: If `desired_class` is not "cross" or "package".
         """
         super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
         self._desired_class = desired_class.lower()
-        if self._desired_class not in ("base", "package"):
-            raise TypeError("Parameter desired_class should be 'base' or 'package'.")
+        if self._desired_class not in ("cross", "package"):
+            raise TypeError("Parameter desired_class should be 'cross' or 'package'.")
 
     def execute(self, blackboard: Blackboard):
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
@@ -52,15 +52,10 @@ class CenterOnDetection(State):
             return ABORT
         image_handler: ImageHandler = blackboard["image_handler"]
 
-        if ("yolo_detector_cross" not in blackboard) or not blackboard["yolo_detector_cross"]:
-            yasmin.YASMIN_LOG_ERROR(f"yolo_detector_cross not available in {self.__class__.__name__} state.")
+        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
             return ABORT
-        yolo_detector_cross: YOLODetectorCross = blackboard["yolo_detector_cross"]
-
-        if ("yolo_detector_pkg" not in blackboard) or not blackboard["yolo_detector_pkg"]:
-            yasmin.YASMIN_LOG_ERROR(f"yolo_detector_pkg not available in {self.__class__.__name__} state.")
-            return ABORT
-        yolo_detector_pkg: YOLODetectorPkg = blackboard["yolo_detector_pkg"]
+        yolo_detector: YoloDetector = blackboard["yolo_detector"]
 
         if ("image_calculus" not in blackboard) or not blackboard["image_calculus"]:
             yasmin.YASMIN_LOG_ERROR(f"image_calculus not available in {self.__class__.__name__} state.")
@@ -73,17 +68,12 @@ class CenterOnDetection(State):
         while (time.time() - start) < CENTER_TIMEOUT:
             frame = image_handler.take_photo()
 
-            if self._desired_class == 'base':
-                detection = yolo_detector_cross.detect(
-                    image = frame,
-                )
-            elif self._desired_class == 'package':
-                detection = yolo_detector_pkg.detect(
-                    image = frame,
-                    desired_class = 'package',
-                )
+            detection = yolo_detector.detect(
+                frame = frame,
+                desired_class = [self._desired_class],
+            )
 
-            if not detection:
+            if self._desired_class not in detection.keys():
                 detections_lost += 1
 
                 # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
@@ -96,7 +86,7 @@ class CenterOnDetection(State):
 
                 error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
                     altura = mavdrone.get_rng_alt.range,
-                    target_pixel = detection['center'],
+                    target_pixel = detection[self._desired_class]["center"],
                 )
 
                 if (error_x**2 + error_y**2) <= (POSITION_CONTROLLER_TOLERANCE_XY**2):

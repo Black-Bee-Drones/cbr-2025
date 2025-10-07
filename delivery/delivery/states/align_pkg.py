@@ -6,7 +6,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
-from delivery.utils import YOLODetectorPkg
+from delivery.utils import YoloDetector
 
 from delivery.constants import (
     ALIGN_TIMEOUT,
@@ -41,10 +41,10 @@ class AlignPkg(State):
             return ABORT
         image_handler: ImageHandler = blackboard["image_handler"]
 
-        if ("yolo_detector_pkg" not in blackboard) or not blackboard["yolo_detector_pkg"]:
-            yasmin.YASMIN_LOG_ERROR(f"yolo_detector_pkg not available in {self.__class__.__name__} state.")
+        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
             return ABORT
-        yolo_detector_pkg: YOLODetectorPkg = blackboard["yolo_detector_pkg"]
+        yolo_detector: YoloDetector = blackboard["yolo_detector"]
 
         yasmin.YASMIN_LOG_INFO("Starting aligning procedure using YOLO detector...")
         detections_lost = 0
@@ -52,12 +52,12 @@ class AlignPkg(State):
         while time.time() - start < ALIGN_TIMEOUT:
             frame = image_handler.take_photo()
 
-            detection = yolo_detector_pkg.detect(
-                image = frame,
-                desired_class = "package",
+            detection = yolo_detector.detect(
+                frame = frame,
+                desired_class = ["package"],
             )
 
-            if 'bbox' not in detection.keys():
+            if "package" not in detection.keys():
                 detections_lost += 1
 
                 # Tirou varias fotos e nenhuma tinha deteccao -> FAIL
@@ -68,8 +68,8 @@ class AlignPkg(State):
             else:
                 detections_lost = 0
 
-                side_x = abs(detection["bbox"][2] - detection["bbox"][0])
-                side_y = abs(detection["bbox"][3] - detection["bbox"][1])
+                side_x = abs(detection["package"]["bbox"][2] - detection["package"]["bbox"][0])
+                side_y = abs(detection["package"]["bbox"][3] - detection["package"]["bbox"][1])
 
                 side_max = max(side_x, side_y)
                 side_min = min(side_x, side_y)
