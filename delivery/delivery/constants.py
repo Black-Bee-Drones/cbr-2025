@@ -4,9 +4,9 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 3.0  # Meters
+TAKEOFF_ALTITUDE = 2.0  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
-MAX_ALTITUDE = 5.0  # Meters
+MAX_ALTITUDE = 4.0  # Meters
 MIN_CENTERING_ALTITUDE = 1.2  # Meters, final altitude above figure for landing
 TARGET_UP_ALTITUDE = 0.5  # Meters, how high the drone will climb if it doesn't find the package
 TARGET_DOWN_ALTITUDE = -0.5  # Meters, distancia de descida para para centralizar
@@ -22,14 +22,14 @@ REACQUIRE_TIMEOUT = 30  # seconds
 # Package Info
 STARTING_PACKAGE_IDX = -1
 PACKAGE_POSITIONS = [
+    {"x": 0.0, "y": -1.0},
     {"x": 0.0, "y": -2.0},
-    {"x": 0.0, "y": -4.0},
-    {"x": 0.0, "y": -6.0},
+    {"x": 0.0, "y": -3.0},
 ]
 DELIVER_POSITIONS = [
+    {"x": 2.0, "y": -1.0},
     {"x": 2.0, "y": -2.0},
-    {"x": 2.0, "y": -4.0},
-    {"x": 2.0, "y": -6.0},
+    {"x": 2.0, "y": -3.0},
 ]
 
 # YOLO detection parameters
