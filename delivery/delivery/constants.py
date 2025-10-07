@@ -3,12 +3,14 @@ import os
 
 
 # Delivery constants
+IS_INDOOR = True
 TAKEOFF_ALTITUDE = 3.0  # Meters
-MAX_ALTITUDE = 7.0  # Meters
+TAKEOFF_SLEEP = 5.0 # Seconds
+MAX_ALTITUDE = 5.0  # Meters
 MIN_CENTERING_ALTITUDE = 1.2  # Meters, final altitude above figure for landing
 TARGET_UP_ALTITUDE = 0.5  # Meters, how high the drone will climb if it doesn't find the package
 TARGET_DOWN_ALTITUDE = -0.5  # Meters, distancia de descida para para centralizar
-DETECTIONS_LOST_TOLERANCE = 5 # Number of missed detections to consider it as lost
+DETECTIONS_LOST_TOLERANCE = 3 # Number of missed detections to consider it as lost
 PACKAGE_PROPORTION_ALIGN = 2  # How many times the smaller side fits into the larger one to consider it aligned
 
 # Timeouts
@@ -20,10 +22,14 @@ REACQUIRE_TIMEOUT = 30  # seconds
 # Package Info
 STARTING_PACKAGE_IDX = -1
 PACKAGE_POSITIONS = [
-    {"x": 0.0, "y": 0.0},
+    {"x": 0.0, "y": -2.0},
+    {"x": 0.0, "y": -4.0},
+    {"x": 0.0, "y": -6.0},
 ]
 DELIVER_POSITIONS = [
-    {"x": 0.0, "y": 0.0},
+    {"x": 2.0, "y": -2.0},
+    {"x": 2.0, "y": -4.0},
+    {"x": 2.0, "y": -6.0},
 ]
 
 # YOLO detection parameters
@@ -52,8 +58,9 @@ POSITION_CONTROLLER_KP_YAW = 0.5  # Proportional gain for yaw
 POSITION_CONTROLLER_MAX_VELOCITY_XY = 0.8
 POSITION_CONTROLLER_MAX_VELOCITY_YAW = 0.3  # rad/s
 POSITION_CONTROLLER_TOLERANCE_XY = 0.1  # Meters, XY tolerance for considering the PID at the target
+POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
 
 # Servo motor value
 SERVO_PIN_OUT = 1
-SERVO_OPEN_PWM = 1
-SERVO_CLOSE_PWM = 1
+SERVO_OPEN_PWM = 1200
+SERVO_CLOSE_PWM = 1800

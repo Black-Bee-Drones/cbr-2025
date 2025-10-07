@@ -6,7 +6,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 import yasmin
 from yasmin import State, Blackboard
 from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
-from delivery.utils import YOLODetector
+from delivery.utils import YOLODetectorPkg
 
 from delivery.constants import (
     ALIGN_TIMEOUT,
@@ -44,7 +44,7 @@ class AlignPkg(State):
         if ("yolo_detector_pkg" not in blackboard) or not blackboard["yolo_detector_pkg"]:
             yasmin.YASMIN_LOG_ERROR(f"yolo_detector_pkg not available in {self.__class__.__name__} state.")
             return ABORT
-        yolo_detector_pkg: YOLODetector = blackboard["yolo_detector_pkg"]
+        yolo_detector_pkg: YOLODetectorPkg = blackboard["yolo_detector_pkg"]
 
         yasmin.YASMIN_LOG_INFO("Starting aligning procedure using YOLO detector...")
         detections_lost = 0

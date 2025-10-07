@@ -13,7 +13,9 @@ from mirela_sdk.image_processing.camera.image_calculus import ImageCalculus
 from delivery.utils import YOLODetectorCross, YOLODetectorPkg
 
 from delivery.constants import (
+    IS_INDOOR,
     TAKEOFF_ALTITUDE,
+    TAKEOFF_SLEEP,
     STARTING_PACKAGE_IDX,
     PACKAGE_POSITIONS,
     DELIVER_POSITIONS,
@@ -48,7 +50,7 @@ class Initialize(State):
             blackboard["mavdrone"] = MavDrone(
                 node=YasminNode.get_instance(),
                 mavros=False,
-                indoor=False,
+                indoor=IS_INDOOR,
             )
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageCalculus...")
@@ -102,6 +104,8 @@ class Takeoff(State):
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
             mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
+            time.sleep(TAKEOFF_SLEEP)
+            mavdrone.set_takeoff_position(blackboard["initial_position"])
             yasmin.YASMIN_LOG_INFO("Takeoff successful.")
             return SUCCEED
 

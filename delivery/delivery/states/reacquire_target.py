@@ -10,6 +10,7 @@ from delivery.constants import (
     MIN_CENTERING_ALTITUDE,
     TARGET_UP_ALTITUDE,
     TARGET_DOWN_ALTITUDE,
+    POSITION_CONTROLLER_TOLERANCE_Z,
 )
 
 
@@ -61,10 +62,10 @@ class ReacquireTarget(State):
                 y=0.0,
                 z=TARGET_UP_ALTITUDE if self._direction=='up' else TARGET_DOWN_ALTITUDE,
                 timeout_sec=REACQUIRE_TIMEOUT,
+                precision_radius=POSITION_CONTROLLER_TOLERANCE_Z,
             )
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
             return SUCCEED
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Navigation failed: {e}")
             return ABORT
-

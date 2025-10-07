@@ -40,7 +40,6 @@ class GoToTarget(State):
 
         if self._desired_class == "base":
             all_positions = blackboard["deliver_positions"]
-            
         elif self._desired_class == "package":
             all_positions = blackboard["packages_positions"]
             blackboard["next_package"] += 1
@@ -60,10 +59,11 @@ class GoToTarget(State):
 
         try:
             mavdrone.offboard_position(
-                x=target_position["y"],
-                y=target_position["x"],
+                x=target_position["x"],
+                y=target_position["y"],
                 z=0.0,
                 timeout_sec=SEARCH_TIMEOUT,
+                ground_reference=True,
             )
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
             return SUCCEED
