@@ -20,7 +20,7 @@ GRID_SPACING = 1.5
 WAYPOINT_VELOCITY = 0.4  # m/s - movement velocity between waypoints
 CENTERING_VELOCITY = 0.14  # m/s - velocity during precision centering
 CENTERING_VEL_MAX = 0.2
-CENTERING_VEL_MIN = 0.07
+CENTERING_VEL_MIN = 0.05
 
 # Grid pattern configuration
 GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
@@ -56,7 +56,7 @@ DETECTION_SAVE_PATH = os.path.join(
 CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
 CENTERING_TOLERANCE_PX = 200  # pixel tolerance for considering centered
 CENTERING_TIMEOUT = 30  # seconds - max time for centering operation
-LAND_WAIT_TIME = 15  # seconds - wait time after landing before takeoff
+LAND_WAIT_TIME = 5  # seconds - wait time after landing before takeoff
 
 # Camera parameters
 CAMERA_SOURCE = "imx219"

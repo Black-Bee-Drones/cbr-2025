@@ -135,6 +135,7 @@ class CenterOnDetection(State):
     def _phase2_descend_and_center(self) -> bool:
         """Phase 2: Descend to landing altitude while maintaining center."""
         start_time = time.time()
+        phase2_threshold = 100
         
         yasmin.YASMIN_LOG_INFO(f"Descending to {CENTERING_ALTITUDE:.1f}m above figure...")
 
@@ -142,11 +143,16 @@ class CenterOnDetection(State):
             rclpy.spin_once(self.node, timeout_sec=0.01)
             
             current_lidar = self.mavdrone.get_rng_alt.range
+
+            if current_lidar < CENTERING_ALTITUDE + 0.40:
+                phase2_threshold = 50
             
             if current_lidar < CENTERING_ALTITUDE + 0.2:
                 yasmin.YASMIN_LOG_INFO("Phase 2: Landing altitude reached")
                 self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
                 time.sleep(1)
+                self.image_handler.close()
+                self.mavdrone.delay(1.5)
                 return True
 
             detection = self.yolo_detector.detect(
@@ -158,8 +164,8 @@ class CenterOnDetection(State):
                 error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
                 vel_x = error_y * CENTERING_P_GAIN * 0.7  # Reduced gain during descent
                 vel_y = error_x * CENTERING_P_GAIN * 0.7
-                vel_x = self.saturate_abs(vel_x) if abs(error_y) > 50 else 0.0
-                vel_y = self.saturate_abs(vel_y) if abs(error_x) > 50 else 0.0
+                vel_x = self.saturate_abs(vel_x) if abs(error_y) > phase2_threshold else 0.0
+                vel_y = self.saturate_abs(vel_y) if abs(error_x) > phase2_threshold else 0.0
 
             vel_z = -0.1 
             self.mavdrone.offboard_velocity(vel_x, vel_y, vel_z, 0.0, ground_reference=False)

@@ -82,10 +82,10 @@ class NavigateToWaypoint(State):
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
 
-            mavdrone.offboard_velocity_timer(0.25, 0.0, 0.0, 0.0, time=2)
+            # mavdrone.offboard_velocity_timer(0.25, 0.0, 0.0, 0.0, time=2)
 
-            mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
-            time.sleep(7)
+            # mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+            time.sleep(0.5)
 
             return SUCCEED
 
