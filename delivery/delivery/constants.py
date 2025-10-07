@@ -34,10 +34,10 @@ DELIVER_POSITIONS = [
 
 # YOLO detection parameters
 YOLO_MODEL_PATH_PKG = os.path.join(
-    get_package_share_directory("delivery"), "models", "best_mkdrone.pt"
+    get_package_share_directory("delivery"), "models", "yolov11nMKDrone.pt"
 )
 YOLO_MODEL_PATH_CROSS = os.path.join(
-    get_package_share_directory("delivery"), "models", "best_tc.pt"
+    get_package_share_directory("delivery"), "models", "yolov11nTC.pt"
 )
 YOLO_CONFIDENCE_THRESHOLD = 0.2 
 DETECTION_SAVE_PATH = "detections/"  # save detection images

@@ -22,8 +22,8 @@ class YoloDetector:
             conf_package: float = YOLO_CONFIDENCE_THRESHOLD,
             save_image_path: str = DETECTION_SAVE_PATH,
         ):
-        self.model_cross = YOLO(model_cross_path, task='detect', verbose=True)
-        self.model_package = YOLO(model_package_path, task='detect', verbose=True)
+        self.model_cross = YOLO(model_cross_path)
+        self.model_package = YOLO(model_package_path)
 
         self._conf_cross = conf_cross
         self._conf_package = conf_package
@@ -32,7 +32,7 @@ class YoloDetector:
 
     def detect(self,
             frame: np.ndarray,
-            desired_class: Tuple[str],
+            desired_class: Tuple[str] = [],
             save_image: bool = False,
         ):
         """
