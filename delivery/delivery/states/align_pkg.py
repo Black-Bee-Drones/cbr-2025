@@ -71,10 +71,7 @@ class AlignPkg(State):
                 side_x = abs(detection["package"]["bbox"][2] - detection["package"]["bbox"][0])
                 side_y = abs(detection["package"]["bbox"][3] - detection["package"]["bbox"][1])
 
-                side_max = max(side_x, side_y)
-                side_min = min(side_x, side_y)
-
-                package_proportion = side_max/side_min
+                package_proportion = side_y/side_x
 
                 if package_proportion >= PACKAGE_PROPORTION_ALIGN:
                     yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
