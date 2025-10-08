@@ -20,9 +20,8 @@ from delivery.constants import (
     DELIVER_POSITIONS,
     IMAGE_SOURCE,
     IMAGE_CALCULUS_OFFSET_X,
-    CAMERA_RESOLUTION_WIDTH,
-    CAMERA_RESOLUTION_HEIGHT,
-    CAMERA_PIXELS_PER_DEGREE,
+    CAMERA_FOV_HORIZONTAL,
+    CAMERA_FOV_VERTICAL,
 )
 
 
@@ -52,15 +51,6 @@ class Initialize(State):
                 indoor=IS_INDOOR,
             )
 
-            yasmin.YASMIN_LOG_INFO("Initializing ImageCalculus...")
-            blackboard["image_calculus"] = ImageCalculus()
-            blackboard["image_calculus"].update_camera_offset(x=IMAGE_CALCULUS_OFFSET_X)
-            blackboard["image_calculus"].update_pixels_per_degree(pixels_per_degree=CAMERA_PIXELS_PER_DEGREE)
-            blackboard["image_calculus"].update_camera_resolution(
-                width=CAMERA_RESOLUTION_WIDTH,
-                height=CAMERA_RESOLUTION_HEIGHT,
-            )
-
             yasmin.YASMIN_LOG_INFO("Initializing ImageHandler...")
             blackboard["image_handler"] = ImageHandler(
                 node=YasminNode.get_instance(),
@@ -68,6 +58,17 @@ class Initialize(State):
             )
             blackboard["image_handler"].open()
             frame = blackboard["image_handler"].take_photo()
+            height, width, _ = frame.shape
+            camera_pixels_per_degree = (width / CAMERA_FOV_HORIZONTAL + height / CAMERA_FOV_VERTICAL) / 2
+
+            yasmin.YASMIN_LOG_INFO("Initializing ImageCalculus...")
+            blackboard["image_calculus"] = ImageCalculus()
+            blackboard["image_calculus"].update_camera_offset(**IMAGE_CALCULUS_OFFSET_X)
+            blackboard["image_calculus"].update_pixels_per_degree(pixels_per_degree=camera_pixels_per_degree)
+            blackboard["image_calculus"].update_camera_resolution(
+                width=width,
+                height=height,
+            )
 
             yasmin.YASMIN_LOG_INFO("Initializing YoloDetector and run first detection...")
             blackboard["yolo_detector_cross"] = YoloDetector()

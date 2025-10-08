@@ -61,8 +61,8 @@ class YoloDetector:
             if base:
                 detections["base"] = base
 
-            package = self.get_best_detection(package_detections, inside_bbox=base["bbox"])
-            if base:
+            package = self.get_best_detection(package_detections, inside_bbox=base["bbox"] if base else None)
+            if package:
                 detections["package"] = package
         
         if save_image:
@@ -120,13 +120,18 @@ class YoloDetector:
         return d
 
     def organize_detections(self, detections):
-        group = {}
-        for detection in detections:
-            _id = detection["id"]
-            if _id not in group:
-                group[_id] = []
-            group[_id].append(detection)
-        return list(group.values())
+        base_detections = []
+        package_detections = []
+
+        for det in detections:
+            class_id = det["class_id"]
+            if class_id == 0:
+                base_detections.append(det)
+            elif class_id == 1:
+                package_detections.append(det)
+
+        return base_detections, package_detections
+
 
     def save_image(self, frame):
         """Salva a imagem atual com timestamp no nome."""
