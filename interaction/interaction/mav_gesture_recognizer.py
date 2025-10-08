@@ -1,13 +1,12 @@
 import rclpy
-import rclpy.clock
 from rclpy.node import Node
 from std_msgs.msg import Int16
 import numpy as np
 from cvzone.HandTrackingModule import HandDetector
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.image_processing.camera import IMX219Config
 import time
-import math
-from interaction.constants import RTL_COUNT_TOPIC, LAND_GESTURE_ID
+
 
 class GestureRecognizer(Node):
     """
@@ -55,20 +54,27 @@ class GestureRecognizer(Node):
 
         self.last_published_action_id = -1 
 
-        self.declare_parameter("image_source", "webcam")
+        self.declare_parameter("image_source", "imx219")
         self.image_source = self.get_parameter("image_source").get_parameter_value().string_value
         self.get_logger().info(f"Usando fonte de imagem: {self.image_source}")
 
         self.image_handler = ImageHandler(
-            self,
-            image_source=self.image_source,
+            node=self,
+            image_source="imx219",
             image_processing_callback=self.process,
-            show_result="Gesture Recognizer",
+            config=IMX219Config(sensor_id=0, width=1640, height=1232)
         )
+        time.sleep(1.0)  # Aguarda a inicialização da câmera.
+        self.get_logger().info("Câmera inicializada.")
 
         self.frame_time = None
 
+        self.image_handler.open()
+        time.sleep(1.0)  # Aguarda a câmera abrir.
+        self.get_logger().info("Câmera aberta e pronta.")
+
         self.image_handler.run()
+        self.get_logger().info("Processamento de imagem iniciado.")
 
 
     def process(self, img: np.array) -> None:

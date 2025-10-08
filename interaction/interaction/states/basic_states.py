@@ -28,7 +28,7 @@ class Initialize(State):
     def execute(self, blackboard: Blackboard):
         
         try:
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), mavros=False, indoor=False)
+            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), mavros=False, indoor=True)
             mavdrone : MavDrone = blackboard["mavdrone"]
             
             # Store takeoff position for RTL
