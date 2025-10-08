@@ -8,6 +8,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 from mirela_sdk.control.mavros import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
+from mirela_sdk.image_processing.camera.imx219_cam import IMX219Config
 
 from delivery.utils import YoloDetector, ImageCalculus
 
@@ -50,14 +51,19 @@ class Initialize(State):
                 mavros=False,
                 indoor=IS_INDOOR,
             )
+            mavdrone: MavDrone = blackboard["mavdrone"]
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageHandler...")
             blackboard["image_handler"] = ImageHandler(
                 node=YasminNode.get_instance(),
                 image_source=IMAGE_SOURCE,
+                config=IMX219Config(sensor_id=0, width=1640, height=1232)
             )
-            blackboard["image_handler"].open()
-            frame = blackboard["image_handler"].take_photo()
+            image_handler: ImageHandler = blackboard["image_handler"]
+            mavdrone.delay(1)
+            image_handler.open()
+            mavdrone.delay(1)
+            frame = image_handler.take_photo()
             height, width, _ = frame.shape
             camera_pixels_per_degree = (width / CAMERA_FOV_HORIZONTAL + height / CAMERA_FOV_VERTICAL) / 2
 
@@ -71,8 +77,9 @@ class Initialize(State):
             )
 
             yasmin.YASMIN_LOG_INFO("Initializing YoloDetector and run first detection...")
-            blackboard["yolo_detector_cross"] = YoloDetector()
-            blackboard["yolo_detector_cross"].detect(frame=frame)
+            blackboard["yolo_detector"] = YoloDetector()
+            detector: YoloDetector = blackboard["yolo_detector"]
+            detector.detect(frame=frame, save_image=True)
 
             yasmin.YASMIN_LOG_INFO("Mission successfully initialized.")
             return SUCCEED

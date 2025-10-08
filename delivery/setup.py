@@ -21,7 +21,6 @@ setup(
     maintainer_email='controleryan@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             "delivery_task = delivery.mangalarga:main",

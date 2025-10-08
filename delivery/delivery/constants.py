@@ -4,7 +4,7 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 2.0  # Meters
+TAKEOFF_ALTITUDE = 1.3  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
 MAX_ALTITUDE = 4.0  # Meters
 MIN_CENTERING_ALTITUDE = 1.2  # Meters, final altitude above figure for landing
@@ -43,7 +43,7 @@ YOLO_CONFIDENCE_THRESHOLD = 0.2
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Camera
-IMAGE_SOURCE = "webcam"
+IMAGE_SOURCE = "imx219"
 IMAGE_CALCULUS_OFFSET_X = {"x": 0.15}
 CAMERA_FOV_HORIZONTAL = 62.2  # DEGREE
 CAMERA_FOV_VERTICAL = 48.8  # DEGREE

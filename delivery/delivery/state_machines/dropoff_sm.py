@@ -18,7 +18,7 @@ class DropoffSM(StateMachine):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
-            "GO_TO_NEXT_BASE",
+            "GO_TO_NEXT_CROSS",
             GoToTarget(desired_class="base"),
             transitions={
                 SUCCEED : "CENTER",
@@ -27,7 +27,7 @@ class DropoffSM(StateMachine):
         )
         self.add_state(
             "CENTER",
-            CenterOnDetection(desired_class='base'),
+            CenterOnDetection(desired_class='cross'),
             transitions={
                 SUCCEED : "DESCEND",
                 FAIL    : "ASCEND",  # Target not detected for too long.
@@ -39,7 +39,7 @@ class DropoffSM(StateMachine):
             ReacquireTarget(direction="up"),
             transitions={
                 SUCCEED        : "CENTER",
-                FAIL           : "GO_TO_NEXT_BASE",
+                FAIL           : "GO_TO_NEXT_CROSS",
                 ABORT          : ABORT,
             },
         )
@@ -77,4 +77,4 @@ class DropoffSM(StateMachine):
             },
         )
 
-        self.set_start_state("GO_TO_NEXT_BASE")
+        self.set_start_state("GO_TO_NEXT_CROSS")

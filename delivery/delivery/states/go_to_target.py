@@ -6,6 +6,7 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from delivery.constants import (
     SEARCH_TIMEOUT,
+    TAKEOFF_ALTITUDE,
 )
 
 
@@ -33,6 +34,7 @@ class GoToTarget(State):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
+        return SUCCEED
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
             yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
@@ -61,7 +63,7 @@ class GoToTarget(State):
             mavdrone.offboard_position(
                 x=target_position["x"],
                 y=target_position["y"],
-                z=0.0,
+                z=TAKEOFF_ALTITUDE,
                 timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True,
             )

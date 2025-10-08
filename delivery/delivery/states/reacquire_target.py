@@ -43,7 +43,7 @@ class ReacquireTarget(State):
             return ABORT
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        current_alt = mavdrone.get_rng_alt.range
+        current_alt = mavdrone.get_height
 
         if self._direction == 'up':
             if current_alt >= MAX_ALTITUDE or (current_alt + TARGET_UP_ALTITUDE) >= MAX_ALTITUDE:

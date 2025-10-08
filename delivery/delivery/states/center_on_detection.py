@@ -73,6 +73,8 @@ class CenterOnDetection(State):
                 desired_class = [self._desired_class],
             )
 
+            yasmin.YASMIN_LOG_WARN(f'{detection}')
+            
             if self._desired_class not in detection.keys():
                 detections_lost += 1
 
@@ -85,7 +87,7 @@ class CenterOnDetection(State):
                 detections_lost = 0
 
                 error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
-                    altura = mavdrone.get_rng_alt.range,
+                    altura = mavdrone.get_height,
                     target_pixel = detection[self._desired_class]["center"],
                 )
 

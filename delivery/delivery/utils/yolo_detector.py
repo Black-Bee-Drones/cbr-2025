@@ -13,6 +13,9 @@ from delivery.constants import (
     DETECTION_SAVE_PATH,
 )
 
+IMAGE_CENTER_X = 1232 / 2
+IMAGE_CENTER_Y = 1640 / 2
+
 
 class YoloDetector:
     def __init__(self,
@@ -29,11 +32,12 @@ class YoloDetector:
         self._conf_package = conf_package
 
         self._save_image_path = save_image_path
+        self.detection_count = 0
 
     def detect(self,
             frame: np.ndarray,
             desired_class: Tuple[str] = [],
-            save_image: bool = False,
+            save_image: bool = True,
         ):
         """
         desired_class: ["cross", "base", "package"]; if []: all
@@ -41,7 +45,7 @@ class YoloDetector:
         detections = {}
         if (not desired_class) or ("cross" in desired_class):
             results = self.model_cross(
-                frame.copy(),
+                frame,
                 conf=self._conf_cross,
             )
             all_detections = self.results_to_list_of_dict(results)
@@ -51,7 +55,7 @@ class YoloDetector:
 
         if (not desired_class) or ("base" in desired_class) or ("package" in desired_class):
             results = self.model_package(
-                frame.copy(),
+                frame,
                 conf=self._conf_package,
             )
             all_detections = self.results_to_list_of_dict(results)
@@ -66,7 +70,9 @@ class YoloDetector:
                 detections["package"] = package
         
         if save_image:
-            self.save_image(frame.copy())
+            self._save_detection_image(
+                frame.copy(), detections, time.time_ns()
+            )
 
         return detections
 
@@ -137,3 +143,61 @@ class YoloDetector:
         """Salva a imagem atual com timestamp no nome."""
         os.makedirs(self._save_image_path, exist_ok=True)
         cv2.imwrite(f"{self._save_image_path}/frame_{time.time_ns()}.jpg", frame)
+
+    def _save_detection_image(
+        self, image: np.ndarray, detections: Dict[str, Dict], timestamp: int
+    ):
+        """Save image with detection bounding boxes."""
+        annotated_image = image.copy()
+        
+        # detections é um dict com keys como "cross", "base", "package"
+        for detection_type, detection in detections.items():
+            if detection and isinstance(detection, dict):
+                bbox = detection.get("bbox", [])
+                confidence = detection.get("confidence", 0.0)
+                center = detection.get("center", (0, 0))
+
+                if bbox and len(bbox) == 4:
+                    cv2.rectangle(
+                        annotated_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2
+                    )
+
+                    cv2.circle(annotated_image, center, 5, (0, 0, 255), -1)
+
+                    text = f"{detection_type}: {confidence:.2f}"
+                    cv2.putText(
+                        annotated_image,
+                        text,
+                        (bbox[0], bbox[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 255, 0),
+                        1,
+                    )
+
+        # Desenhar crosshair no centro da imagem
+        center_x = int(IMAGE_CENTER_X)
+        center_y = int(IMAGE_CENTER_Y)
+        cv2.line(
+            annotated_image,
+            (center_x - 10, center_y),
+            (center_x + 10, center_y),
+            (255, 0, 0),
+            2,
+        )
+        cv2.line(
+            annotated_image,
+            (center_x, center_y - 10),
+            (center_x, center_y + 10),
+            (255, 0, 0),
+            2,
+        )
+
+        # Criar diretório se não existir
+        os.makedirs(self._save_image_path, exist_ok=True)
+        
+        # Salvar imagem com timestamp
+        filename = f"{self._save_image_path}/frame_{int(timestamp)}.jpg"
+        cv2.imwrite(filename, annotated_image)
+        print(f"Detection image saved: {filename}")
+
