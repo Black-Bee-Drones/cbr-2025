@@ -9,14 +9,14 @@ SEARCH_AREA_HEIGHT = 4.5
 
 # Flight parameters
 TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitude
-SEARCH_ALTITUDE = 1.0   # meters - maintain during search
+SEARCH_ALTITUDE = 1.0  # meters - maintain during search
 CENTERING_ALTITUDE = 1.0  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 2.0m provides ~45% overlap for robust coverage
-GRID_SPACING = 1.5 
+GRID_SPACING = 1.5
 WAYPOINT_VELOCITY = 0.4  # m/s - movement velocity between waypoints
 CENTERING_VELOCITY = 0.14  # m/s - velocity during precision centering
 CENTERING_VEL_MAX = 0.2
@@ -26,7 +26,10 @@ CENTERING_VEL_MIN = 0.05
 GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
 GRID_PRIMARY_DIRECTION = "FORWARD"  # Primary movement direction
 GRID_TRANSITION_DIRECTION = "RIGHT"  # Transition between columns/rows
-GRID_START_OFFSET = (0.0, 0.0)  # (1.0, -0.75)  # Starting offset (forward 1m, right 0.75m)
+GRID_START_OFFSET = (
+    0.0,
+    0.0,
+)  # (1.0, -0.75)  # Starting offset (forward 1m, right 0.75m)
 
 # Landing base detection parameters
 LANDING_BASE_SIZE = 1.0  # meters - 1m x 1m landing bases
@@ -46,11 +49,11 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("mapping"), "models", "best.engine"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.85  
-YOLO_IMAGE_SIZE = 640 
+YOLO_CONFIDENCE_THRESHOLD = 0.85
+YOLO_IMAGE_SIZE = 640
 DETECTION_SAVE_PATH = os.path.join(
-    get_package_prefix('mapping').replace('install', 'src'), "detections"
-) 
+    get_package_prefix("mapping").replace("install", "src"), "detections"
+)
 
 # Centering control parameters
 CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
@@ -61,11 +64,9 @@ LAND_WAIT_TIME = 5  # seconds - wait time after landing before takeoff
 # Camera parameters
 CAMERA_SOURCE = "imx219"
 IMAGE_CENTER_X = 960  # camera image center X (pixels)
-IMAGE_CENTER_Y = 540  # camera image center Y (pixels)
+IMAGE_CENTER_Y = 616  # camera image center Y (pixels)
 
 # Movement tolerances
 VELOCITY_TOLERANCE = 0.1  # m/s - velocity considered as stopped
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
 POSITION_TOLERANCE = 0.10  # meters - position precision tolerance
-
-
