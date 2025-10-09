@@ -17,7 +17,7 @@ PACKAGE_PROPORTION_ALIGN = 1  # How many times the smaller side fits into the la
 SEARCH_TIMEOUT = 30  # seconds
 CENTER_TIMEOUT = 30  # seconds
 ALIGN_TIMEOUT = 30  # seconds
-REACQUIRE_TIMEOUT = 30  # seconds
+REACQUIRE_TIMEOUT = 10  # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = -1
