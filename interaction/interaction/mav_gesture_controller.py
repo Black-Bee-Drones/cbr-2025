@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from std_msgs.msg import Int16
 from time import time, sleep
 from mirela_sdk.control.mavros.mavros_api import MavDrone
@@ -47,16 +48,16 @@ class GestureController(Node):
 
         self.single_actions: dict[int, tuple[str, callable]] = {
             1: ("Pousar", lambda: self.land_action()),
-            15: ("Decolar", lambda: self.arm_takeoff_action()),
+            15: ("Decolar", lambda: self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)),
         }
         
-    def arm_takeoff_action(self) -> None:
-        """
-        Arma o drone e decola para a altura especificada nas constantes.
-        Após decolar, aguarda um tempo também definido nas constantes.
-        """
-        self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
-        sleep(SLEEP_AFTER_TAKEOFF)
+    # def arm_takeoff_action(self) -> None:
+    #     """
+    #     Arma o drone e decola para a altura especificada nas constantes.
+    #     Após decolar, aguarda um tempo também definido nas constantes.
+    #     """
+    #     self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
+    #     sleep(SLEEP_AFTER_TAKEOFF)
 
     def land_action(self):
 
@@ -64,7 +65,7 @@ class GestureController(Node):
         self.get_logger().info(f"RTL Land Trigger published.")
 
         self.mavdrone.land()
-        self.mavdrone.delay(SLEEP_AFTER_LAND)
+        #self.mavdrone.delay(SLEEP_AFTER_LAND)
 
 
     def _moviment_callback(self, msg: Int16) -> None:
@@ -73,29 +74,42 @@ class GestureController(Node):
         """
         self.previous_action = self.current_action
         self.current_action = msg.data
+        
+        # Debug: mostrar todas as mensagens recebidas
+        self.get_logger().info(f"Recebido ID: {self.current_action}")
 
         if self.previous_action != self.current_action:
             self.action_start_time = time()
             self.command_sent = False
+            self.get_logger().info(f"Nova ação detectada: {self.current_action}, aguardando timeout...")
             return
 
-        if time() - self.action_start_time >= ACTION_TIMEOUT:
+        time_elapsed = time() - self.action_start_time
+        self.get_logger().info(f"Tempo decorrido: {time_elapsed:.2f}s, timeout: {ACTION_TIMEOUT}s")
+        
+        if time_elapsed >= ACTION_TIMEOUT:
             if self.current_action in self.continuous_actions:
                 action_name, action_func = self.continuous_actions[self.current_action]
-                self.get_logger().info(f"Ação Contínua: {action_name}")
+                self.get_logger().info(f"Executando Ação Contínua: {action_name}")
                 action_func()
             
             elif self.current_action in self.single_actions and not self.command_sent:
                 action_name, action_func = self.single_actions[self.current_action]
-                self.get_logger().info(f"Ação Única: {action_name}")
-                action_func()
-                self.command_sent = True
+                self.get_logger().info(f"Executando Ação Única: {action_name}")
+                try:
+                    action_func()
+                    self.command_sent = True
+                    self.get_logger().info(f"Ação {action_name} executada com sucesso!")
+                except Exception as e:
+                    self.get_logger().error(f"Erro ao executar {action_name}: {e}")
 
 def main(args=None):
     rclpy.init(args=args)
     controller = GestureController()
+    executor = MultiThreadedExecutor(num_threads=2)
+    executor.add_node(controller)
     try:
-        rclpy.spin(controller)
+        executor.spin()
     except KeyboardInterrupt:
         controller.get_logger().info("Interrupção de teclado recebida. Pousando o drone...")
         controller.mavdrone.land()

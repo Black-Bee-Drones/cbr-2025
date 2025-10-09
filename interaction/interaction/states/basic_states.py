@@ -67,9 +67,9 @@ class Takeoff(State):
 
             start_time = time.time()
             while time.time() - start_time < TAKEOFF_TIMEOUT:
-                rclpy.spin_once(self.node, timeout_sec=0.1)
+                rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
 
-                current_alt = mavdrone.get_rng_alt.data
+                current_alt = mavdrone.get_height
                 yasmin.YASMIN_LOG_INFO(f"Current altitude: {current_alt:.2f}m")
 
                 altitude_error = TAKEOFF_HEIGHT - current_alt
@@ -111,7 +111,7 @@ class FindHuman(State):
         try:
             yasmin.YASMIN_LOG_INFO("Navigating towards human position...")
             mavdrone.offboard_position(
-                x=5.0,
+                x=4.5,
                 y=0.0,
                 z=TAKEOFF_HEIGHT,
                 ground_reference=True,
@@ -122,7 +122,7 @@ class FindHuman(State):
             yasmin.YASMIN_LOG_INFO("First waypoint reached, moving to second waypoint...")
             
             mavdrone.offboard_position(
-                x=0.0,
+                x=4.5,
                 y=-3.5,
                 z=TAKEOFF_HEIGHT,
                 ground_reference=True,
