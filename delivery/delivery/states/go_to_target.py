@@ -34,7 +34,6 @@ class GoToTarget(State):
             raise TypeError("Parameter desired_class should be 'base' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
-        return SUCCEED
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
             yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT

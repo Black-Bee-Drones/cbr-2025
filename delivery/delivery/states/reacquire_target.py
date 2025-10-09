@@ -11,6 +11,7 @@ from delivery.constants import (
     TARGET_UP_ALTITUDE,
     TARGET_DOWN_ALTITUDE,
     POSITION_CONTROLLER_TOLERANCE_Z,
+    SEARCH_TIMEOUT,
 )
 
 
@@ -57,10 +58,29 @@ class ReacquireTarget(State):
         yasmin.YASMIN_LOG_INFO("Starting vertical correction.")
 
         try:
+            if self._direction == 'up':
+                deliver_positions = blackboard["deliver_positions"]
+                deliver_id = blackboard["next_package"]
+                deliver_target = deliver_positions[deliver_id]
+
+                yasmin.YASMIN_LOG_INFO("Returning to target position...")
+                mavdrone.offboard_position(
+                    x = deliver_target["x"],
+                    y = deliver_target["y"],
+                    z = current_alt,
+                    timeout_sec = SEARCH_TIMEOUT,
+                    ground_reference=True,
+                )
+
+                target_altitude = TARGET_UP_ALTITUDE
+
+            elif self._direction == 'down': 
+                target_altitude = TARGET_DOWN_ALTITUDE
+
             mavdrone.offboard_position(
                 x=0.0,
                 y=0.0,
-                z=TARGET_UP_ALTITUDE if self._direction=='up' else TARGET_DOWN_ALTITUDE,
+                z=target_altitude,
                 timeout_sec=REACQUIRE_TIMEOUT,
                 precision_radius=POSITION_CONTROLLER_TOLERANCE_Z,
             )
