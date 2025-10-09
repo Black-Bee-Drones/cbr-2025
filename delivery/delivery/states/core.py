@@ -38,7 +38,6 @@ class Initialize(State):
             blackboard["next_package"] = STARTING_PACKAGE_IDX
             blackboard["packages_positions"] = PACKAGE_POSITIONS
             blackboard["deliver_positions"] = DELIVER_POSITIONS
-            blackboard["visited_bases"] = []  # I guess it's deprecated
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_ERROR("Package positions not declared.")
@@ -67,14 +66,6 @@ class Initialize(State):
             height, width, _ = frame.shape
             camera_pixels_per_degree = (width / CAMERA_FOV_HORIZONTAL + height / CAMERA_FOV_VERTICAL) / 2
 
-            yasmin.YASMIN_LOG_INFO("Initializing ImageCalculus...")
-            blackboard["image_calculus"] = ImageCalculus()
-            #blackboard["image_calculus"].update_camera_offset(**IMAGE_CALCULUS_OFFSET_X)
-            blackboard["image_calculus"].update_pixels_per_degree(pixels_per_degree=camera_pixels_per_degree)
-            blackboard["image_calculus"].update_camera_resolution(
-                width=width,
-                height=height,
-            )
 
             yasmin.YASMIN_LOG_INFO("Initializing YoloDetector and run first detection...")
             blackboard["yolo_detector"] = YoloDetector()

@@ -90,10 +90,6 @@ class CenterOnDetection(State):
             else:
                 detections_lost = 0
 
-                # error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
-                #     altura = mavdrone.get_height,
-                #     target_pixel = detection[self._desired_class]["center"],
-                # )
                 center = detection[self._desired_class]["center"]
 
                 error_x = center[0] - IMAGE_CENTER_X
