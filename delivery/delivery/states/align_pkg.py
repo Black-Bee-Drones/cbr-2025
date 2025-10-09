@@ -73,13 +73,11 @@ class AlignPkg(State):
 
                 package_proportion = side_y/side_x
 
-                if package_proportion >= PACKAGE_PROPORTION_ALIGN:
+                if package_proportion > PACKAGE_PROPORTION_ALIGN:
                     yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
                     return SUCCEED
 
                 vel_yaw = POSITION_CONTROLLER_KP_YAW
-
-                vel_yaw = max(-POSITION_CONTROLLER_MAX_VELOCITY_YAW, min(POSITION_CONTROLLER_MAX_VELOCITY_YAW, vel_yaw))
 
                 yasmin.YASMIN_LOG_INFO(f"Adjusting position: proportion={package_proportion:.2f}, angular_z={vel_yaw:.2f}")
                 mavdrone.offboard_velocity(

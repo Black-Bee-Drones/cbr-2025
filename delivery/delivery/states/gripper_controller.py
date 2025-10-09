@@ -52,7 +52,7 @@ class GripperController(State):
                 aux_out=SERVO_PIN_OUT,
                 pwm_value=pwm_value,
             )
-            time.sleep(3)
+            time.sleep(6)
             yasmin.YASMIN_LOG_INFO("GripperController executed.")
         except:
             yasmin.YASMIN_LOG_INFO('Failed to control gripper')

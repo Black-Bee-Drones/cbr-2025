@@ -20,7 +20,7 @@ from delivery.constants import (
     PACKAGE_POSITIONS,
     DELIVER_POSITIONS,
     IMAGE_SOURCE,
-    IMAGE_CALCULUS_OFFSET_X,
+    IMAGE_CALCULUS_OFFSET_Y,
     CAMERA_FOV_HORIZONTAL,
     CAMERA_FOV_VERTICAL,
 )
@@ -69,7 +69,7 @@ class Initialize(State):
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageCalculus...")
             blackboard["image_calculus"] = ImageCalculus()
-            blackboard["image_calculus"].update_camera_offset(**IMAGE_CALCULUS_OFFSET_X)
+            #blackboard["image_calculus"].update_camera_offset(**IMAGE_CALCULUS_OFFSET_X)
             blackboard["image_calculus"].update_pixels_per_degree(pixels_per_degree=camera_pixels_per_degree)
             blackboard["image_calculus"].update_camera_resolution(
                 width=width,
@@ -139,6 +139,7 @@ class Land(State):
                     rtl_strategy="PID",
                     land=True
                 )
+                time.sleep(5)
                 yasmin.YASMIN_LOG_INFO("Return to launch initiated.")
                 return SUCCEED
 
@@ -148,7 +149,7 @@ class Land(State):
 
         try:
             mavdrone.land()
-            time.sleep(5)  # wait for landing to complete
+            time.sleep(12) 
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
             return SUCCEED
 

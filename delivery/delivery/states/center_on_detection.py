@@ -13,8 +13,12 @@ from delivery.constants import (
     POSITION_CONTROLLER_KP_XY,
     POSITION_CONTROLLER_TOLERANCE_XY,
     POSITION_CONTROLLER_MAX_VELOCITY_XY,
+    POSITION_CONTROLLER_MIN_VELOCITY_XY,
     CENTER_TIMEOUT,
     DETECTIONS_LOST_TOLERANCE,
+    IMAGE_CENTER_X,
+    IMAGE_CENTER_Y,
+    IMAGE_CALCULUS_OFFSET_Y
 )
 
 
@@ -86,22 +90,27 @@ class CenterOnDetection(State):
             else:
                 detections_lost = 0
 
-                error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
-                    altura = mavdrone.get_height,
-                    target_pixel = detection[self._desired_class]["center"],
-                )
+                # error_x, error_y, error_z = image_calculus.calculate_vector_from_drone_to_ground(
+                #     altura = mavdrone.get_height,
+                #     target_pixel = detection[self._desired_class]["center"],
+                # )
+                center = detection[self._desired_class]["center"]
 
-                if (error_x**2 + error_y**2) <= (POSITION_CONTROLLER_TOLERANCE_XY**2):
+                error_x = center[0] - IMAGE_CENTER_X
+                error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
+
+                if (abs(error_x) <= POSITION_CONTROLLER_TOLERANCE_XY) and (abs(error_y) <= POSITION_CONTROLLER_TOLERANCE_XY):
                     yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                     return SUCCEED
 
-                vel_x = - error_x * POSITION_CONTROLLER_KP_XY
-                vel_y = - error_y * POSITION_CONTROLLER_KP_XY
+                vel_x = error_y * POSITION_CONTROLLER_KP_XY
+                vel_y = error_x * POSITION_CONTROLLER_KP_XY
 
-                vel_x = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_x))
-                vel_y = max(-POSITION_CONTROLLER_MAX_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, vel_y))
+                vel_x = self.saturate_abs(vel_x)
+                vel_y = self.saturate_abs(vel_y)
 
                 yasmin.YASMIN_LOG_INFO(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}")
+                print(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}")
                 mavdrone.offboard_velocity(
                     linear_x = vel_x,
                     linear_y = vel_y,
@@ -110,3 +119,7 @@ class CenterOnDetection(State):
                 )
         yasmin.YASMIN_LOG_ERROR("CenterOnDetection timeout.")
         return FAIL
+
+    def saturate_abs(self, value):
+        if value == 0: return 0.0
+        return max(POSITION_CONTROLLER_MIN_VELOCITY_XY, min(POSITION_CONTROLLER_MAX_VELOCITY_XY, abs(value))) * (1 if value > 0 else -1)

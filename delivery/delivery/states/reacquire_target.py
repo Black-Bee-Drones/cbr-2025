@@ -41,6 +41,8 @@ class ReacquireTarget(State):
         if self._desired_class not in ("cross", "package"):
             raise TypeError("Parameter desired_class should be 'cross' or 'package'.")
 
+        yasmin.YASMIN_LOG_INFO(f"Using desired class: {self._desired_class}")
+
     def execute(self, blackboard : Blackboard):
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
             yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
@@ -73,7 +75,7 @@ class ReacquireTarget(State):
             mavdrone.offboard_position(
                 x=target_position["x"],
                 y=target_position["y"],
-                z=0.0,
+                z=current_alt,
                 timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True,
             )
@@ -93,13 +95,18 @@ class ReacquireTarget(State):
                 desired_class = [self._desired_class],
             )
             
-            if self._desired_class not in detection.keys():
+            if self._desired_class in detection.keys():
                 succeeded_detections += 1
             else:
                 succeeded_detections = 0
+            
+            yasmin.YASMIN_LOG_INFO(f"Succeed detections: {succeeded_detections}")
 
             if succeeded_detections >= 2:
+                yasmin.YASMIN_LOG_INFO(f"Succeed detections count reached: {succeeded_detections}")
                 return SUCCEED
+        
+        yasmin.YASMIN_LOG_WARN(f"Timeut for reacquire detections")
         
         if current_alt >= MAX_ALTITUDE or (current_alt + TARGET_UP_ALTITUDE) >= MAX_ALTITUDE:
             yasmin.YASMIN_LOG_INFO("Altitude exceeds maximum allowed limit.")

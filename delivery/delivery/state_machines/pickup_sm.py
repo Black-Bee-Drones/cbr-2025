@@ -50,8 +50,17 @@ class PickupSM(StateMachine):
             "ALIGN_PKG",
             AlignPkg(),
             transitions={
-                SUCCEED : "DESCEND",
+                SUCCEED : "CENTER_2",
                 FAIL    : "REACQUIRE_PACKAGE",
+                ABORT   : ABORT,
+            },
+        )
+        self.add_state(
+            "CENTER_2",
+            CenterOnDetection(desired_class='package'),
+            transitions={
+                SUCCEED : "DESCEND",
+                FAIL    : "REACQUIRE_PACKAGE",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
         )
