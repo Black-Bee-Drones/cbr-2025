@@ -1,9 +1,11 @@
+import time, os
 import rclpy
 from rclpy.node import Node
 import cv2
 from delivery.utils import YoloDetector
 from std_msgs.msg import Float32MultiArray
 from delivery.constants import IMAGE_SOURCE  # pode ser um número da webcam ou caminho do vídeo
+from mirela_sdk.image_processing.camera import ImageHandler
 
 
 class CamTest(Node):
@@ -15,20 +17,25 @@ class CamTest(Node):
         self.get_logger().info("Initializing CamTest Node")
 
         # Inicializa o detector YOLO
-        self.detector = YoloDetector()
+        # self.detector = YoloDetector()
 
+        os.makedirs("detections", exist_ok=True)
         # Abre a câmera
         # IMAGE_SOURCE pode ser um índice (0,1..) ou path para vídeo/arquivo
-        self.cap = cv2.VideoCapture(0)
-        if not self.cap.isOpened():
-            self.get_logger().error(f"Failed to open camera or video: {IMAGE_SOURCE}")
-            raise RuntimeError("Camera not available")
+        image = ImageHandler(
+            self,
+            image_source=IMAGE_SOURCE,
+            image_processing_callback=self.process_frame,
+            poll_interval=0.4,
+        )
+        image.run()
 
-        self.timer_period = 0.5
-        self.timer = self.create_timer(self.timer_period, self.process_frame)
 
-    def process_frame(self):
-        ret, frame = self.cap.read()
+    def process_frame(self, frame):
+        now = time.time_ns()
+        cv2.imwrite(f'detections/frame_{now}.png', frame)
+        return
+
         if not ret or frame is None or frame.size == 0:
             self.get_logger().warn("Empty frame received")
             return
