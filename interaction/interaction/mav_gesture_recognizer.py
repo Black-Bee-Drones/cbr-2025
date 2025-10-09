@@ -1,4 +1,5 @@
 import rclpy
+import cv2
 from rclpy.node import Node
 from std_msgs.msg import Int16
 import numpy as np
@@ -48,6 +49,8 @@ class GestureRecognizer(Node):
 
         self.left_indice: int = 0
         self.right_indice: int = 0
+        self.processing_width = 640
+        self.processing_height = 480
         self.msg = Int16()
 
         self.acao_pub = self.create_publisher(Int16, "/drone/hands_action", 10)
@@ -62,7 +65,7 @@ class GestureRecognizer(Node):
             node=self,
             image_source="imx219",
             image_processing_callback=self.process,
-            config=IMX219Config(sensor_id=0, width=1640, height=1232)
+            config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2)
         )
         time.sleep(1.0)  # Aguarda a inicialização da câmera.
         self.get_logger().info("Câmera inicializada.")
@@ -90,7 +93,10 @@ class GestureRecognizer(Node):
             self.get_logger().info(f"Processing FPS: {fps:.2f}", throttle_duration_sec=1.0)
         self.frame_time = self.get_clock().now()
 
-        hands, img = self.detector.findHands(img)
+        # Resize para melhor performance
+        resized_img = cv2.resize(img, (self.processing_width, self.processing_height))
+
+        hands, img = self.detector.findHands(resized_img)
 
         if not hands or len(hands) != 2:
             return

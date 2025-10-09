@@ -24,7 +24,7 @@ class GestureController(Node):
     def __init__(self) -> None:
         super().__init__("gesture_controller")
 
-        self.mavdrone = MavDrone(node=self, mavros=False)
+        self.mavdrone = MavDrone(node=self, mavros=False, indoor=True)
         self.create_subscription(Int16, "/drone/hands_action", self._moviment_callback, 10)
 
         self.current_action: int = -1
