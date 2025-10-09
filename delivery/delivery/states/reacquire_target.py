@@ -108,8 +108,6 @@ class ReacquireTarget(State):
         yasmin.YASMIN_LOG_INFO("Starting vertical correction.")
 
         try:
-            TARGET_UP_ALTITUDE
-
             mavdrone.offboard_position(
                 x=0.0,
                 y=0.0,
