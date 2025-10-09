@@ -7,13 +7,10 @@ from yasmin_ros.basic_outcomes import SUCCEED, FAIL, ABORT
 from delivery.constants import (
     REACQUIRE_TIMEOUT,
     MAX_ALTITUDE,
-    MIN_CENTERING_ALTITUDE,
     TARGET_UP_ALTITUDE,
-    TARGET_DOWN_ALTITUDE,
     POSITION_CONTROLLER_TOLERANCE_Z,
     SEARCH_TIMEOUT,
     SEARCH_TIMEOUT,
-    DETECTIONS_LOST_TOLERANCE
 )
 
 from delivery.utils import YoloDetector
@@ -42,7 +39,7 @@ class ReacquireTarget(State):
 
         self._desired_class = desired_class.lower()
         if self._desired_class not in ("cross", "package"):
-            raise TypeError("Parameter direction should be 'cross' or 'package'.")
+            raise TypeError("Parameter desired_class should be 'cross' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
@@ -111,24 +108,7 @@ class ReacquireTarget(State):
         yasmin.YASMIN_LOG_INFO("Starting vertical correction.")
 
         try:
-            if self._direction == 'up':
-                deliver_positions = blackboard["deliver_positions"]
-                deliver_id = blackboard["next_package"]
-                deliver_target = deliver_positions[deliver_id]
-
-                yasmin.YASMIN_LOG_INFO("Returning to target position...")
-                mavdrone.offboard_position(
-                    x = deliver_target["x"],
-                    y = deliver_target["y"],
-                    z = current_alt,
-                    timeout_sec = SEARCH_TIMEOUT,
-                    ground_reference=True,
-                )
-
-                target_altitude = TARGET_UP_ALTITUDE
-
-            elif self._direction == 'down': 
-                target_altitude = TARGET_DOWN_ALTITUDE
+            TARGET_UP_ALTITUDE
 
             mavdrone.offboard_position(
                 x=0.0,
