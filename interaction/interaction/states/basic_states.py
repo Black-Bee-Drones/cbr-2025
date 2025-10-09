@@ -111,14 +111,25 @@ class FindHuman(State):
         try:
             yasmin.YASMIN_LOG_INFO("Navigating towards human position...")
             mavdrone.offboard_position(
-                x=3.0,
-                y=-4.0,
-                z=0.0,
+                x=5.0,
+                y=0.0,
+                z=TAKEOFF_HEIGHT,
                 ground_reference=True,
                 precision_radius=0.15,
                 timeout_sec=30,
                 strategy="default"
                 )
+            yasmin.YASMIN_LOG_INFO("First waypoint reached, moving to second waypoint...")
+            
+            mavdrone.offboard_position(
+                x=0.0,
+                y=-3.5,
+                z=TAKEOFF_HEIGHT,
+                ground_reference=True,
+                precision_radius=0.15,
+                timeout_sec=30, strategy="default"
+            )
+            yasmin.YASMIN_LOG_INFO("Second waypoint reached, moving to next state...")
             return SUCCEED
 
         except Exception as e:
