@@ -12,8 +12,14 @@ from delivery.constants import (
     TARGET_DOWN_ALTITUDE,
     POSITION_CONTROLLER_TOLERANCE_Z,
     SEARCH_TIMEOUT,
+    SEARCH_TIMEOUT,
+    DETECTIONS_LOST_TOLERANCE
 )
 
+from delivery.utils import YoloDetector
+from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+
+import time
 
 class ReacquireTarget(State):
     """
@@ -24,19 +30,19 @@ class ReacquireTarget(State):
         - FAIL: Target altitude not reached within allowed time.
         - ABORT: Required components (e.g., `mavdrone`) not available.
     """
-    def __init__(self, direction: str):
+    def __init__(self,  desired_class: str):
         """
         Args:
-            direction (str): "up" or "down".
+            desired_class (str): "cross" or "package".
 
         Raises:
-            TypeError: If `direction` is not "up" or "down".
+            TypeError: If `desired_class` is not "cross" or "package".
         """
         super().__init__(outcomes=[SUCCEED, FAIL, ABORT])
 
-        self._direction = direction.lower()
-        if self._direction not in ("up", "down"):
-            raise TypeError("Parameter direction should be 'up' or 'down'.")
+        self._desired_class = desired_class.lower()
+        if self._desired_class not in ("cross", "package"):
+            raise TypeError("Parameter direction should be 'cross' or 'package'.")
 
     def execute(self, blackboard : Blackboard):
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
@@ -44,16 +50,63 @@ class ReacquireTarget(State):
             return ABORT
         mavdrone: MavDrone = blackboard["mavdrone"]
 
-        current_alt = mavdrone.get_height
+        if ("yolo_detector" not in blackboard) or not blackboard["yolo_detector"]:
+            yasmin.YASMIN_LOG_ERROR(f"yolo_detector not available in {self.__class__.__name__} state.")
+            return ABORT
+        yolo_detector: YoloDetector = blackboard["yolo_detector"]
 
-        if self._direction == 'up':
-            if current_alt >= MAX_ALTITUDE or (current_alt + TARGET_UP_ALTITUDE) >= MAX_ALTITUDE:
-                yasmin.YASMIN_LOG_INFO("Altitude exceeds maximum allowed limit.")
-                return FAIL
-        elif self._direction == 'down':
-            if current_alt <= MIN_CENTERING_ALTITUDE or (current_alt + TARGET_DOWN_ALTITUDE) <= MIN_CENTERING_ALTITUDE:
-                yasmin.YASMIN_LOG_INFO("Altitude exceeds minimum allowed limit.")
-                return FAIL
+
+        if ("image_handler" not in blackboard) or not blackboard["image_handler"]:
+            yasmin.YASMIN_LOG_ERROR(f"image_handler not available in {self.__class__.__name__} state.")
+            return ABORT
+        image_handler: ImageHandler = blackboard["image_handler"]
+
+
+        current_alt = mavdrone.get_height
+        
+        package_id = blackboard["next_package"]
+
+        if self._desired_class == "cross":
+            all_positions = blackboard["deliver_positions"]
+        else:
+            all_positions = blackboard["packages_positions"]
+        target_position = all_positions[package_id]
+
+        try:
+            mavdrone.offboard_position(
+                x=target_position["x"],
+                y=target_position["y"],
+                z=0.0,
+                timeout_sec=SEARCH_TIMEOUT,
+                ground_reference=True,
+            )
+            yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Navigation failed: {e}")
+            return ABORT
+        
+        succeeded_detections = 0
+
+        start = time.time()
+        while (time.time() - start) < REACQUIRE_TIMEOUT:
+            frame = image_handler.take_photo()
+
+            detection = yolo_detector.detect(
+                frame = frame,
+                desired_class = [self._desired_class],
+            )
+            
+            if self._desired_class not in detection.keys():
+                succeeded_detections += 1
+            else:
+                succeeded_detections = 0
+
+            if succeeded_detections >= 2:
+                return SUCCEED
+        
+        if current_alt >= MAX_ALTITUDE or (current_alt + TARGET_UP_ALTITUDE) >= MAX_ALTITUDE:
+            yasmin.YASMIN_LOG_INFO("Altitude exceeds maximum allowed limit.")
+            return FAIL
 
         yasmin.YASMIN_LOG_INFO("Starting vertical correction.")
 
@@ -80,7 +133,7 @@ class ReacquireTarget(State):
             mavdrone.offboard_position(
                 x=0.0,
                 y=0.0,
-                z=target_altitude,
+                z=TARGET_UP_ALTITUDE,
                 timeout_sec=REACQUIRE_TIMEOUT,
                 precision_radius=POSITION_CONTROLLER_TOLERANCE_Z,
             )

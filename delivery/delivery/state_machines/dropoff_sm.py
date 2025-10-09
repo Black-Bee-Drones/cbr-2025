@@ -10,6 +10,7 @@ from delivery.states import (
     GoToTarget,
     ReacquireTarget,
     GripperController,
+    HeightController
 )
 
 
@@ -30,13 +31,13 @@ class DropoffSM(StateMachine):
             CenterOnDetection(desired_class='cross'),
             transitions={
                 SUCCEED : "DESCEND",
-                FAIL    : "ASCEND",  # Target not detected for too long.
+                FAIL    : "REACQUIRE_CROSS",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "ASCEND",
-            ReacquireTarget(direction="up"),
+            "REACQUIRE_CROSS",
+            ReacquireTarget(desired_class='cross'),
             transitions={
                 SUCCEED        : "CENTER",
                 FAIL           : "GO_TO_NEXT_CROSS",
@@ -45,7 +46,7 @@ class DropoffSM(StateMachine):
         )
         self.add_state (
             "DESCEND",
-            ReacquireTarget(direction="down"),
+            HeightController(direction="down"),
             transitions={
                 SUCCEED        : "CENTER",
                 FAIL           : "LAND",

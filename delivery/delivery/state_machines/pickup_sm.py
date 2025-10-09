@@ -12,6 +12,7 @@ from delivery.states import (
     GripperController,
     AlignPkg,
     CheckPkg,
+    HeightController
 )
 
 
@@ -32,13 +33,13 @@ class PickupSM(StateMachine):
             CenterOnDetection(desired_class='package'),
             transitions={
                 SUCCEED : "ALIGN_PKG",
-                FAIL    : "ASCEND",  # Target not detected for too long.
+                FAIL    : "REACQUIRE_PACKAGE",  # Target not detected for too long.
                 ABORT   : ABORT,
             },
         )
         self.add_state(
-            "ASCEND",
-            ReacquireTarget(direction="up"),
+            "REACQUIRE_PACKAGE",
+            ReacquireTarget(desired_class='package'),
             transitions={
                 SUCCEED : "CENTER",
                 FAIL    : "GO_TO_NEXT_PACKAGE",
@@ -50,13 +51,13 @@ class PickupSM(StateMachine):
             AlignPkg(),
             transitions={
                 SUCCEED : "DESCEND",
-                FAIL    : "ASCEND",
+                FAIL    : "REACQUIRE_PACKAGE",
                 ABORT   : ABORT,
             },
         )
         self.add_state(
             "DESCEND",
-            ReacquireTarget(direction="down"),
+            HeightController(direction="down"),
             transitions={
                 SUCCEED : "CENTER",
                 FAIL    : "OPEN_GRIPPER",
