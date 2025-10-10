@@ -9,15 +9,15 @@ SEARCH_AREA_HEIGHT = 4.5
 
 # Flight parameters
 TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitud
-CENTERING_ALTITUDE = 1.0  # meters - altitude above figure for landing
+CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 1.25m
 GRID_SPACING = 1.25
-CENTERING_VEL_MAX = 0.2
-CENTERING_VEL_MIN = 0.05
+CENTERING_VEL_MAX = 0.21
+CENTERING_VEL_MIN = 0.06
 
 # Grid pattern configuration
 GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
@@ -25,7 +25,7 @@ GRID_PRIMARY_DIRECTION = "FORWARD"  # Primary movement direction
 GRID_TRANSITION_DIRECTION = "RIGHT"  # Transition between columns/rows
 GRID_START_OFFSET = (
     0.75,
-    0.5,
+    -0.5,
 )  # (forward 0.75m, right 0.5m)
 
 # Duplicate detection
@@ -39,7 +39,7 @@ TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 YOLO_MODEL_PATH = os.path.join(
     get_package_share_directory("mapping"), "models", "best.engine"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.85
+YOLO_CONFIDENCE_THRESHOLD = 0.65
 YOLO_IMAGE_SIZE = 640
 DETECTION_SAVE_PATH = os.path.join(
     get_package_prefix("mapping").replace("install", "src"), "detections"
@@ -50,6 +50,7 @@ CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
 CENTERING_TOLERANCE_PX = 200  # pixel tolerance for considering centered
 CENTERING_TIMEOUT = 30  # seconds - max time for centering operation
 LAND_WAIT_TIME = 5  # seconds - wait time after landing before takeoff
+DESCEND_KP = 0.16
 
 # Camera parameters
 CAMERA_SOURCE = "imx219"
