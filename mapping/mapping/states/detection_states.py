@@ -23,6 +23,8 @@ from mapping.constants import (
     LAND_WAIT_TIME,
     CAMERA_SOURCE,
     CENTER_DETECTION_THRESHOLD,
+    ALTITUDE_TOLERANCE,
+    DESCEND_KP
 )
 
 
@@ -110,10 +112,13 @@ class CenterOnDetection(State):
 
             if not detection:
                 lost_detections += 1
-                if lost_detections > 10:
+                if lost_detections > 100:
+                    self.image_handler.close()
                     yasmin.YASMIN_LOG_ERROR("Lost detection too many times in Phase 1")
                     break
                 continue
+
+            lost_detections = 0
 
             error_x, error_y = self.yolo_detector.calculate_centering_error(detection)
 
@@ -153,11 +158,12 @@ class CenterOnDetection(State):
             rclpy.spin_once(self.node, timeout_sec=0.01)
 
             current_lidar = self.mavdrone.get_rng_alt.range
+            error_z = current_lidar - CENTERING_ALTITUDE
 
             if current_lidar < CENTERING_ALTITUDE + 0.40:
                 phase2_threshold = 50
 
-            if current_lidar < CENTERING_ALTITUDE + 0.2:
+            if error_z < ALTITUDE_TOLERANCE:
                 yasmin.YASMIN_LOG_INFO("Phase 2: Landing altitude reached")
                 self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
                 time.sleep(1)
@@ -182,14 +188,19 @@ class CenterOnDetection(State):
                 vel_y = (
                     self.saturate_abs(vel_y) if abs(error_x) > phase2_threshold else 0.0
                 )
+            
+            vel_z = (-DESCEND_KP * error_z)
+            vel_z = max(0.05, min(0.3, abs(vel_z))) * (
+                1 if vel_z > 0 else -1
+            )
 
-            vel_z = -0.1
+            yasmin.YASMIN_LOG_INFO(f"Current Lidar: {current_lidar}; Value: {-DESCEND_KP * error_z}")
             self.mavdrone.offboard_velocity(
                 vel_x, vel_y, vel_z, 0.0, ground_reference=False
             )
 
             yasmin.YASMIN_LOG_INFO(
-                f"Phase 2: alt={current_lidar:.2f}m, error=({error_x},{error_y}) vel=({vel_x:.2f},{vel_y:.2f},{vel_z:.2f})m/s"
+                f"Phase 2: alt={current_lidar:.2f}m, error=({error_x},{error_y},{error_z}) vel=({vel_x:.2f},{vel_y:.2f},{vel_z:.2f})m/s"
             )
 
         self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
@@ -225,6 +236,8 @@ class LandAndWait(State):
             visited_bases = blackboard["visited_bases"]
             visited_bases.append(landing_position)
             blackboard["visited_bases"] = visited_bases
+
+            yasmin.YASMIN_LOG_INFO(f"Base {len(visited_bases)} in {landing_position}")
 
             yasmin.YASMIN_LOG_INFO(
                 f"- Landed successfully! Waiting {LAND_WAIT_TIME} seconds..."
