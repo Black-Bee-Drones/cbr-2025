@@ -110,7 +110,7 @@ class PickupSM(StateMachine):
             CheckPkg(),
             transitions={
                 SUCCEED : SUCCEED,
-                FAIL    : "CENTER",
+                FAIL    : "GO_TO_NEXT_PACKAGE",
                 CANCEL  : "GO_TO_NEXT_PACKAGE",
                 ABORT   : ABORT,
             },
