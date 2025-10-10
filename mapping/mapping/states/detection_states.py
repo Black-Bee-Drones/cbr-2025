@@ -128,11 +128,12 @@ class CenterOnDetection(State):
         for detection in all_detections:
             det_x, det_y = detection["center"]
             distance = math.sqrt((det_x - target_x) ** 2 + (det_y - target_y) ** 2)
+            print(f"d: {distance}")
 
-            if distance < min_distance and distance < max_distance:
+            if distance < min_distance:
                 min_distance = distance
                 best_match = detection
-
+        
         if best_match:
             yasmin.YASMIN_LOG_DEBUG(
                 f"Matched target detection (dist={min_distance:.0f}px from original)"
@@ -156,6 +157,7 @@ class CenterOnDetection(State):
 
             # Match to our specific target from CaptureAndDetect
             detection = self._find_target_detection(all_detections)
+            print(detection)
 
             if not detection:
                 lost_detections += 1
@@ -282,7 +284,7 @@ class LandAndWait(State):
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
 
             # Use the world position from detection if available, otherwise use drone position
-            current_detection = blackboard.get("current_detection", None)
+            current_detection = blackboard["current_detection"]
             if current_detection and "world_position" in current_detection:
                 world_x, world_y = current_detection["world_position"]
                 landing_position = {

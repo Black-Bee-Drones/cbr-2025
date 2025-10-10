@@ -4,8 +4,8 @@ import os
 # Arena dimensions
 ARENA_WIDTH = 8.0
 ARENA_HEIGHT = 8.0
-SEARCH_AREA_WIDTH = 4.5
-SEARCH_AREA_HEIGHT = 4.5
+SEARCH_AREA_WIDTH = 5.0
+SEARCH_AREA_HEIGHT = 5.0
 
 # Flight parameters
 TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitud
@@ -15,7 +15,7 @@ CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 1.25m
-GRID_SPACING = 1.25
+GRID_SPACING = 1.666
 CENTERING_VEL_MAX = 0.21
 CENTERING_VEL_MIN = 0.06
 
@@ -29,10 +29,10 @@ GRID_START_OFFSET = (
 )  # (forward 0.75m, right 0.5m)
 
 # Duplicate detection
-DUPLICATE_BASE_RADIUS = 1.2  # meters - radius to consider as same base
+DUPLICATE_BASE_RADIUS = 1.35  # meters - radius to consider as same base
 
 # Timeouts
-SEARCH_TIMEOUT = 60
+SEARCH_TIMEOUT = 40
 TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
 
 # YOLO detection parameters
@@ -48,7 +48,7 @@ DETECTION_SAVE_PATH = os.path.join(
 # Centering control parameters
 CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
 CENTERING_TOLERANCE_PX = 200  # pixel tolerance for considering centered
-CENTERING_TIMEOUT = 30  # seconds - max time for centering operation
+CENTERING_TIMEOUT = 20  # seconds - max time for centering operation
 LAND_WAIT_TIME = 5  # seconds - wait time after landing before takeoff
 DESCEND_KP = 0.16
 

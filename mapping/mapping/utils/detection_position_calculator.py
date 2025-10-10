@@ -113,7 +113,7 @@ class DetectionPositionCalculator:
         drone_orientation_quaternion: Tuple[float, float, float, float],
         altitude: float,
         visited_bases: List[Dict],
-        duplicate_radius: float = 1.2,
+        duplicate_radius: float = 1.5,
     ) -> Optional[Dict]:
         """
         Filter detections to remove duplicates and select the best one.
@@ -171,6 +171,8 @@ class DetectionPositionCalculator:
                 # Calculate separate X and Y distances
                 dx = abs(world_x - visited_base["x"])
                 dy = abs(world_y - visited_base["y"])
+
+                print(f"dx={dx}, dy={dy}")
 
                 # For Euclidean distance tracking (informational)
                 distance = math.sqrt(dx**2 + dy**2)

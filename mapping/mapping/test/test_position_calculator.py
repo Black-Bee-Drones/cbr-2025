@@ -4,7 +4,7 @@ import math
 from typing import Dict
 
 from mapping.utils import DetectionPositionCalculator
-
+from constants import DUPLICATE_BASE_RADIUS
 
 def create_test_detection(pixel_x: int, pixel_y: int, confidence: float = 0.8) -> Dict:
     """Create a test detection dictionary."""
@@ -88,7 +88,7 @@ def test_multiple_detections():
         drone_orientation_quaternion=drone_orientation,
         altitude=altitude,
         visited_bases=visited_bases,
-        duplicate_radius=1.2,
+        duplicate_radius=DUPLICATE_BASE_RADIUS
     )
 
     if best:

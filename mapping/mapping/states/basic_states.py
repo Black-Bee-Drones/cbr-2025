@@ -201,10 +201,11 @@ class ReturnToLaunch(State):
             mavdrone.offboard_position(
                 x=takeoff_position[0] - current_pos.x,
                 y=takeoff_position[1] - current_pos.y,
-                z=0.0,
-                precision_radius=0.17,
+                z=mavdrone.get_height,
+                precision_radius=0.15,
                 timeout_sec=70.0,
                 strategy="PID",
+                ground_reference=True
             )
 
             # Land at takeoff position
