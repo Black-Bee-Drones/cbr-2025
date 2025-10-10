@@ -21,6 +21,7 @@ from mapping.constants import (
     GRID_TRANSITION_DIRECTION,
     GRID_START_OFFSET,
 )
+import numpy as np
 from mapping.utils import Grid, YOLODetector
 
 
@@ -64,6 +65,9 @@ class Initialize(State):
             yolo_detector = YOLODetector()
             blackboard["yolo_detector"] = yolo_detector
 
+            # Run one detect to just initialize the model
+            yolo_detector.detect(np.zeros((1, 3, 640, 640), dtype=np.float32), save_image=False)
+            
             blackboard["visited_bases"] = []
             blackboard["current_target_waypoint"] = None
             blackboard["current_detection"] = None
