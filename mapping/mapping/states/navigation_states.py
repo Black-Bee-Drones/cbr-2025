@@ -156,12 +156,16 @@ class CaptureAndDetect(State):
                 visited_bases = blackboard["visited_bases"]
 
                 is_duplicate = False
-                for base in visited_bases:
-                    distance = math.sqrt(
-                        (current_pos.x - base["x"]) ** 2
-                        + (current_pos.y - base["y"]) ** 2
-                    )
-                    if distance < DUPLICATE_BASE_RADIUS:
+                for i, base in enumerate(visited_bases):
+                    # distance = math.sqrt(
+                    #     (current_pos.x - base["x"]) ** 2
+                    #     + (current_pos.y - base["y"]) ** 2
+                    # )
+                    distance_x = abs(current_pos.x - base["x"])
+                    distance_y = abs(current_pos.y - base["y"])
+
+                    yasmin.YASMIN_LOG_INFO(f"Distance from visited {i+1} plate: x:{distance_x}, y:{distance_y}")
+                    if (distance_x < DUPLICATE_BASE_RADIUS) and (distance_y < DUPLICATE_BASE_RADIUS):
                         yasmin.YASMIN_LOG_INFO(
                             f"Detection appears to be already visited base at ({base['x']:.1f}, {base['y']:.1f})"
                         )
