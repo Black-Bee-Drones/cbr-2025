@@ -20,6 +20,7 @@ from mapping.constants import (
     DETECTION_SAVE_PATH,
     IMAGE_CENTER_X,
     IMAGE_CENTER_Y,
+    IMAGE_OFFSET_Y,
 )
 
 
@@ -56,7 +57,7 @@ class YOLODetector:
 
         if os.path.exists(self.model_path):
             try:
-                self.model = YOLO(self.model_path, task='detect', verbose=True)
+                self.model = YOLO(self.model_path, task="detect", verbose=True)
                 print(f"- YOLO model loaded: {self.model_path}")
             except Exception as e:
                 print(f"  Failed to load YOLO model: {e}")
@@ -66,7 +67,10 @@ class YOLODetector:
             print("   Using simulation mode for detection")
 
     def detect(
-        self, image: np.ndarray, save_image: bool = True, timestamp: Optional[int] = None
+        self,
+        image: np.ndarray,
+        save_image: bool = True,
+        timestamp: Optional[int] = None,
     ) -> List[Dict[str, any]]:
         """
         Detect landing bases in image.
@@ -81,7 +85,9 @@ class YOLODetector:
         """
         detections = []
 
-        current_timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
+        current_timestamp = (
+            timestamp if timestamp is not None else int(time.time() * 1000)
+        )
 
         if self.model is None or not YOLO_AVAILABLE:
             return self._simulate_detection(image, save_image, current_timestamp)
@@ -150,7 +156,7 @@ class YOLODetector:
         center_x, center_y = detection["center"]
 
         error_x = center_x - IMAGE_CENTER_X
-        error_y = center_y - IMAGE_CENTER_Y
+        error_y = center_y - (IMAGE_CENTER_Y - IMAGE_OFFSET_Y)
 
         return error_x, error_y
 
@@ -214,7 +220,7 @@ class YOLODetector:
         )
 
         filename = f"{DETECTION_SAVE_PATH}/{timestamp}/detection_{self.detection_count:04d}.jpg"
-        cv2.imwrite(filename, annotated_image)  
+        cv2.imwrite(filename, annotated_image)
         print(filename)
         self.detection_count += 1
 

@@ -11,7 +11,6 @@ from mirela_sdk.control.mavros.mavros_api import MavDrone
 
 from mapping.constants import (
     TAKEOFF_ALTITUDE,
-    SEARCH_ALTITUDE,
     TAKEOFF_TIMEOUT,
     ALTITUDE_TOLERANCE,
     SEARCH_AREA_WIDTH,
@@ -34,27 +33,20 @@ class Initialize(State):
     def execute(self, blackboard: Blackboard):
 
         try:
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), indoor=True)
+            blackboard["mavdrone"] = MavDrone(
+                node=YasminNode.get_instance(), indoor=True
+            )
             mavdrone: MavDrone = blackboard["mavdrone"]
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.5)
 
             pose = mavdrone.get_vision_pos.pose.pose.position
-            initial_position = (
-                pose.x,
-                pose.y,
-                pose.z
-            )
+            initial_position = (pose.x, pose.y, pose.z)
             blackboard["initial_position"] = initial_position
-            blackboard["takeoff_position"] = initial_position 
-            
-            blackboard["target_search_altitude"] = SEARCH_ALTITUDE
+            blackboard["takeoff_position"] = initial_position
 
             yasmin.YASMIN_LOG_INFO(
                 f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
-            )
-            yasmin.YASMIN_LOG_INFO(
-                f"Target search altitude: {SEARCH_ALTITUDE:.2f}m"
             )
 
             grid = Grid(
@@ -117,16 +109,14 @@ class Takeoff(State):
         if blackboard["takeoff_position"] is None:
             rclpy.spin_once(self.node, timeout_sec=0.1)
             pose = mavdrone.get_vision_pos.pose.pose.position
-            takeoff_position = (
-                pose.x,
-                pose.y,
-                pose.z
-            )
+            takeoff_position = (pose.x, pose.y, pose.z)
             blackboard["takeoff_position"] = takeoff_position
-            yasmin.YASMIN_LOG_INFO(f"Stored takeoff position: ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
+            yasmin.YASMIN_LOG_INFO(
+                f"Stored takeoff position: ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})"
+            )
 
         try:
-            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE-1)
+            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE - 1)
 
             mavdrone.delay(3)
 
@@ -199,22 +189,24 @@ class ReturnToLaunch(State):
             # Get current position
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
             current_pos = mavdrone.get_vision_pos.pose.pose.position
-            
-            yasmin.YASMIN_LOG_INFO(f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})")
-        
+
+            yasmin.YASMIN_LOG_INFO(
+                f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})"
+            )
+
             mavdrone.offboard_position(
                 x=takeoff_position[0] - current_pos.x,
                 y=takeoff_position[1] - current_pos.y,
-                z=0.0, 
-                precision_radius=0.3,
-                timeout_sec=60.0,
-                strategy="PID"
+                z=0.0,
+                precision_radius=0.17,
+                timeout_sec=70.0,
+                strategy="PID",
             )
 
             # Land at takeoff position
             yasmin.YASMIN_LOG_INFO("Landing at takeoff position...")
             mavdrone.land()
-            time.sleep(10) 
+            time.sleep(10)
 
             return SUCCEED
 

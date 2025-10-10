@@ -17,8 +17,9 @@ from mapping.constants import (
     SEARCH_TIMEOUT,
     CAMERA_SOURCE,
     DETECTION_SAVE_PATH,
+    DUPLICATE_BASE_RADIUS,
 )
-from mapping.utils import YOLODetector   
+from mapping.utils import YOLODetector
 
 
 class NavigateToWaypoint(State):
@@ -29,7 +30,9 @@ class NavigateToWaypoint(State):
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
-            yasmin.YASMIN_LOG_ERROR("MavDrone not available in NavigateToWaypoint state.")
+            yasmin.YASMIN_LOG_ERROR(
+                "MavDrone not available in NavigateToWaypoint state."
+            )
             return ABORT
 
         mavdrone = blackboard["mavdrone"]
@@ -69,22 +72,22 @@ class NavigateToWaypoint(State):
             current_pos = mavdrone.get_vision_pos.pose.pose.position
 
             yasmin.YASMIN_LOG_INFO(f"Current pos: {current_pos}")
-            yasmin.YASMIN_LOG_INFO(f"Target: (x: {target_waypoint['x']}, y: {target_waypoint['y']})")
-           
+            yasmin.YASMIN_LOG_INFO(
+                f"Target: (x: {target_waypoint['x']}, y: {target_waypoint['y']})"
+            )
+
             mavdrone.offboard_position(
                 x=target_waypoint["x"] - current_pos.x,
                 y=target_waypoint["y"] - current_pos.y,
                 z=0.0,
                 precision_radius=POSITION_TOLERANCE,
-                timeout_sec=None,
-                strategy="PID"
+                timeout_sec=SEARCH_TIMEOUT,
+                strategy="PID",
             )
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
 
-            # mavdrone.offboard_velocity_timer(0.25, 0.0, 0.0, 0.0, time=2)
-
-            # mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
+            mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
             time.sleep(0.5)
 
             return SUCCEED
@@ -99,8 +102,9 @@ class CaptureAndDetect(State):
 
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, "DETECTION_FOUND", ABORT])
-        self.image_handler = ImageHandler(node=YasminNode.get_instance(), image_source=CAMERA_SOURCE)
-
+        self.image_handler = ImageHandler(
+            node=YasminNode.get_instance(), image_source=CAMERA_SOURCE
+        )
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
@@ -116,7 +120,7 @@ class CaptureAndDetect(State):
         if not current_waypoint:
             yasmin.YASMIN_LOG_ERROR("Current waypoint not available.")
             return ABORT
-        
+
         try:
             self.image_handler.open()
         except Exception as e:
@@ -131,6 +135,7 @@ class CaptureAndDetect(State):
 
         try:
             frame = self.image_handler.take_photo()
+            self.image_handler.close()
 
             if frame is None:
                 yasmin.YASMIN_LOG_ERROR("Failed to capture image")
@@ -149,20 +154,20 @@ class CaptureAndDetect(State):
                 mavdrone = blackboard["mavdrone"]
                 current_pos = mavdrone.get_vision_pos.pose.pose.position
                 visited_bases = blackboard["visited_bases"]
-                
+
                 is_duplicate = False
                 for base in visited_bases:
                     distance = math.sqrt(
-                        (current_pos.x - base["x"]) ** 2 + 
-                        (current_pos.y - base["y"]) ** 2
+                        (current_pos.x - base["x"]) ** 2
+                        + (current_pos.y - base["y"]) ** 2
                     )
-                    if distance < 1.5:  # Within 1.5m is considered same base
+                    if distance < DUPLICATE_BASE_RADIUS:
                         yasmin.YASMIN_LOG_INFO(
                             f"Detection appears to be already visited base at ({base['x']:.1f}, {base['y']:.1f})"
                         )
                         is_duplicate = True
                         break
-                
+
                 if not is_duplicate:
                     blackboard["current_detection"] = detection
                     blackboard["detection_image"] = frame
@@ -172,7 +177,9 @@ class CaptureAndDetect(State):
                     )
                     return "DETECTION_FOUND"
                 else:
-                    yasmin.YASMIN_LOG_INFO("Detection is a duplicate, continuing search")
+                    yasmin.YASMIN_LOG_INFO(
+                        "Detection is a duplicate, continuing search"
+                    )
                     return SUCCEED
             else:
                 yasmin.YASMIN_LOG_INFO("No landing base detected at this waypoint")
@@ -183,5 +190,3 @@ class CaptureAndDetect(State):
             return ABORT
         finally:
             self.image_handler.close()
-
-
