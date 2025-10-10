@@ -34,7 +34,7 @@ DELIVER_POSITIONS = [
 
 # YOLO detection parameters
 YOLO_MODEL_PATH_PKG = os.path.join(
-    get_package_share_directory("delivery"), "models", "best.pt"
+    get_package_share_directory("delivery"), "models", "best1000.pt"
 )
 YOLO_MODEL_PATH_CROSS = os.path.join(
     get_package_share_directory("delivery"), "models", "yolov11nTC.pt"
