@@ -227,17 +227,39 @@ class LandAndWait(State):
             time.sleep(8)
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-            landing_position = {
-                "x": mavdrone.get_vision_pos.pose.pose.position.x,
-                "y": mavdrone.get_vision_pos.pose.pose.position.y,
-                "z": mavdrone.get_vision_pos.pose.pose.position.z,
-                "timestamp": time.time(),
-            }
+            
+            # Use the world position from detection if available, otherwise use drone position
+            current_detection = blackboard.get("current_detection", None)
+            if current_detection and "world_position" in current_detection:
+                world_x, world_y = current_detection["world_position"]
+                landing_position = {
+                    "x": world_x,
+                    "y": world_y,
+                    "z": mavdrone.get_vision_pos.pose.pose.position.z,
+                    "timestamp": time.time(),
+                }
+                yasmin.YASMIN_LOG_INFO(
+                    f"Saving base position from detection: ({world_x:.2f}, {world_y:.2f})"
+                )
+            else:
+                # Fallback to drone position
+                landing_position = {
+                    "x": mavdrone.get_vision_pos.pose.pose.position.x,
+                    "y": mavdrone.get_vision_pos.pose.pose.position.y,
+                    "z": mavdrone.get_vision_pos.pose.pose.position.z,
+                    "timestamp": time.time(),
+                }
+                yasmin.YASMIN_LOG_INFO(
+                    "No world position in detection, using drone position"
+                )
+            
             visited_bases = blackboard["visited_bases"]
             visited_bases.append(landing_position)
             blackboard["visited_bases"] = visited_bases
 
-            yasmin.YASMIN_LOG_INFO(f"Base {len(visited_bases)} in {landing_position}")
+            yasmin.YASMIN_LOG_INFO(
+                f"Base {len(visited_bases)} landed at ({landing_position['x']:.2f}, {landing_position['y']:.2f})"
+            )
 
             yasmin.YASMIN_LOG_INFO(
                 f"- Landed successfully! Waiting {LAND_WAIT_TIME} seconds..."

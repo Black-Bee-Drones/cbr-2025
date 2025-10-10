@@ -59,5 +59,12 @@ IMAGE_CENTER_Y = 616  # camera image center Y (pixels)
 IMAGE_OFFSET_Y = 189
 CENTER_DETECTION_THRESHOLD = 40
 
+# Camera calibration - Arducam IMX219
+CAMERA_RESOLUTION_WIDTH = 1640  # pixels
+CAMERA_RESOLUTION_HEIGHT = 1232  # pixels
+CAMERA_FOV_HORIZONTAL = 62.2  # degrees
+CAMERA_FOV_VERTICAL = 48.8  # degrees
+CAMERA_PITCH = -90.0  # degrees - camera pointing down
+
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
 POSITION_TOLERANCE = 0.10  # meters - position precision tolerance

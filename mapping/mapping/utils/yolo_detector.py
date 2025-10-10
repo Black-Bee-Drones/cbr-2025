@@ -71,7 +71,8 @@ class YOLODetector:
         image: np.ndarray,
         save_image: bool = True,
         timestamp: Optional[int] = None,
-    ) -> List[Dict[str, any]]:
+        return_all: bool = False,
+    ) -> List[Dict[str, any]] | Dict[str, any] | None:
         """
         Detect landing bases in image.
 
@@ -79,9 +80,11 @@ class YOLODetector:
             image: Input image (BGR format)
             save_image: Whether to save detection images
             timestamp: Optional timestamp for filenames
+            return_all: If True, returns all detections; if False, returns best detection only
 
         Returns:
-            List of detections with bounding boxes and confidence scores
+            If return_all=True: List of all detections with bounding boxes and confidence scores
+            If return_all=False: Single best detection dict or None if no detections
         """
         detections = []
 
@@ -90,7 +93,10 @@ class YOLODetector:
         )
 
         if self.model is None or not YOLO_AVAILABLE:
-            return self._simulate_detection(image, save_image, current_timestamp)
+            sim_detection = self._simulate_detection(image, save_image, current_timestamp)
+            if return_all:
+                return [sim_detection] if sim_detection else []
+            return sim_detection
 
         try:
             results = self.model(
@@ -123,7 +129,11 @@ class YOLODetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        return self.get_best_detection(detections)
+        # Return based on return_all flag
+        if return_all:
+            return detections
+        else:
+            return self.get_best_detection(detections)
 
     def get_best_detection(
         self, detections: List[Dict[str, any]]

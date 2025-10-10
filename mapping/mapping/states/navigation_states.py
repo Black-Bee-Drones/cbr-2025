@@ -19,7 +19,7 @@ from mapping.constants import (
     DETECTION_SAVE_PATH,
     DUPLICATE_BASE_RADIUS,
 )
-from mapping.utils import YOLODetector
+from mapping.utils import YOLODetector, DetectionPositionCalculator
 
 
 class NavigateToWaypoint(State):
@@ -105,6 +105,7 @@ class CaptureAndDetect(State):
         self.image_handler = ImageHandler(
             node=YasminNode.get_instance(), image_source=CAMERA_SOURCE
         )
+        self.position_calculator = DetectionPositionCalculator()
 
     def execute(self, blackboard: Blackboard):
         if "mavdrone" not in blackboard:
@@ -145,44 +146,71 @@ class CaptureAndDetect(State):
             image_path = f"{DETECTION_SAVE_PATH}/waypoint_{current_waypoint['index']:03d}_{timestamp}.jpg"
             cv2.imwrite(image_path, frame)
 
-            detection = yolo_detector.detect(
-                frame, save_image=True, timestamp=timestamp
+            # Get ALL detections from YOLO
+            all_detections = yolo_detector.detect(
+                frame, save_image=True, timestamp=timestamp, return_all=True
             )
 
-            if detection:
-                # Check if this detection is near a previously visited base
+            if all_detections:
+                yasmin.YASMIN_LOG_INFO(
+                    f"Found {len(all_detections)} detection(s) in image"
+                )
+                
+                # Get drone state for position calculation
                 mavdrone = blackboard["mavdrone"]
+                rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
+                
                 current_pos = mavdrone.get_vision_pos.pose.pose.position
+                current_orientation = mavdrone.get_vision_pos.pose.pose.orientation
+                altitude = mavdrone.get_rng_alt.range
+                
+                drone_position = (current_pos.x, current_pos.y, current_pos.z)
+                drone_orientation = (
+                    current_orientation.x,
+                    current_orientation.y,
+                    current_orientation.z,
+                    current_orientation.w
+                )
+                
                 visited_bases = blackboard["visited_bases"]
 
-                is_duplicate = False
-                for i, base in enumerate(visited_bases):
-                    # distance = math.sqrt(
-                    #     (current_pos.x - base["x"]) ** 2
-                    #     + (current_pos.y - base["y"]) ** 2
-                    # )
-                    distance_x = abs(current_pos.x - base["x"])
-                    distance_y = abs(current_pos.y - base["y"])
+                # Use position calculator to filter and select best detection
+                yasmin.YASMIN_LOG_INFO(
+                    f"Filtering detections using world position calculation..."
+                )
+                yasmin.YASMIN_LOG_INFO(
+                    f"Drone position: ({drone_position[0]:.2f}, {drone_position[1]:.2f}), "
+                    f"altitude: {altitude:.2f}m"
+                )
+                
+                best_detection = self.position_calculator.filter_and_select_best_detection(
+                    detections=all_detections,
+                    drone_position=drone_position,
+                    drone_orientation_quaternion=drone_orientation,
+                    altitude=altitude,
+                    visited_bases=visited_bases,
+                    duplicate_radius=DUPLICATE_BASE_RADIUS
+                )
 
-                    yasmin.YASMIN_LOG_INFO(f"Distance from visited {i+1} plate: x:{distance_x}, y:{distance_y}")
-                    if (distance_x < DUPLICATE_BASE_RADIUS) and (distance_y < DUPLICATE_BASE_RADIUS):
-                        yasmin.YASMIN_LOG_INFO(
-                            f"Detection appears to be already visited base at ({base['x']:.1f}, {base['y']:.1f})"
-                        )
-                        is_duplicate = True
-                        break
-
-                if not is_duplicate:
-                    blackboard["current_detection"] = detection
+                if best_detection:
+                    # We have a valid, non-duplicate detection
+                    world_x, world_y = best_detection["world_position"]
+                    
+                    blackboard["current_detection"] = best_detection
                     blackboard["detection_image"] = frame
 
                     yasmin.YASMIN_LOG_INFO(
-                        f"- NEW landing base detected! Confidence: {detection['confidence']:.2f}"
+                        f"- NEW landing base detected at world position "
+                        f"({world_x:.2f}, {world_y:.2f})!"
+                    )
+                    yasmin.YASMIN_LOG_INFO(
+                        f"  Confidence: {best_detection['confidence']:.2f}, "
+                        f"Distance to drone: {best_detection['distance_to_drone']:.2f}m"
                     )
                     return "DETECTION_FOUND"
                 else:
                     yasmin.YASMIN_LOG_INFO(
-                        "Detection is a duplicate, continuing search"
+                        "All detections filtered as duplicates, continuing search"
                     )
                     return SUCCEED
             else:
@@ -191,6 +219,8 @@ class CaptureAndDetect(State):
 
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Capture and detect failed: {e}")
+            import traceback
+            yasmin.YASMIN_LOG_ERROR(traceback.format_exc())
             return ABORT
         finally:
             self.image_handler.close()
