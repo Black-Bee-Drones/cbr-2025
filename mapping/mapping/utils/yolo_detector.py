@@ -129,7 +129,6 @@ class YOLODetector:
         except Exception as e:
             print(f"x YOLO detection failed: {e}")
 
-        # Return based on return_all flag
         if return_all:
             return detections
         else:

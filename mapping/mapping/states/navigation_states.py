@@ -155,26 +155,24 @@ class CaptureAndDetect(State):
                 yasmin.YASMIN_LOG_INFO(
                     f"Found {len(all_detections)} detection(s) in image"
                 )
-                
-                # Get drone state for position calculation
+
                 mavdrone = blackboard["mavdrone"]
                 rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-                
+
                 current_pos = mavdrone.get_vision_pos.pose.pose.position
                 current_orientation = mavdrone.get_vision_pos.pose.pose.orientation
                 altitude = mavdrone.get_rng_alt.range
-                
+
                 drone_position = (current_pos.x, current_pos.y, current_pos.z)
                 drone_orientation = (
                     current_orientation.x,
                     current_orientation.y,
                     current_orientation.z,
-                    current_orientation.w
+                    current_orientation.w,
                 )
-                
+
                 visited_bases = blackboard["visited_bases"]
 
-                # Use position calculator to filter and select best detection
                 yasmin.YASMIN_LOG_INFO(
                     f"Filtering detections using world position calculation..."
                 )
@@ -182,20 +180,21 @@ class CaptureAndDetect(State):
                     f"Drone position: ({drone_position[0]:.2f}, {drone_position[1]:.2f}), "
                     f"altitude: {altitude:.2f}m"
                 )
-                
-                best_detection = self.position_calculator.filter_and_select_best_detection(
-                    detections=all_detections,
-                    drone_position=drone_position,
-                    drone_orientation_quaternion=drone_orientation,
-                    altitude=altitude,
-                    visited_bases=visited_bases,
-                    duplicate_radius=DUPLICATE_BASE_RADIUS
+
+                best_detection = (
+                    self.position_calculator.filter_and_select_best_detection(
+                        detections=all_detections,
+                        drone_position=drone_position,
+                        drone_orientation_quaternion=drone_orientation,
+                        altitude=altitude,
+                        visited_bases=visited_bases,
+                        duplicate_radius=DUPLICATE_BASE_RADIUS,
+                    )
                 )
 
                 if best_detection:
-                    # We have a valid, non-duplicate detection
                     world_x, world_y = best_detection["world_position"]
-                    
+
                     blackboard["current_detection"] = best_detection
                     blackboard["detection_image"] = frame
 
@@ -220,6 +219,7 @@ class CaptureAndDetect(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Capture and detect failed: {e}")
             import traceback
+
             yasmin.YASMIN_LOG_ERROR(traceback.format_exc())
             return ABORT
         finally:

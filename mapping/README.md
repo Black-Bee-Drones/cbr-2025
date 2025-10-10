@@ -32,8 +32,10 @@ This package implements an autonomous drone solution for Phase 1 of the CBR 2025
 
 ### 2. Detection Strategy
 - **YOLO Model**: Real-time detection at each waypoint
-- **Duplicate Prevention**: 1.5m radius check against visited bases
-- **Confidence Threshold**: 0.7 for reliable detection
+- **Position-Based Filtering**: Calculate world position of each detection
+- **Duplicate Prevention**: 1.2m square exclusion zone (separate X/Y checks)
+- **Multi-Detection Handling**: Selects closest valid base when multiple detected
+- **Confidence Threshold**: 0.65 for reliable detection
 
 ### 3. Landing Approach
 - **Phase 1 Centering**: Maintain altitude while centering over target
@@ -95,8 +97,10 @@ stateDiagram-v2
     
     note right of CAPTURE_AND_DETECT
         • Take photo at waypoint
-        • Run YOLO detection
-        • Check for duplicates (1.5m radius)
+        • Get ALL YOLO detections
+        • Calculate world position for each
+        • Filter duplicates (1.2m square zone)
+        • Select closest valid base
         • Save detection image
     end note
     
@@ -163,8 +167,10 @@ stateDiagram-v2
 - **Purpose**: Detect landing bases at current position
 - **Actions**:
   - Capture image from bottom-facing camera
-  - Run YOLO inference (confidence > 0.7)
-  - Check detection against visited bases (1.5m radius)
+  - Run YOLO inference for all detections (confidence > 0.65)
+  - Calculate world position for each detection using camera geometry
+  - Filter duplicates using 1.2m square exclusion zones (separate X/Y checks)
+  - Select closest valid detection to drone
   - Save annotated detection image
 - **Transitions**:
   - SUCCEED → NAVIGATE_TO_WAYPOINT (no/duplicate detection)
@@ -173,14 +179,19 @@ stateDiagram-v2
 
 ### CENTER_ON_DETECTION
 - **Purpose**: Precision alignment and descent to landing altitude
+- **Target Tracking**: Locks onto specific detection from CaptureAndDetect
+  - Stores target center coordinates from selected detection
+  - Matches target across frames (200px threshold)
+  - Ensures centering on same base throughout maneuver
 - **Phase 1 - Centering**:
-  - Calculate pixel error from image center (640, 360)
-  - Apply proportional control: vel = error × 0.002
+  - Track target detection across all YOLO results
+  - Calculate pixel error from image center (820, 616)
+  - Apply proportional control: vel = error × 0.00031
   - Maintain current altitude
-  - Tolerance: 20 pixels
+  - Tolerance: 40 pixels
 - **Phase 2 - Descent**:
-  - Maintain visual lock on target
-  - Descend at -0.2 m/s
+  - Continue tracking target detection
+  - Descend using altitude control (Kp=0.16)
   - Target altitude: 1.2m above figure (via lidar)
   - Continue centering with reduced gain (0.7×)
 - **Transitions**:
