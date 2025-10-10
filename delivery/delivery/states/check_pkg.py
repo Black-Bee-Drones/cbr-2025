@@ -41,8 +41,8 @@ class CheckPkg(State):
             frame = image_handler.take_photo()
 
             detection = yolo_detector.detect(
-                image = frame,
-                desired_class = "package",
+                frame = frame,
+                desired_class = ["package"],
             )
 
             if "package" in detection.keys():

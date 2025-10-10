@@ -98,7 +98,7 @@ class Takeoff(State):
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
             mavdrone.arm_takeoff(TAKEOFF_ALTITUDE)
-            time.sleep(TAKEOFF_SLEEP)
+            mavdrone.delay(TAKEOFF_SLEEP)
             mavdrone.set_takeoff_position(blackboard["initial_position"])
             yasmin.YASMIN_LOG_INFO("Takeoff successful.")
             return SUCCEED
@@ -130,7 +130,7 @@ class Land(State):
                     rtl_strategy="PID",
                     land=True
                 )
-                time.sleep(5)
+                mavdrone.delay(3)
                 yasmin.YASMIN_LOG_INFO("Return to launch initiated.")
                 return SUCCEED
 
@@ -140,7 +140,7 @@ class Land(State):
 
         try:
             mavdrone.land()
-            time.sleep(12) 
+            mavdrone.delay(10) 
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
             return SUCCEED
 

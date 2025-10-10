@@ -61,11 +61,6 @@ class CenterOnDetection(State):
             return ABORT
         yolo_detector: YoloDetector = blackboard["yolo_detector"]
 
-        if ("image_calculus" not in blackboard) or not blackboard["image_calculus"]:
-            yasmin.YASMIN_LOG_ERROR(f"image_calculus not available in {self.__class__.__name__} state.")
-            return ABORT
-        image_calculus: ImageCalculus = blackboard["image_calculus"]
-
         yasmin.YASMIN_LOG_INFO("Starting centering procedure using YOLO detector...")
         detections_lost = 0
         start = time.time()

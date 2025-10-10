@@ -64,10 +64,13 @@ class HeightController(State):
             elif self._direction == 'down': 
                 target_altitude = TARGET_DOWN_ALTITUDE
 
+                if current_alt > 1.6:
+                    target_altitude *= 2
+
             mavdrone.offboard_position(
                 x=0.0,
                 y=0.0,
-                z=target_altitude,
+                z=(target_altitude * 2) if (current_alt > 1.6) else target_altitude,
                 timeout_sec=REACQUIRE_TIMEOUT,
                 precision_radius=POSITION_CONTROLLER_TOLERANCE_Z,
             )
