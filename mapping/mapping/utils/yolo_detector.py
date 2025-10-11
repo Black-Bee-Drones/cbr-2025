@@ -93,7 +93,9 @@ class YOLODetector:
         )
 
         if self.model is None or not YOLO_AVAILABLE:
-            sim_detection = self._simulate_detection(image, save_image, current_timestamp)
+            sim_detection = self._simulate_detection(
+                image, save_image, current_timestamp
+            )
             if return_all:
                 return [sim_detection] if sim_detection else []
             return sim_detection

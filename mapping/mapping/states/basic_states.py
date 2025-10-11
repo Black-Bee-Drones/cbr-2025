@@ -66,11 +66,14 @@ class Initialize(State):
             blackboard["yolo_detector"] = yolo_detector
 
             # Run one detect to just initialize the model
-            yolo_detector.detect(np.zeros((1, 3, 640, 640), dtype=np.float32), save_image=False)
-            
+            yolo_detector.detect(
+                np.zeros((1, 3, 640, 640), dtype=np.float32), save_image=False
+            )
+
             blackboard["visited_bases"] = []
             blackboard["current_target_waypoint"] = None
             blackboard["current_detection"] = None
+            blackboard["return_to_waypoint"] = False
 
             pattern_summary = grid.get_pattern_summary()
             yasmin.YASMIN_LOG_INFO("Phase 1 Mission Initialized")
@@ -205,7 +208,7 @@ class ReturnToLaunch(State):
                 precision_radius=0.15,
                 timeout_sec=70.0,
                 strategy="PID",
-                ground_reference=True
+                ground_reference=True,
             )
 
             # Land at takeoff position

@@ -12,6 +12,7 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 from mirela_sdk.image_processing.camera import IMX219Config
 
 from mapping.utils import YOLODetector
+from mapping.states.navigation_states import CaptureAndDetect
 from mapping.constants import (
     CENTERING_P_GAIN,
     CENTERING_TIMEOUT,
@@ -54,12 +55,16 @@ class CenterOnDetection(State):
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
             return ABORT
 
-        # Store the target detection center for tracking during centering
-        self.target_center = current_detection["center"]
-        self.target_bbox = current_detection["bbox"]
+        self.target_position = current_detection.get("estimated_position")
+        if not self.target_position:
+            yasmin.YASMIN_LOG_ERROR("No estimated position in current detection")
+            return ABORT
+
+        self.target_center = current_detection["center"]  # For initial reference
 
         yasmin.YASMIN_LOG_INFO(
-            f"Centering on detection at pixel ({self.target_center[0]}, {self.target_center[1]}), "
+            f"Centering on detection at estimated position ({self.target_position[0]:.2f}, {self.target_position[1]:.2f}), "
+            f"initial pixel ({self.target_center[0]}, {self.target_center[1]}), "
             f"confidence={current_detection['confidence']:.2f}"
         )
 
@@ -104,16 +109,15 @@ class CenterOnDetection(State):
             1 if value > 0 else -1
         )
 
-    def _find_target_detection(self, all_detections, max_distance=200):
+    def _find_target_detection(self, all_detections):
         """
         Find the detection that matches our target from CaptureAndDetect.
 
-        Matches by finding the detection closest to the original target center.
+        Matches by estimating position of each detection and finding closest to target position.
         This ensures we center on the SAME base we selected in navigation.
 
         Args:
             all_detections: List of all current detections from YOLO
-            max_distance: Maximum pixel distance to consider a match
 
         Returns:
             Matching detection dict or None
@@ -121,25 +125,39 @@ class CenterOnDetection(State):
         if not all_detections:
             return None
 
-        target_x, target_y = self.target_center
+        rclpy.spin_once(self.node, timeout_sec=0.01)
+        current_pos = self.mavdrone.get_vision_pos.pose.pose.position
+        altitude = self.mavdrone.get_rng_alt.range
+        drone_x, drone_y = current_pos.x, current_pos.y
+
+        target_x, target_y = self.target_position
         best_match = None
         min_distance = float("inf")
 
         for detection in all_detections:
-            det_x, det_y = detection["center"]
-            distance = math.sqrt((det_x - target_x) ** 2 + (det_y - target_y) ** 2)
-            print(f"d: {distance}")
+            estimated_pos = CaptureAndDetect.estimate_detection_position(
+                detection, drone_x, drone_y, altitude
+            )
+            est_x, est_y = estimated_pos
+
+            distance = math.sqrt((est_x - target_x) ** 2 + (est_y - target_y) ** 2)
 
             if distance < min_distance:
                 min_distance = distance
                 best_match = detection
-        
-        if best_match:
-            yasmin.YASMIN_LOG_DEBUG(
-                f"Matched target detection (dist={min_distance:.0f}px from original)"
-            )
 
-        return best_match
+        if best_match and min_distance < 0.5:
+            yasmin.YASMIN_LOG_DEBUG(
+                f"Matched target detection (position dist={min_distance:.2f}m from target)"
+            )
+            return best_match
+        elif best_match:
+            yasmin.YASMIN_LOG_WARN(
+                f"Best match is {min_distance:.2f}m from target - may be wrong detection"
+            )
+            return best_match
+
+        return None
 
     def _phase1_center_at_altitude(self) -> bool:
         """Phase 1: Center on target while maintaining current altitude."""
@@ -148,16 +166,11 @@ class CenterOnDetection(State):
         lost_detections = 0
 
         while time.time() - start_time < CENTERING_TIMEOUT:
-            rclpy.spin_once(self.node, timeout_sec=0.01)
-
-            # Get ALL detections and find our target
             all_detections = self.yolo_detector.detect(
                 self.image_handler.take_photo(), save_image=False, return_all=True
             )
 
-            # Match to our specific target from CaptureAndDetect
             detection = self._find_target_detection(all_detections)
-            print(detection)
 
             if not detection:
                 lost_detections += 1
@@ -222,14 +235,13 @@ class CenterOnDetection(State):
                 self.mavdrone.delay(1.5)
                 return True
 
-            # Get ALL detections and match to our target
             all_detections = self.yolo_detector.detect(
                 self.image_handler.take_photo(), save_image=False, return_all=True
             )
             detection = self._find_target_detection(all_detections)
 
             vel_x, vel_y = 0.0, 0.0
-            error_x, error_y = 0, 0  # Initialize for logging
+            error_x, error_y = 0, 0
 
             if detection:
                 error_x, error_y = self.yolo_detector.calculate_centering_error(
@@ -283,30 +295,29 @@ class LandAndWait(State):
 
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
 
-            # Use the world position from detection if available, otherwise use drone position
-            current_detection = blackboard["current_detection"]
-            if current_detection and "world_position" in current_detection:
-                world_x, world_y = current_detection["world_position"]
-                landing_position = {
-                    "x": world_x,
-                    "y": world_y,
-                    "z": mavdrone.get_vision_pos.pose.pose.position.z,
-                    "timestamp": time.time(),
-                }
-                yasmin.YASMIN_LOG_INFO(
-                    f"Saving base position from detection: ({world_x:.2f}, {world_y:.2f})"
-                )
-            else:
-                # Fallback to drone position
-                landing_position = {
-                    "x": mavdrone.get_vision_pos.pose.pose.position.x,
-                    "y": mavdrone.get_vision_pos.pose.pose.position.y,
-                    "z": mavdrone.get_vision_pos.pose.pose.position.z,
-                    "timestamp": time.time(),
-                }
-                yasmin.YASMIN_LOG_INFO(
-                    "No world position in detection, using drone position"
-                )
+            # # Use the estimated position from detection
+            # current_detection = blackboard["current_detection"]
+            # if current_detection and "estimated_position" in current_detection:
+            #     est_x, est_y = current_detection["estimated_position"]
+            #     landing_position = {
+            #         "x": est_x,
+            #         "y": est_y,
+            #         "z": mavdrone.get_vision_pos.pose.pose.position.z,
+            #         "timestamp": time.time(),
+            #     }
+            #     yasmin.YASMIN_LOG_INFO(
+            #         f"Saving base position: ({est_x:.2f}, {est_y:.2f})"
+            #     )
+            # else:
+            landing_position = {
+                "x": mavdrone.get_vision_pos.pose.pose.position.x,
+                "y": mavdrone.get_vision_pos.pose.pose.position.y,
+                "z": mavdrone.get_vision_pos.pose.pose.position.z,
+                "timestamp": time.time(),
+            }
+            yasmin.YASMIN_LOG_INFO(
+                f"Using drone position: ({landing_position['x']:.2f}, {landing_position['y']:.2f})"
+            )
 
             visited_bases = blackboard["visited_bases"]
             visited_bases.append(landing_position)
