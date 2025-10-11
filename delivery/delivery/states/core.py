@@ -139,6 +139,7 @@ class Land(State):
                 yasmin.YASMIN_LOG_INFO('Try to normal land.')
 
         try:
+            mavdrone.offboard_position(x=0.0, y=0.0, z=(0.3 - mavdrone.get_height), ground_reference=False, precision_radius=0.1, timeout_sec=15.0)
             mavdrone.land()
             mavdrone.delay(10) 
             yasmin.YASMIN_LOG_INFO("Landed successfully.")

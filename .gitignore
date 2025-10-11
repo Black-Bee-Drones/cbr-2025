@@ -21,6 +21,4 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Mapping or other large data folders (se você não quiser versionar)
-mapping/
-
+*.png

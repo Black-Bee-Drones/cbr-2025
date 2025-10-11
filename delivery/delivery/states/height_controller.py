@@ -70,7 +70,7 @@ class HeightController(State):
             mavdrone.offboard_position(
                 x=0.0,
                 y=0.0,
-                z=(target_altitude * 2) if (current_alt > 1.6) else target_altitude,
+                z=target_altitude,
                 timeout_sec=REACQUIRE_TIMEOUT,
                 precision_radius=POSITION_CONTROLLER_TOLERANCE_Z,
             )

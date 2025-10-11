@@ -4,12 +4,12 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 1.3  # Meters
+TAKEOFF_ALTITUDE = 1.5  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
 MAX_ALTITUDE = 4.0  # Meters
-MIN_CENTERING_ALTITUDE = 0.6  # Meters, final altitude above figure for landing
+MIN_CENTERING_ALTITUDE = 0.8  # Meters, final altitude above figure for landing
 TARGET_UP_ALTITUDE = 0.5  # Meters, how high the drone will climb if it doesn't find the package
-TARGET_DOWN_ALTITUDE = -0.2  # Meters, distancia de descida para para centralizar
+TARGET_DOWN_ALTITUDE = -0.25  # Meters, distancia de descida para para centralizar
 DETECTIONS_LOST_TOLERANCE = 3  # Number of missed detections to consider it as lost
 PACKAGE_PROPORTION_ALIGN = 1.7  # How many times the smaller side fits into the larger one to consider it aligned
 
@@ -44,7 +44,7 @@ DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Camera
 IMAGE_SOURCE = "imx219"
-IMAGE_CALCULUS_OFFSET_Y = 189
+IMAGE_CALCULUS_OFFSET_Y = 231
 CAMERA_FOV_HORIZONTAL = 62.2  # DEGREE
 CAMERA_FOV_VERTICAL = 48.8  # DEGREE
 IMAGE_CENTER_X = 820
