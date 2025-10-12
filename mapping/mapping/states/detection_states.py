@@ -12,7 +12,6 @@ from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 from mirela_sdk.image_processing.camera import IMX219Config
 
 from mapping.utils import YOLODetector
-from mapping.states.navigation_states import CaptureAndDetect
 from mapping.constants import (
     CENTERING_P_GAIN,
     CENTERING_TIMEOUT,
@@ -24,6 +23,9 @@ from mapping.constants import (
     CENTER_DETECTION_THRESHOLD,
     ALTITUDE_TOLERANCE,
     DESCEND_KP,
+    IMAGE_CENTER_X,
+    IMAGE_CENTER_Y,
+    IMAGE_OFFSET_Y,
 )
 
 
@@ -55,16 +57,9 @@ class CenterOnDetection(State):
             yasmin.YASMIN_LOG_ERROR("YOLO detector or detection not available.")
             return ABORT
 
-        self.target_position = current_detection.get("estimated_position")
-        if not self.target_position:
-            yasmin.YASMIN_LOG_ERROR("No estimated position in current detection")
-            return ABORT
-
-        self.target_center = current_detection["center"]  # For initial reference
-
         yasmin.YASMIN_LOG_INFO(
-            f"Centering on detection at estimated position ({self.target_position[0]:.2f}, {self.target_position[1]:.2f}), "
-            f"initial pixel ({self.target_center[0]}, {self.target_center[1]}), "
+            f"Starting centering after pre-positioning. "
+            f"Initial detection at pixel ({current_detection['center'][0]}, {current_detection['center'][1]}), "
             f"confidence={current_detection['confidence']:.2f}"
         )
 
@@ -72,6 +67,7 @@ class CenterOnDetection(State):
             self.image_handler.open()
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Failed to open camera: {e}")
+            self.image_handler.close()
             return ABORT
 
         yasmin.YASMIN_LOG_INFO(
@@ -84,6 +80,7 @@ class CenterOnDetection(State):
 
             if not phase1_success:
                 yasmin.YASMIN_LOG_ERROR("Phase 1 centering failed")
+                self.image_handler.close()
                 return ABORT
 
             yasmin.YASMIN_LOG_INFO("Phase 2: Descending to landing altitude...")
@@ -94,6 +91,7 @@ class CenterOnDetection(State):
                 return SUCCEED
             else:
                 yasmin.YASMIN_LOG_ERROR("Phase 2 centering failed")
+                self.image_handler.close()
                 return ABORT
 
         except Exception as e:
@@ -109,55 +107,40 @@ class CenterOnDetection(State):
             1 if value > 0 else -1
         )
 
-    def _find_target_detection(self, all_detections):
+    def _get_closest_to_center(self, all_detections):
         """
-        Find the detection that matches our target from CaptureAndDetect.
-
-        Matches by estimating position of each detection and finding closest to target position.
-        This ensures we center on the SAME base we selected in navigation.
+        Get detection closest to image center.
+        Since we pre-centered in CaptureAndDetect, the correct base should be near center.
 
         Args:
             all_detections: List of all current detections from YOLO
 
         Returns:
-            Matching detection dict or None
+            Detection dict closest to center or None
         """
         if not all_detections:
             return None
 
-        rclpy.spin_once(self.node, timeout_sec=0.01)
-        current_pos = self.mavdrone.get_vision_pos.pose.pose.position
-        altitude = self.mavdrone.get_rng_alt.range
-        drone_x, drone_y = current_pos.x, current_pos.y
-
-        target_x, target_y = self.target_position
-        best_match = None
         min_distance = float("inf")
+        best_detection = None
 
         for detection in all_detections:
-            estimated_pos = CaptureAndDetect.estimate_detection_position(
-                detection, drone_x, drone_y, altitude
-            )
-            est_x, est_y = estimated_pos
-
-            distance = math.sqrt((est_x - target_x) ** 2 + (est_y - target_y) ** 2)
+            center_x, center_y = detection["center"]
+            error_x = center_x - IMAGE_CENTER_X
+            error_y = center_y - IMAGE_CENTER_Y
+            distance = math.sqrt(error_x**2 + error_y**2)
 
             if distance < min_distance:
                 min_distance = distance
-                best_match = detection
+                best_detection = detection
 
-        if best_match and min_distance < 0.5:
+        if best_detection:
             yasmin.YASMIN_LOG_DEBUG(
-                f"Matched target detection (position dist={min_distance:.2f}m from target)"
+                f"Selected detection at {best_detection['center']} "
+                f"(distance from center: {min_distance:.1f}px)"
             )
-            return best_match
-        elif best_match:
-            yasmin.YASMIN_LOG_WARN(
-                f"Best match is {min_distance:.2f}m from target - may be wrong detection"
-            )
-            return best_match
 
-        return None
+        return best_detection
 
     def _phase1_center_at_altitude(self) -> bool:
         """Phase 1: Center on target while maintaining current altitude."""
@@ -170,11 +153,11 @@ class CenterOnDetection(State):
                 self.image_handler.take_photo(), save_image=False, return_all=True
             )
 
-            detection = self._find_target_detection(all_detections)
+            detection = self._get_closest_to_center(all_detections)
 
             if not detection:
                 lost_detections += 1
-                if lost_detections > 100:
+                if lost_detections > 150:
                     self.image_handler.close()
                     yasmin.YASMIN_LOG_ERROR(
                         "Lost target detection too many times in Phase 1"
@@ -206,6 +189,7 @@ class CenterOnDetection(State):
                 f"Phase 1: error=({error_x:.0f},{error_y:.0f})px, vel=({vel_x:.2f},{vel_y:.2f})m/s"
             )
 
+        self.image_handler.close()
         self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
         return centered
 
@@ -225,7 +209,7 @@ class CenterOnDetection(State):
             error_z = current_lidar - CENTERING_ALTITUDE
 
             if current_lidar < CENTERING_ALTITUDE + 0.40:
-                phase2_threshold = 50
+                phase2_threshold = 40
 
             if error_z < ALTITUDE_TOLERANCE:
                 yasmin.YASMIN_LOG_INFO("Phase 2: Landing altitude reached")
@@ -238,7 +222,7 @@ class CenterOnDetection(State):
             all_detections = self.yolo_detector.detect(
                 self.image_handler.take_photo(), save_image=False, return_all=True
             )
-            detection = self._find_target_detection(all_detections)
+            detection = self._get_closest_to_center(all_detections)
 
             vel_x, vel_y = 0.0, 0.0
             error_x, error_y = 0, 0
