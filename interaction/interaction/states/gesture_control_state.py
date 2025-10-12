@@ -85,6 +85,20 @@ class GestureControl(State):
         self.node = None
         self.blackboard = None
 
+        self.actions: dict[int, callable] = {
+        -1: lambda: self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0),
+        1: lambda: self.mavdrone.land(),
+        2: lambda: self.mavdrone.offboard_velocity(linear_z=VELOCITY_UP_DOWN),
+        3: lambda: self.mavdrone.offboard_velocity(linear_z=-VELOCITY_UP_DOWN),
+        4: lambda: self.mavdrone.offboard_velocity(linear_y=VELOCITY_SIDES),
+        5: lambda: self.mavdrone.offboard_velocity(linear_y=-VELOCITY_SIDES),
+        11: lambda: self.mavdrone.offboard_velocity(linear_x=VELOCITY_IN_OUT),
+        12: lambda: self.mavdrone.offboard_velocity(linear_x=-VELOCITY_IN_OUT),
+        13: lambda: self.mavdrone.offboard_velocity(angular_z=VELOCITY_YAW),
+        14: lambda: self.mavdrone.offboard_velocity(angular_z=-VELOCITY_YAW),
+        15: lambda: self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
+    }
+
     def execute(self, blackboard: Blackboard):
         """Executa o estado de controle por gestos."""
         
@@ -103,21 +117,14 @@ class GestureControl(State):
                 
             yasmin.YASMIN_LOG_INFO("Iniciando controle por gestos...")
             
-            # Loop principal do estado
-            start_time = time.time()
-            max_duration = 120.0  # 2 minutos máximo no estado
-            
-            while rclpy.ok() and (time.time() - start_time) < max_duration:
-                # Verifica se deve sair do estado (exemplo: contador RTL)
-                if self._should_exit_state(blackboard):
-                    yasmin.YASMIN_LOG_INFO("Condição de saída do estado detectada.")
-                    break
-                    
-                # Processa um ciclo do ROS
-                rclpy.spin_once(self.node, timeout_sec=0.01)
+            while rclpy.ok():
+                rclpy.spin_once(self.node, timeout_sec=0.1)
                 
-            yasmin.YASMIN_LOG_INFO("Encerrando controle por gestos...")
-            return SUCCEED
+                # Verifica se o contador RTL atingiu 6
+                if self.land_count >= 6:
+                    yasmin.YASMIN_LOG_INFO("Contador RTL atingiu 6, saindo do estado GestureControl.")
+                    self._cleanup()
+                    return SUCCEED
             
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Erro no estado GestureControl: {e}")
@@ -184,7 +191,7 @@ class GestureControl(State):
             right_indice, left_indice = (0, 1) if hands[0]["type"] == "Right" else (1, 0)
             fingers_right = self.detector.fingersUp(hands[right_indice])
             fingers_left = self.detector.fingersUp(hands[left_indice])
-            gesture_id = self.recognize_gesture(fingers_right, fingers_left)
+            gesture_id = self.gestures.get(tuple(fingers_right + fingers_left), -1)
 
             # Processa o gesto detectado
             self.process_gesture_action(gesture_id)
@@ -195,10 +202,6 @@ class GestureControl(State):
                 
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Erro no processamento de imagem: {e}")
-
-    def recognize_gesture(self, fingers_right: list, fingers_left: list) -> int:
-        """Reconhece o gesto com base na combinação da posição dos dedos."""
-        return self.gestures.get(tuple(fingers_right + fingers_left), -1)
 
     def process_gesture_action(self, gesture_id: int) -> None:
         """Processa a ação correspondente ao gesto detectado."""
@@ -237,86 +240,19 @@ class GestureControl(State):
             if self.current_action in continuous_actions:
                 action_name = continuous_actions[self.current_action]
                 yasmin.YASMIN_LOG_INFO(f"Executando Ação Contínua: {action_name}")
-                self.pending_action_id = self.current_action
+                self.actions[self.current_action]()
             
             elif self.current_action in single_actions and not self.command_sent:
                 action_name = single_actions[self.current_action]
                 yasmin.YASMIN_LOG_INFO(f"Preparando Ação Única: {action_name}")
-                self.pending_action_id = self.current_action
-
-    def execute_drone_commands(self):
-        """Timer callback executado em callback group separado para comandos do drone."""
-        if self.pending_action_id == -1 or not self.mavdrone:
-            return
-            
-        try:
-            # Ações contínuas
-            if self.pending_action_id == -1:
-                self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
-            elif self.pending_action_id == 2:
-                self.mavdrone.offboard_velocity(linear_z=VELOCITY_UP_DOWN)
-            elif self.pending_action_id == 3:
-                self.mavdrone.offboard_velocity(linear_z=-VELOCITY_UP_DOWN)
-            elif self.pending_action_id == 4:
-                self.mavdrone.offboard_velocity(linear_y=VELOCITY_SIDES)
-            elif self.pending_action_id == 5:
-                self.mavdrone.offboard_velocity(linear_y=-VELOCITY_SIDES)
-            elif self.pending_action_id == 11:
-                self.mavdrone.offboard_velocity(linear_x=VELOCITY_IN_OUT)
-            elif self.pending_action_id == 12:
-                self.mavdrone.offboard_velocity(linear_x=-VELOCITY_IN_OUT)
-            elif self.pending_action_id == 13:
-                self.mavdrone.offboard_velocity(angular_z=VELOCITY_YAW)
-            elif self.pending_action_id == 14:
-                self.mavdrone.offboard_velocity(angular_z=-VELOCITY_YAW)
-            # Ações únicas
-            elif self.pending_action_id == 1 and not self.command_sent:
-                yasmin.YASMIN_LOG_INFO("Executando comando de pouso")
-                self.land_pub.publish(Int16(data=1))
-                self.mavdrone.land()
+                self.actions[self.current_action]()
                 self.command_sent = True
-            elif self.pending_action_id == 15 and not self.command_sent:
-                yasmin.YASMIN_LOG_INFO("Executando comando de decolagem")
-                self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
-                self.command_sent = True
-                
-        except Exception as e:
-            yasmin.YASMIN_LOG_ERROR(f"Erro ao executar comando do drone: {e}")
-
-    def _count_callback(self, msg: Int16):
-        """Callback que atualiza o contador RTL no blackboard."""
-        if self.blackboard:
-            self.land_count += 1
-            yasmin.YASMIN_LOG_INFO(f"RTL Count: {self.land_count}/6")
-
-    def _should_exit_state(self, blackboard: Blackboard) -> bool:
-        """Verifica se deve sair do estado baseado em condições específicas."""
-        # Verifica o contador RTL para transição para próximo estado
-        rtl_counter = blackboard.get("rtl_land_counter", 0)
-        if rtl_counter >= 6:  # RTL_REQUIRED_COUNT das constantes
-            yasmin.YASMIN_LOG_INFO(f"RTL counter reached {rtl_counter}/6, transitioning to next state.")
-            return True
-            
-        return False
 
     def _cleanup(self):
         """Limpa recursos utilizados pelo estado."""
         try:
             if self.image_handler:
                 self.image_handler.cleanup()
-                
-            if self.drone_command_timer:
-                self.node.destroy_timer(self.drone_command_timer)
-                
-            if self.land_pub:
-                self.node.destroy_publisher(self.land_pub)
-                
-            if self.land_count_sub:
-                self.node.destroy_subscription(self.land_count_sub)
-                
-            # Para o drone
-            if self.mavdrone:
-                self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
                 
             yasmin.YASMIN_LOG_INFO("Limpeza do estado GestureControl concluída.")
             
