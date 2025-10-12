@@ -14,6 +14,7 @@ from yasmin_ros.yasmin_node import YasminNode
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
 
 from mapping.constants import (
+    TAKEOFF_ALTITUDE,
     POSITION_TOLERANCE,
     SEARCH_TIMEOUT,
     CAMERA_SOURCE,
@@ -47,10 +48,9 @@ class NavigateToWaypoint(State):
             return ABORT
 
         # Check if we need to return to current waypoint for more detections
-        return_to_waypoint = blackboard.get("return_to_waypoint", False)
+        return_to_waypoint = blackboard["return_to_waypoint"]
 
         if return_to_waypoint:
-            # Return to same waypoint to check for more bases
             current_waypoint = blackboard["current_target_waypoint"]
             yasmin.YASMIN_LOG_INFO(
                 f"Returning to waypoint {current_waypoint['index']} to check for additional bases"
@@ -96,12 +96,13 @@ class NavigateToWaypoint(State):
             )
 
             mavdrone.offboard_position(
-                x=target_waypoint["x"] - current_pos.x,
-                y=target_waypoint["y"] - current_pos.y,
-                z=0.0,
+                x=target_waypoint["x"],
+                y=target_waypoint["y"],
+                z=TAKEOFF_ALTITUDE,
                 precision_radius=POSITION_TOLERANCE,
                 timeout_sec=SEARCH_TIMEOUT,
                 strategy="PID",
+                ground_reference=True,
             )
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
@@ -171,9 +172,7 @@ class CaptureAndDetect(State):
         )
 
         offset_meters_x = offset_y * meters_per_px_y
-        offset_meters_y = (
-            -offset_x * meters_per_px_x
-        )  # Left/right 
+        offset_meters_y = -offset_x * meters_per_px_x  # Left/right
 
         estimated_x = drone_x + offset_meters_x
         estimated_y = drone_y + offset_meters_y
@@ -318,7 +317,6 @@ class CaptureAndDetect(State):
                         detection, drone_x, drone_y, altitude
                     )
 
-                    # Check if duplicate
                     if not self.is_duplicate_detection(estimated_pos, visited_bases):
                         detection["estimated_position"] = estimated_pos
                         valid_detections.append(detection)
@@ -328,7 +326,6 @@ class CaptureAndDetect(State):
                         )
 
                 if valid_detections:
-                    # Process first valid detection
                     blackboard["current_detection"] = valid_detections[0]
                     blackboard["detection_image"] = frame
 
@@ -342,15 +339,28 @@ class CaptureAndDetect(State):
                     )
                     if len(valid_detections) > 1:
                         yasmin.YASMIN_LOG_INFO(
-                            f"Multiple bases detected - will return to waypoint after landing"
+                            "Multiple bases detected - will return to waypoint after landing"
                         )
 
-                    # Process first detection
                     first_detection = valid_detections[0]
                     est_x, est_y = first_detection["estimated_position"]
                     yasmin.YASMIN_LOG_INFO(
                         f"- Processing detection at ({est_x:.2f}, {est_y:.2f})"
                     )
+
+                    yasmin.YASMIN_LOG_INFO(
+                        f"Pre-centering on detection at ({est_x:.2f}, {est_y:.2f})"
+                    )
+                    mavdrone.offboard_position(
+                        x=est_x,
+                        y=est_y,
+                        z=TAKEOFF_ALTITUDE,
+                        ground_reference=True,
+                        precision_radius=0.2,
+                        timeout_sec=10.0,
+                        strategy="PID",
+                    )
+                    yasmin.YASMIN_LOG_INFO("Pre-centering complete")
 
                     return "DETECTION_FOUND"
                 else:
