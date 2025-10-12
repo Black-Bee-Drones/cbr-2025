@@ -19,6 +19,9 @@ from interaction.constants import (
     RTL_REQUIRED_COUNT
 )
 
+# Importa o novo estado de controle por gestos
+from interaction.states.gesture_control_state import GestureControl
+
 class Initialize(State):
     """Initializes the drone connection and checks system status."""
 
@@ -137,47 +140,7 @@ class FindHuman(State):
             return ABORT
 
 
-class StartGesture(State):
-    """Starting Human Follow mode. Activating gesture control systems."""
-    
-    def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
-
-
-    def execute(self, blackboard: Blackboard):
-        mavdrone: MavDrone = blackboard["mavdrone"]
-        
-
-        ProcessUtils.kill_process(GESTURE_CONTROLLER_PROCESS)
-
-        gesture_controller_cmd = (
-            "ros2 run interaction gesture_controller"
-        )
-
-        if not ProcessUtils.start_process(gesture_controller_cmd, GESTURE_CONTROLLER_PROCESS):
-            yasmin.YASMIN_LOG_ERROR("Failed to start control node.")
-            return ABORT
-        
-        yasmin.YASMIN_LOG_INFO("Gesture Controller node started successfully")
-
-
-        ProcessUtils.kill_process(GESTURE_RECOGNIZER_PROCESS)
-
-        gesture_recognizer_cmd = (
-            "ros2 run interaction gesture_recognizer"
-        )
-
-        if not ProcessUtils.start_process(gesture_recognizer_cmd, GESTURE_RECOGNIZER_PROCESS):
-            yasmin.YASMIN_LOG_ERROR("Failed to start recognizer node.")
-
-            yasmin.YASMIN_LOG_INFO("Killing Controller due to Recognizer failure.")
-            ProcessUtils.kill_process(GESTURE_CONTROLLER_PROCESS)
-
-            return ABORT
-        
-        yasmin.YASMIN_LOG_INFO("Gesture Recognizer node started successfully")
-
-        return SUCCEED
+# StartGesture foi substituído por GestureControl em gesture_control_state.py
     
 
 class CheckCount(State):

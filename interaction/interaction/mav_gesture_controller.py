@@ -47,7 +47,7 @@ class GestureController(Node):
         }
 
         self.single_actions: dict[int, tuple[str, callable]] = {
-            1: ("Pousar", lambda: self.land_action()),
+            1: ("Pousar", lambda: self.mavdrone.land()),
             15: ("Decolar", lambda: self.mavdrone.arm_takeoff(TAKEOFF_HEIGHT)),
         }
         

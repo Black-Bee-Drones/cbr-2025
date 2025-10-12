@@ -1,16 +1,18 @@
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
 
 from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
+from yasmin_ros.yasmin_node import YasminNode
 
 from interaction.states.basic_states import (
     Initialize, 
     Takeoff,
     FindHuman,
-    StartGesture,
     CheckCount,
     ReturnToLaunch,
-    End
+    End,
+    GestureControl
 )
 
 class CBRPhase3StateMachine(StateMachine):
@@ -19,7 +21,7 @@ class CBRPhase3StateMachine(StateMachine):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
-            "INITIALIZE", Initialize(), transitions={SUCCEED: "TAKEOFF", ABORT: "END"}
+            "INITIALIZE", Initialize(), transitions={SUCCEED: "START_GESTURE", ABORT: "END"}
         )
 
         self.add_state(
@@ -31,11 +33,7 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "START_GESTURE", StartGesture(), transitions={SUCCEED: "CHECK_COUNT", ABORT: "RETURN_TO_LAUNCH"}
-        )
-
-        self.add_state(
-            "CHECK_COUNT", CheckCount(), transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
+            "START_GESTURE", GestureControl(), transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"}
         )
 
         self.add_state(
@@ -52,6 +50,13 @@ def main() -> None:
     rclpy.init()
 
     try:
+        # Inicializa o nó yasmin
+        yasmin_node = YasminNode.get_instance()
+        
+        # Usa MultiThreadedExecutor para suportar callback groups
+        executor = MultiThreadedExecutor(num_threads=4)
+        executor.add_node(yasmin_node)
+        
         phase3_sm = CBRPhase3StateMachine()
 
         print(phase3_sm())

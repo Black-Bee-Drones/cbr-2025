@@ -25,7 +25,6 @@ setup(
     entry_points={
         'console_scripts': [
             'gesture_recognizer = interaction.mav_gesture_recognizer:main',
-            'gesture_controller = interaction.mav_gesture_controller:main',
         ],
     },
 )
