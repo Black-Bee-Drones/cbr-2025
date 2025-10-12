@@ -319,7 +319,7 @@ class CaptureAndDetect(State):
                     )
 
                     # Check if duplicate
-                    if not self.is_duplicate_detection(estimated_pos, visited_bases)
+                    if not self.is_duplicate_detection(estimated_pos, visited_bases):
                         detection["estimated_position"] = estimated_pos
                         valid_detections.append(detection)
                         yasmin.YASMIN_LOG_INFO(
