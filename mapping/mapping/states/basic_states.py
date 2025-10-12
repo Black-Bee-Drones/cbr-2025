@@ -44,7 +44,7 @@ class Initialize(State):
             pose = mavdrone.get_vision_pos.pose.pose.position
             initial_position = (pose.x, pose.y, pose.z)
             blackboard["initial_position"] = initial_position
-            blackboard["takeoff_position"] = initial_position
+            blackboard["takeoff_position"] = mavdrone.get_position_as_target
 
             yasmin.YASMIN_LOG_INFO(
                 f"Initial drone position: ({initial_position[0]:.2f}, {initial_position[1]:.2f}, {initial_position[2]:.2f})"
@@ -117,7 +117,7 @@ class Takeoff(State):
             rclpy.spin_once(self.node, timeout_sec=0.1)
             pose = mavdrone.get_vision_pos.pose.pose.position
             takeoff_position = (pose.x, pose.y, pose.z)
-            blackboard["takeoff_position"] = takeoff_position
+            blackboard["takeoff_position"] = mavdrone.get_position_as_target
             yasmin.YASMIN_LOG_INFO(
                 f"Stored takeoff position: ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})"
             )
@@ -143,7 +143,7 @@ class Takeoff(State):
 
                     mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
                     time.sleep(2)
-
+                    mavdrone.set_takeoff_position(blackboard["takeoff_position"])
                     return SUCCEED
 
                 correction_velocity = max(-0.5, min(0.5, 0.3 * altitude_error))
@@ -179,7 +179,6 @@ class ReturnToLaunch(State):
 
         yasmin.YASMIN_LOG_INFO("Returning to takeoff base using local coordinates...")
 
-        # Log mission summary
         visited_bases = blackboard["visited_bases"]
         grid_waypoints = blackboard["grid_waypoints"]
 
@@ -195,26 +194,13 @@ class ReturnToLaunch(State):
         try:
             # Get current position
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-            current_pos = mavdrone.get_vision_pos.pose.pose.position
 
             yasmin.YASMIN_LOG_INFO(
                 f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})"
             )
 
-            mavdrone.offboard_position(
-                x=takeoff_position[0] - current_pos.x,
-                y=takeoff_position[1] - current_pos.y,
-                z=mavdrone.get_height,
-                precision_radius=0.15,
-                timeout_sec=70.0,
-                strategy="PID",
-                ground_reference=True,
-            )
-
-            # Land at takeoff position
-            yasmin.YASMIN_LOG_INFO("Landing at takeoff position...")
-            mavdrone.land()
-            time.sleep(10)
+            mavdrone.rtl(TAKEOFF_ALTITUDE)
+            time.sleep(20)
 
             return SUCCEED
 
