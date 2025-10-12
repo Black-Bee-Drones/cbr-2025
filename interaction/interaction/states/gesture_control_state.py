@@ -146,9 +146,9 @@ class GestureControl(State):
             # Inicializa câmera
             self.image_handler = ImageHandler(
                 node=self.node,
-                image_source="webcam",
+                image_source="imx219",
                 image_processing_callback=self.process_image,
-                # config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2)
+                config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2)
             )
             
             time.sleep(1.0)  # Aguarda inicialização da câmera
