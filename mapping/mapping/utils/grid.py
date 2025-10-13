@@ -95,10 +95,13 @@ class Grid:
         waypoints = []
 
         # Calculate number of columns (Y-axis divisions) and points per column (X-axis divisions)
-        num_columns = max(1, int(math.ceil(self.search_width / self.grid_spacing)))
+        print(f"sw: {self.search_width}, gs: {self.grid_spacing}")
+        num_columns = max(1, int(math.ceil(self.search_width // self.grid_spacing)))
         points_per_column = (
-            max(1, int(math.ceil(self.search_height / self.grid_spacing))) + 1
+            max(1, int(math.ceil(self.search_height // self.grid_spacing)))   
         )
+
+        print(f"n: {num_columns}, p; {points_per_column}")
 
         for col in range(num_columns):
             # Calculate column Y position (columns are arranged along Y-axis)
@@ -122,6 +125,8 @@ class Grid:
                 y_pos, col, column_direction, points_per_column
             )
             waypoints.extend(column_points)
+        
+        print(waypoints)
 
         return waypoints
 
@@ -177,15 +182,29 @@ class Grid:
         points = []
 
         for point_idx in range(num_points):
+            # if direction == Direction.FORWARD:
+            #     # Moving forward means increasing X
+            #     x_pos = self.search_origin[0] + point_idx * self.grid_spacing
+            # else:  # BACKWARD
+            #     # Moving backward means decreasing X
+            #     x_pos = (
+            #         self.search_origin[0]
+            #         - point_idx * self.grid_spacing
+            #     )
+
             if direction == Direction.FORWARD:
                 # Moving forward means increasing X
-                x_pos = self.search_origin[0] + point_idx * self.grid_spacing
+                x_pos = (
+                    self.search_origin[0]
+                    - (num_points - 1 - point_idx) * self.grid_spacing
+                )
             else:  # BACKWARD
                 # Moving backward means decreasing X
                 x_pos = (
                     self.search_origin[0]
-                    + (num_points - 1 - point_idx) * self.grid_spacing
+                    - point_idx * self.grid_spacing
                 )
+
 
             # Check if point is within search bounds
             if (

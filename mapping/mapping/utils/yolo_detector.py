@@ -167,7 +167,7 @@ class YOLODetector:
         center_x, center_y = detection["center"]
 
         error_x = center_x - IMAGE_CENTER_X
-        error_y = center_y - (IMAGE_CENTER_Y - IMAGE_OFFSET_Y)
+        error_y = center_y - (IMAGE_CENTER_Y + IMAGE_OFFSET_Y)
 
         return error_x, error_y
 

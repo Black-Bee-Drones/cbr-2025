@@ -12,6 +12,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from yasmin_ros.yasmin_node import YasminNode
 
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.image_processing.camera import IMX219Config
 
 from mapping.constants import (
     TAKEOFF_ALTITUDE,
@@ -103,6 +104,7 @@ class NavigateToWaypoint(State):
                 timeout_sec=SEARCH_TIMEOUT,
                 strategy="PID",
                 ground_reference=True,
+                disable_altitude_control=True
             )
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
@@ -123,7 +125,9 @@ class CaptureAndDetect(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, "DETECTION_FOUND", ABORT])
         self.image_handler = ImageHandler(
-            node=YasminNode.get_instance(), image_source=CAMERA_SOURCE
+            node=YasminNode.get_instance(),
+            image_source=CAMERA_SOURCE,
+            config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2),
         )
 
     @staticmethod
@@ -356,9 +360,10 @@ class CaptureAndDetect(State):
                         y=est_y,
                         z=TAKEOFF_ALTITUDE,
                         ground_reference=True,
-                        precision_radius=0.2,
+                        precision_radius=0.16,
                         timeout_sec=10.0,
                         strategy="PID",
+                        disable_altitude_control=True
                     )
                     yasmin.YASMIN_LOG_INFO("Pre-centering complete")
 

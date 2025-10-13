@@ -39,7 +39,7 @@ class CenterOnDetection(State):
         self.image_handler = ImageHandler(
             node=self.node,
             image_source=CAMERA_SOURCE,
-            config=IMX219Config(sensor_id=0, width=1640, height=1232),
+            config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2),
         )
 
     def execute(self, blackboard: Blackboard):
@@ -195,6 +195,8 @@ class CenterOnDetection(State):
 
     def _phase2_descend_and_center(self) -> bool:
         """Phase 2: Descend to landing altitude while maintaining center."""
+        self.image_handler.open()
+        
         start_time = time.time()
         phase2_threshold = 100
 

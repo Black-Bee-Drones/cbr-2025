@@ -71,6 +71,13 @@ class Initialize(State):
             )
 
             blackboard["visited_bases"] = []
+            p = {
+                "x": mavdrone.get_vision_pos.pose.pose.position.x,
+                "y": mavdrone.get_vision_pos.pose.pose.position.y,
+                "z": mavdrone.get_vision_pos.pose.pose.position.z,
+                "timestamp": time.time(),
+            }
+            blackboard["visited_bases"].append(p)
             blackboard["current_target_waypoint"] = None
             blackboard["current_detection"] = None
             blackboard["return_to_waypoint"] = False
@@ -123,7 +130,7 @@ class Takeoff(State):
             )
 
         try:
-            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE - 1)
+            #mavdrone.arm_takeoff(TAKEOFF_ALTITUDE - 1)
 
             mavdrone.delay(3)
 
@@ -134,7 +141,7 @@ class Takeoff(State):
                 current_alt = mavdrone.get_rng_alt.range
                 yasmin.YASMIN_LOG_INFO(f"Current altitude: {current_alt:.2f}m")
 
-                altitude_error = TAKEOFF_ALTITUDE - current_alt
+                altitude_error = 0.0 # TAKEOFF_ALTITUDE - current_alt
 
                 if abs(altitude_error) < ALTITUDE_TOLERANCE:
                     yasmin.YASMIN_LOG_INFO(
@@ -194,10 +201,6 @@ class ReturnToLaunch(State):
         try:
             # Get current position
             rclpy.spin_once(YasminNode.get_instance(), timeout_sec=0.1)
-
-            yasmin.YASMIN_LOG_INFO(
-                f"Returning to position ({takeoff_position[0]:.2f}, {takeoff_position[1]:.2f})"
-            )
 
             mavdrone.rtl(TAKEOFF_ALTITUDE)
             time.sleep(20)

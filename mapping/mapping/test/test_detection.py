@@ -34,7 +34,7 @@ def test_detection():
     image_handler = ImageHandler(
         node=node, 
         image_source=CAMERA_SOURCE,
-        config=IMX219Config(sensor_id=0, width=1640, height=1232),
+        config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2),
     )
     time.sleep(2) 
     image_handler.open() 

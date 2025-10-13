@@ -15,21 +15,21 @@ CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
 # At 3m: coverage ≈ 3.63m x 2.73m
 # Grid spacing of 1.25m
-GRID_SPACING = 1.666
+GRID_SPACING = 1.25
 CENTERING_VEL_MAX = 0.21
 CENTERING_VEL_MIN = 0.06
 
 # Grid pattern configuration
 GRID_PATTERN_TYPE = "COLUMNS"  # "COLUMNS" or "ROWS"
-GRID_PRIMARY_DIRECTION = "FORWARD"  # Primary movement direction
-GRID_TRANSITION_DIRECTION = "RIGHT"  # Transition between columns/rows
+GRID_PRIMARY_DIRECTION = "BACKWARD"  # Primary movement direction
+GRID_TRANSITION_DIRECTION = "LEFT"  # Transition between columns/rows
 GRID_START_OFFSET = (
-    0.75,
     -0.5,
+    0.75,
 )  # (forward 0.75m, right 0.5m)
 
 # Duplicate detection
-DUPLICATE_BASE_RADIUS = 1.35  # meters - radius to consider as same base
+DUPLICATE_BASE_RADIUS = 1.2  # meters - radius to consider as same base
 
 # Timeouts
 SEARCH_TIMEOUT = 40
