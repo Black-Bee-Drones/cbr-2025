@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import rclpy
-import time
 
-from yasmin import StateMachine, State
+from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT, TIMEOUT
 from yasmin_ros.yasmin_node import YasminNode
 
@@ -17,21 +16,24 @@ from mapping.states import (
     ReturnToLaunch,
     End,
 )
+from mapping.constants import MAX_BASES_TO_VISIT
 
 
 class CBRPhase1StateMachine(StateMachine):
     """
     CBR 2025 Phase 1 State Machine - Location and Mapping
 
-    Mission: Detect 6 landing bases in 8x8m arena, land on each, and return to takeoff base.
-    Uses boustrophedon search pattern with odometry for navigation.
+    Mission: Detect landing bases in 8x8m arena, land on each, and return to takeoff base.
+    Uses boustrophedon search pattern with odometry for navigation
     """
 
-    def __init__(self):
+    def __init__(self, max_bases: int = MAX_BASES_TO_VISIT):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
         self.add_state(
-            "INITIALIZE", Initialize(), transitions={SUCCEED: "TAKEOFF", ABORT: "END"}
+            "INITIALIZE",
+            Initialize(max_bases=max_bases),
+            transitions={SUCCEED: "TAKEOFF", ABORT: "END"},
         )
 
         self.add_state(
@@ -100,7 +102,15 @@ def main() -> None:
     rclpy.init()
 
     try:
-        phase1_sm = CBRPhase1StateMachine()
+        yasmin_node = YasminNode.get_instance()
+        yasmin_node.declare_parameter("bases", MAX_BASES_TO_VISIT)
+        max_bases = (
+            yasmin_node.get_parameter("bases").get_parameter_value().integer_value
+        )
+
+        print(f"Mission configured for {max_bases} bases")
+
+        phase1_sm = CBRPhase1StateMachine(max_bases=max_bases)
 
         print(phase1_sm())
 

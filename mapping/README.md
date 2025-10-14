@@ -288,6 +288,20 @@ stateDiagram-v2
 - **Altitude Issues**: Lidar failure → Abort mission
 - **Battery Low**: Immediate RTL
 
+## ROS Parameters
+
+The mission can be configured using ROS 2 parameters:
+
+### `bases` (integer, default: 6)
+Maximum number of landing bases to visit before completing the mission.
+
+**Usage:**
+```bash
+ros2 run mapping mangalarga --ros-args -p bases:=3
+```
+
+This is useful when some plates are problematic in competition scenarios. Setting `bases:=3` will make the drone visit 3 bases and then return to launch, completing the mission.
+
 ## Dependencies
 
 - `mirela_sdk`: Drone control and image processing

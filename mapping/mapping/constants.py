@@ -7,6 +7,9 @@ ARENA_HEIGHT = 8.0
 SEARCH_AREA_WIDTH = 5.0
 SEARCH_AREA_HEIGHT = 5.0
 
+# Mission parameters
+MAX_BASES_TO_VISIT = 6  # Default maximum number of bases to visit
+
 # Flight parameters
 TAKEOFF_ALTITUDE = 2.4  # meters - takeoff and search altitud
 CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing

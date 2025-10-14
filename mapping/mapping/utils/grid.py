@@ -307,7 +307,7 @@ class Grid:
     def get_grid_bounds(self) -> Dict[str, float]:
         """
         Get the boundary limits of the grid.
-        
+
         Returns:
             Dictionary with keys: min_x, max_x, min_y, max_y
         """
@@ -318,10 +318,10 @@ class Grid:
                 "min_y": 0.0,
                 "max_y": 0.0,
             }
-        
+
         all_x = [wp["x"] for wp in self._waypoints]
         all_y = [wp["y"] for wp in self._waypoints]
-        
+
         return {
             "min_x": min(all_x),
             "max_x": max(all_x),

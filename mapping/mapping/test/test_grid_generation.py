@@ -45,19 +45,23 @@ def test_backward_left():
     n_columns = max(1, int(math.ceil(SEARCH_AREA_WIDTH / GRID_SPACING)))
     n_rows = max(1, int(math.ceil(SEARCH_AREA_HEIGHT / GRID_SPACING)))
     print(f"Expected number of columns: {n_columns}, Expected number of rows: {n_rows}")
-        
+
     # Test get_grid_bounds() method
     bounds = grid.get_grid_bounds()
     print(f"\nGrid bounds from get_grid_bounds():")
     print(f"  Min x: {bounds['min_x']}, Max x: {bounds['max_x']}")
     print(f"  Min y: {bounds['min_y']}, Max y: {bounds['max_y']}")
-    
+
     # Verify bounds match waypoints
-    expected_min_x = waypoints[n_columns - 1]['x']
-    expected_max_x = waypoints[0]['x']
+    expected_min_x = waypoints[n_columns - 1]["x"]
+    expected_max_x = waypoints[0]["x"]
     print(f"\nVerification:")
-    print(f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}")
-    print(f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}")
+    print(
+        f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}"
+    )
+    print(
+        f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}"
+    )
 
     return len(waypoints) == 16
 
@@ -106,13 +110,17 @@ def test_forward_right():
     print(f"\nGrid bounds from get_grid_bounds():")
     print(f"  Min x: {bounds['min_x']}, Max x: {bounds['max_x']}")
     print(f"  Min y: {bounds['min_y']}, Max y: {bounds['max_y']}")
-    
+
     # Verify bounds match waypoints
-    expected_min_x = waypoints[0]['x']
-    expected_max_x = waypoints[n_columns - 1]['x']
+    expected_min_x = waypoints[0]["x"]
+    expected_max_x = waypoints[n_columns - 1]["x"]
     print(f"\nVerification:")
-    print(f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}")
-    print(f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}")
+    print(
+        f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}"
+    )
+    print(
+        f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}"
+    )
 
     return len(waypoints) == 16
 

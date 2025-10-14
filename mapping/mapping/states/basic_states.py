@@ -28,12 +28,16 @@ from mapping.utils import Grid, YOLODetector
 class Initialize(State):
     """Initializes the drone connection and checks system status."""
 
-    def __init__(self):
+    def __init__(self, max_bases: int = 6):
         super().__init__(outcomes=[SUCCEED, ABORT])
+        self.max_bases = max_bases
 
     def execute(self, blackboard: Blackboard):
 
         try:
+            # Store max bases configuration in blackboard
+            blackboard["max_bases_to_visit"] = self.max_bases
+
             blackboard["mavdrone"] = MavDrone(
                 node=YasminNode.get_instance(), indoor=True
             )
@@ -87,6 +91,7 @@ class Initialize(State):
 
             pattern_summary = grid.get_pattern_summary()
             yasmin.YASMIN_LOG_INFO("Phase 1 Mission Initialized")
+            yasmin.YASMIN_LOG_INFO(f"Target bases to visit: {self.max_bases}")
             yasmin.YASMIN_LOG_INFO(
                 f"Pattern: {pattern_summary['pattern_type']} - {pattern_summary['primary_direction']}"
             )
@@ -192,14 +197,17 @@ class ReturnToLaunch(State):
         visited_bases = blackboard["visited_bases"]
         grid_waypoints = blackboard["grid_waypoints"]
 
-        yasmin.YASMIN_LOG_INFO(f"Mission Summary:")
+        max_bases = blackboard.get("max_bases_to_visit", 6)
+        yasmin.YASMIN_LOG_INFO("Mission Summary:")
         if grid_waypoints:
             progress = grid_waypoints.get_progress()
             yasmin.YASMIN_LOG_INFO(
                 f"  - Waypoints visited: {progress['visited_waypoints']}/{progress['total_waypoints']}"
             )
         yasmin.YASMIN_LOG_INFO(f"  - Landing bases visited: {len(visited_bases)}")
-        yasmin.YASMIN_LOG_INFO(f"  - Mission completion: {len(visited_bases)}/6 bases")
+        yasmin.YASMIN_LOG_INFO(
+            f"  - Mission completion: {len(visited_bases)}/{max_bases} bases"
+        )
 
         try:
             # Get current position
@@ -237,6 +245,7 @@ class End(State):
 
         visited_bases = blackboard["visited_bases"]
         grid_waypoints = blackboard["grid_waypoints"]
+        max_bases = blackboard.get("max_bases_to_visit", 6)
 
         yasmin.YASMIN_LOG_INFO("FINAL MISSION REPORT")
 
@@ -250,10 +259,10 @@ class End(State):
             )
         yasmin.YASMIN_LOG_INFO(f"Landing bases visited: {len(visited_bases)}")
         yasmin.YASMIN_LOG_INFO(
-            f"Mission success rate: {len(visited_bases)}/6 ({100*len(visited_bases)/6:.1f}%)"
+            f"Mission success rate: {len(visited_bases)}/{max_bases} ({100*len(visited_bases)/max_bases:.1f}%)"
         )
 
-        if len(visited_bases) == 6:
+        if len(visited_bases) == max_bases:
             yasmin.YASMIN_LOG_INFO("MISSION COMPLETED SUCCESSFULLY!")
         else:
             yasmin.YASMIN_LOG_INFO("Mission partially completed.")

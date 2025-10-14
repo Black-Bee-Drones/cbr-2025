@@ -73,8 +73,11 @@ class NavigateToWaypoint(State):
                 )
 
             visited_bases = blackboard["visited_bases"]
-            if len(visited_bases) >= 6:
-                yasmin.YASMIN_LOG_INFO("All 6 landing bases visited! Mission complete.")
+            max_bases = blackboard.get("max_bases_to_visit", 6)
+            if len(visited_bases) >= max_bases:
+                yasmin.YASMIN_LOG_INFO(
+                    f"All {max_bases} landing bases visited! Mission complete."
+                )
                 return "ALL_COMPLETE"
 
             target_waypoint = grid_waypoints.get_next_waypoint()

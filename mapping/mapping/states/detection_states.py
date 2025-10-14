@@ -196,7 +196,7 @@ class CenterOnDetection(State):
     def _phase2_descend_and_center(self) -> bool:
         """Phase 2: Descend to landing altitude while maintaining center."""
         self.image_handler.open()
-        
+
         start_time = time.time()
         phase2_threshold = 100
 
@@ -316,7 +316,10 @@ class LandAndWait(State):
             yasmin.YASMIN_LOG_INFO(
                 f"- Landed successfully! Waiting {LAND_WAIT_TIME} seconds..."
             )
-            yasmin.YASMIN_LOG_INFO(f"Total bases visited: {len(visited_bases)}/6")
+            max_bases = blackboard.get("max_bases_to_visit", 6)
+            yasmin.YASMIN_LOG_INFO(
+                f"Total bases visited: {len(visited_bases)}/{max_bases}"
+            )
 
             time.sleep(LAND_WAIT_TIME)
 
