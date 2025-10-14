@@ -8,12 +8,12 @@ SEARCH_AREA_WIDTH = 5.0
 SEARCH_AREA_HEIGHT = 5.0
 
 # Flight parameters
-TAKEOFF_ALTITUDE = 2.5  # meters - takeoff and search altitud
+TAKEOFF_ALTITUDE = 2.4  # meters - takeoff and search altitud
 CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
 # FOV: 62.2°(H) × 48.8°(V) at 1280x720
-# At 3m: coverage ≈ 3.63m x 2.73m
+# At 3m: coverage ≈ 3.63m x 2.73m At 2.5m: coverage ≈ 3.01m x 2.27m
 # Grid spacing of 1.25m
 GRID_SPACING = 1.25
 CENTERING_VEL_MAX = 0.21
