@@ -1,7 +1,9 @@
 import time
+import numpy as np
 
 from mirela_sdk.control.mavros.mavros_api import MavDrone
 from mirela_sdk.image_processing.camera.image_handler import ImageHandler
+from mirela_sdk.utils.position_utils import PositionUtils
 
 import yasmin
 from yasmin import State, Blackboard
@@ -48,6 +50,18 @@ class AlignPkg(State):
 
         yasmin.YASMIN_LOG_INFO("Starting aligning procedure using YOLO detector...")
         detections_lost = 0
+
+        vel_yaw = POSITION_CONTROLLER_KP_YAW
+
+        position = mavdrone.get_position
+        orientation = PositionUtils.get_yaw_from_pose(position)
+
+        initial_orientation = blackboard["initial_orientation"]
+        orientation_limit = initial_orientation + np.pi/2
+        if((orientation_limit - orientation) > (orientation - initial_orientation)):
+            vel_yaw *= -1
+
+
         start = time.time()
         while time.time() - start < ALIGN_TIMEOUT:
             frame = image_handler.take_photo()
@@ -77,8 +91,6 @@ class AlignPkg(State):
                 if package_proportion > PACKAGE_PROPORTION_ALIGN:
                     yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
                     return SUCCEED
-
-                vel_yaw = POSITION_CONTROLLER_KP_YAW
 
                 yasmin.YASMIN_LOG_INFO(f"Adjusting position: proportion={package_proportion:.2f}, angular_z={vel_yaw:.2f}")
                 mavdrone.offboard_velocity(

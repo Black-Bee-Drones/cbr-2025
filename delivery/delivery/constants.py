@@ -4,9 +4,9 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 1.5  # Meters
+TAKEOFF_ALTITUDE = 2.0  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
-MAX_ALTITUDE = 4.0  # Meters
+MAX_ALTITUDE = 2.8  # Meters
 MIN_CENTERING_ALTITUDE = 0.8  # Meters, final altitude above figure for landing
 TARGET_UP_ALTITUDE = 0.5  # Meters, how high the drone will climb if it doesn't find the package
 TARGET_DOWN_ALTITUDE = -0.25  # Meters, distancia de descida para para centralizar

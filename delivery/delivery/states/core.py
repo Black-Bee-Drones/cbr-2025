@@ -9,8 +9,10 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 from mirela_sdk.control.mavros import MavDrone
 from mirela_sdk.image_processing.camera import ImageHandler
 from mirela_sdk.image_processing.camera.imx219_cam import IMX219Config
+from mirela_sdk.utils.position_utils import PositionUtils
 
 from delivery.utils import YoloDetector, ImageCalculus
+from delivery.utils.center_with_arena import CenterWithArena
 
 from delivery.constants import (
     IS_INDOOR,
@@ -36,8 +38,10 @@ class Initialize(State):
 
             yasmin.YASMIN_LOG_INFO("Initializing blackboard constants...")
             blackboard["next_package"] = STARTING_PACKAGE_IDX
-            blackboard["packages_positions"] = PACKAGE_POSITIONS
-            blackboard["deliver_positions"] = DELIVER_POSITIONS
+            package_positions = PACKAGE_POSITIONS
+            blackboard["packages_positions"] = CenterWithArena.calc_arena_position(package_positions)
+            deliver_positions = DELIVER_POSITIONS
+            blackboard["deliver_positions"] = CenterWithArena.calc_arena_position(deliver_positions)
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_ERROR("Package positions not declared.")
@@ -51,6 +55,11 @@ class Initialize(State):
                 indoor=IS_INDOOR,
             )
             mavdrone: MavDrone = blackboard["mavdrone"]
+
+            mavdrone.delay(0.1)
+            position = mavdrone.get_position
+            initial_orientation = PositionUtils.get_yaw_from_pose(position)
+            blackboard["initial_orientation"] = initial_orientation
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageHandler...")
             blackboard["image_handler"] = ImageHandler(
