@@ -8,7 +8,7 @@ SEARCH_AREA_WIDTH = 5.0
 SEARCH_AREA_HEIGHT = 5.0
 
 # Flight parameters
-TAKEOFF_ALTITUDE = 3.0  # meters - takeoff and search altitud
+TAKEOFF_ALTITUDE = 2.5  # meters - takeoff and search altitud
 CENTERING_ALTITUDE = 1.2  # meters - altitude above figure for landing
 
 # Camera FOV calculations for Arducam v2.3 IMX219
@@ -29,7 +29,7 @@ GRID_START_OFFSET = (
 )  # (forward 0.75m, right 0.5m)
 
 # Duplicate detection
-DUPLICATE_BASE_RADIUS = 1.2  # meters - radius to consider as same base
+DUPLICATE_BASE_RADIUS = 1.3  # meters - radius to consider as same base
 
 # Timeouts
 SEARCH_TIMEOUT = 40
