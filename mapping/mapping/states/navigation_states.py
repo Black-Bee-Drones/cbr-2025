@@ -105,7 +105,7 @@ class NavigateToWaypoint(State):
                 timeout_sec=SEARCH_TIMEOUT,
                 strategy="PID",
                 ground_reference=True,
-                disable_altitude_control=True
+                disable_altitude_control=True,
             )
 
             yasmin.YASMIN_LOG_INFO("Waypoint reached successfully")
@@ -352,6 +352,22 @@ class CaptureAndDetect(State):
                         f"- Processing detection at ({est_x:.2f}, {est_y:.2f})"
                     )
 
+                    grid_waypoints = blackboard["grid_waypoints"]
+
+                    # Clip est_x and est_y to be within the search area grid boundaries
+                    grid_bounds = grid_waypoints.get_grid_bounds()
+                    est_x_original = est_x
+                    est_y_original = est_y
+
+                    est_x = max(grid_bounds["min_x"], min(grid_bounds["max_x"], est_x))
+                    est_y = max(grid_bounds["min_y"], min(grid_bounds["max_y"], est_y))
+
+                    if est_x != est_x_original or est_y != est_y_original:
+                        yasmin.YASMIN_LOG_INFO(
+                            f"Clipped position from ({est_x_original:.2f}, {est_y_original:.2f}) "
+                            f"to ({est_x:.2f}, {est_y:.2f}) within grid bounds"
+                        )
+
                     yasmin.YASMIN_LOG_INFO(
                         f"Pre-centering on detection at ({est_x:.2f}, {est_y:.2f})"
                     )
@@ -363,7 +379,7 @@ class CaptureAndDetect(State):
                         precision_radius=0.16,
                         timeout_sec=10.0,
                         strategy="PID",
-                        disable_altitude_control=True
+                        disable_altitude_control=True,
                     )
                     yasmin.YASMIN_LOG_INFO("Pre-centering complete")
 

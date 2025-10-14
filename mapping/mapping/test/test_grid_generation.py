@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import sys
 from mapping.utils.grid import Grid
+from mapping.constants import SEARCH_AREA_WIDTH, SEARCH_AREA_HEIGHT, GRID_SPACING
+import math
 
 
 def test_backward_left():
@@ -26,6 +28,8 @@ def test_backward_left():
     waypoints = grid.get_all_waypoints()
     print(f"\nVerification: Got {len(waypoints)} waypoints (expected 16)")
 
+    print(f"Waypoints: {waypoints}")
+
     expected_col1 = [(-1.75, 0.75), (-3.0, 0.75), (-4.25, 0.75), (-5.5, 0.75)]
     print("\nColumn 1 verification:")
     print("Expected points:", expected_col1)
@@ -37,6 +41,23 @@ def test_backward_left():
     print("Expected points:", expected_col2)
     actual_col2 = [(wp["x"], wp["y"]) for wp in waypoints[4:8]]
     print("Actual points:  ", [(round(x, 2), round(y, 2)) for x, y in actual_col2])
+
+    n_columns = max(1, int(math.ceil(SEARCH_AREA_WIDTH / GRID_SPACING)))
+    n_rows = max(1, int(math.ceil(SEARCH_AREA_HEIGHT / GRID_SPACING)))
+    print(f"Expected number of columns: {n_columns}, Expected number of rows: {n_rows}")
+        
+    # Test get_grid_bounds() method
+    bounds = grid.get_grid_bounds()
+    print(f"\nGrid bounds from get_grid_bounds():")
+    print(f"  Min x: {bounds['min_x']}, Max x: {bounds['max_x']}")
+    print(f"  Min y: {bounds['min_y']}, Max y: {bounds['max_y']}")
+    
+    # Verify bounds match waypoints
+    expected_min_x = waypoints[n_columns - 1]['x']
+    expected_max_x = waypoints[0]['x']
+    print(f"\nVerification:")
+    print(f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}")
+    print(f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}")
 
     return len(waypoints) == 16
 
@@ -75,6 +96,23 @@ def test_forward_right():
     print("Expected points:", expected_col2)
     actual_col2 = [(wp["x"], wp["y"]) for wp in waypoints[4:8]]
     print("Actual points:  ", [(round(x, 2), round(y, 2)) for x, y in actual_col2])
+
+    n_columns = max(1, int(math.ceil(SEARCH_AREA_WIDTH / GRID_SPACING)))
+    n_rows = max(1, int(math.ceil(SEARCH_AREA_HEIGHT / GRID_SPACING)))
+    print(f"Expected number of columns: {n_columns}, Expected number of rows: {n_rows}")
+
+    # Test get_grid_bounds() method
+    bounds = grid.get_grid_bounds()
+    print(f"\nGrid bounds from get_grid_bounds():")
+    print(f"  Min x: {bounds['min_x']}, Max x: {bounds['max_x']}")
+    print(f"  Min y: {bounds['min_y']}, Max y: {bounds['max_y']}")
+    
+    # Verify bounds match waypoints
+    expected_min_x = waypoints[0]['x']
+    expected_max_x = waypoints[n_columns - 1]['x']
+    print(f"\nVerification:")
+    print(f"  Expected min_x: {expected_min_x}, Got: {bounds['min_x']} {'✓' if bounds['min_x'] == expected_min_x else '✗'}")
+    print(f"  Expected max_x: {expected_max_x}, Got: {bounds['max_x']} {'✓' if bounds['max_x'] == expected_max_x else '✗'}")
 
     return len(waypoints) == 16
 

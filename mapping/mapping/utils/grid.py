@@ -104,7 +104,7 @@ class Grid:
                 # Moving right means decreasing Y
                 y_pos = self.search_origin[1] - col * self.grid_spacing
             else:  # LEFT
-                # Moving left means increasing Y 
+                # Moving left means increasing Y
                 y_pos = self.search_origin[1] + col * self.grid_spacing
 
             # Determine movement direction for this column (alternating)
@@ -303,6 +303,31 @@ class Grid:
     def get_all_waypoints(self) -> List[Dict[str, any]]:
         """Get all waypoints in order."""
         return self._waypoints.copy()
+
+    def get_grid_bounds(self) -> Dict[str, float]:
+        """
+        Get the boundary limits of the grid.
+        
+        Returns:
+            Dictionary with keys: min_x, max_x, min_y, max_y
+        """
+        if not self._waypoints:
+            return {
+                "min_x": 0.0,
+                "max_x": 0.0,
+                "min_y": 0.0,
+                "max_y": 0.0,
+            }
+        
+        all_x = [wp["x"] for wp in self._waypoints]
+        all_y = [wp["y"] for wp in self._waypoints]
+        
+        return {
+            "min_x": min(all_x),
+            "max_x": max(all_x),
+            "min_y": min(all_y),
+            "max_y": max(all_y),
+        }
 
     def reset(self):
         """Reset waypoint system to start."""
