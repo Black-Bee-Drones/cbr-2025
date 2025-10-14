@@ -204,13 +204,14 @@ class CaptureAndDetect(State):
         est_x, est_y = estimated_pos
 
         for base in visited_bases:
-            dx = abs(est_x - base["x"])
-            dy = abs(est_y - base["y"])
+            dx = est_x - base["x"]
+            dy = est_y - base["y"]
+            distance = math.hypot(dx, dy)
 
-            if dx < DUPLICATE_BASE_RADIUS and dy < DUPLICATE_BASE_RADIUS:
+            if distance < DUPLICATE_BASE_RADIUS:
                 yasmin.YASMIN_LOG_INFO(
                     f"  Detection at ({est_x:.2f}, {est_y:.2f}) is duplicate "
-                    f"(dx={dx:.2f}m, dy={dy:.2f}m from visited base)"
+                    f"(distance={distance:.2f}m from visited base)"
                 )
                 return True
 

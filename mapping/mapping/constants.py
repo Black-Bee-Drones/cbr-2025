@@ -32,7 +32,7 @@ GRID_START_OFFSET = (
 )  # (forward 0.75m, right 0.5m)
 
 # Duplicate detection
-DUPLICATE_BASE_RADIUS = 1.3  # meters - radius to consider as same base
+DUPLICATE_BASE_RADIUS = 0.7  # meters - radius to consider as same base
 
 # Timeouts
 SEARCH_TIMEOUT = 40
