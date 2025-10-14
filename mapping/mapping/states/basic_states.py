@@ -71,13 +71,16 @@ class Initialize(State):
             )
 
             blackboard["visited_bases"] = []
-            p = {
-                "x": mavdrone.get_vision_pos.pose.pose.position.x,
-                "y": mavdrone.get_vision_pos.pose.pose.position.y,
-                "z": mavdrone.get_vision_pos.pose.pose.position.z,
-                "timestamp": time.time(),
-            }
-            blackboard["visited_bases"].append(p)
+
+            # Add the initial position as a visited base
+            blackboard["visited_bases"].append(
+                {
+                    "x": mavdrone.get_vision_pos.pose.pose.position.x,
+                    "y": mavdrone.get_vision_pos.pose.pose.position.y,
+                    "z": mavdrone.get_vision_pos.pose.pose.position.z,
+                    "timestamp": time.time(),
+                }
+            )
             blackboard["current_target_waypoint"] = None
             blackboard["current_detection"] = None
             blackboard["return_to_waypoint"] = False
@@ -130,7 +133,7 @@ class Takeoff(State):
             )
 
         try:
-            #mavdrone.arm_takeoff(TAKEOFF_ALTITUDE - 1)
+            mavdrone.arm_takeoff(TAKEOFF_ALTITUDE - 1)
 
             mavdrone.delay(3)
 
@@ -141,7 +144,7 @@ class Takeoff(State):
                 current_alt = mavdrone.get_rng_alt.range
                 yasmin.YASMIN_LOG_INFO(f"Current altitude: {current_alt:.2f}m")
 
-                altitude_error = 0.0 # TAKEOFF_ALTITUDE - current_alt
+                altitude_error = TAKEOFF_ALTITUDE - current_alt
 
                 if abs(altitude_error) < ALTITUDE_TOLERANCE:
                     yasmin.YASMIN_LOG_INFO(

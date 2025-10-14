@@ -25,6 +25,9 @@ from mapping.constants import (
     CAMERA_FOV_VERTICAL,
     IMAGE_CENTER_X,
     IMAGE_CENTER_Y,
+    IMAGE_OFFSET_Y,
+    CAMERA_RESOLUTION_WIDTH,
+    CAMERA_RESOLUTION_HEIGHT,
 )
 from mapping.utils import YOLODetector
 
@@ -60,7 +63,6 @@ class NavigateToWaypoint(State):
             # Reset the flag - will be set again if more valid detections found
             blackboard["return_to_waypoint"] = False
         else:
-            # Normal flow - advance to next waypoint
             # Mark previous waypoint as visited if exists
             current_waypoint = blackboard["current_target_waypoint"]
             if current_waypoint:
@@ -70,7 +72,6 @@ class NavigateToWaypoint(State):
                     f"Waypoint {current_waypoint['index']} completed. Progress: {progress['progress_percent']:.1f}%"
                 )
 
-            # Check if mission complete
             visited_bases = blackboard["visited_bases"]
             if len(visited_bases) >= 6:
                 yasmin.YASMIN_LOG_INFO("All 6 landing bases visited! Mission complete.")
@@ -145,8 +146,8 @@ class CaptureAndDetect(State):
             2 * altitude * math.tan(math.radians(CAMERA_FOV_HORIZONTAL / 2))
         )
         coverage_height = 2 * altitude * math.tan(math.radians(CAMERA_FOV_VERTICAL / 2))
-        meters_per_pixel_x = coverage_width / (2 * IMAGE_CENTER_X)
-        meters_per_pixel_y = coverage_height / (2 * IMAGE_CENTER_Y)
+        meters_per_pixel_x = coverage_width / CAMERA_RESOLUTION_WIDTH
+        meters_per_pixel_y = coverage_height / CAMERA_RESOLUTION_HEIGHT
 
         return meters_per_pixel_x, meters_per_pixel_y
 
@@ -169,7 +170,7 @@ class CaptureAndDetect(State):
         pixel_x, pixel_y = detection["center"]
 
         offset_x = pixel_x - IMAGE_CENTER_X
-        offset_y = pixel_y - IMAGE_CENTER_Y
+        offset_y = pixel_y - (IMAGE_CENTER_Y + IMAGE_OFFSET_Y)
 
         meters_per_px_x, meters_per_px_y = CaptureAndDetect.calculate_meters_per_pixel(
             altitude
@@ -218,7 +219,7 @@ class CaptureAndDetect(State):
     ) -> List[Dict]:
         """
         Order detections by Y-axis (bottom-first if forward, top-first if backward)
-        and then by X-axis (left to right).
+        and then by X-axis (right to left).
 
         Args:
             detections: List of detection dicts
@@ -228,12 +229,12 @@ class CaptureAndDetect(State):
             Ordered list of detections
         """
         # Sort by Y first (reverse if moving forward - larger Y = bottom of image = closer)
-        # (left to right)
+        # (right to left)
         return sorted(
             detections,
             key=lambda d: (
                 -d["center"][1] if moving_forward else d["center"][1],  # Y-axis
-                d["center"][0],  # X-axis
+                -d["center"][0],  # X-axis
             ),
         )
 
@@ -294,7 +295,6 @@ class CaptureAndDetect(State):
 
                 visited_bases = blackboard["visited_bases"]
 
-                # Determine movement direction (forward if positive X movement in grid)
                 current_waypoint = blackboard["current_target_waypoint"]
                 moving_forward = True  # Default
                 if current_waypoint and "direction" in current_waypoint:

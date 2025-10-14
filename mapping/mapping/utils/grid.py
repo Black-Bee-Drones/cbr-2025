@@ -94,22 +94,17 @@ class Grid:
         """
         waypoints = []
 
-        # Calculate number of columns (Y-axis divisions) and points per column (X-axis divisions)
-        print(f"sw: {self.search_width}, gs: {self.grid_spacing}")
-        num_columns = max(1, int(math.ceil(self.search_width // self.grid_spacing)))
-        points_per_column = (
-            max(1, int(math.ceil(self.search_height // self.grid_spacing)))   
+        num_columns = max(1, int(math.ceil(self.search_width / self.grid_spacing)))
+        points_per_column = max(
+            1, int(math.ceil(self.search_height / self.grid_spacing))
         )
 
-        print(f"n: {num_columns}, p; {points_per_column}")
-
         for col in range(num_columns):
-            # Calculate column Y position (columns are arranged along Y-axis)
             if self.transition_direction == Direction.RIGHT:
-                # Moving right means decreasing Y (negative Y direction)
+                # Moving right means decreasing Y
                 y_pos = self.search_origin[1] - col * self.grid_spacing
             else:  # LEFT
-                # Moving left means increasing Y (positive Y direction)
+                # Moving left means increasing Y 
                 y_pos = self.search_origin[1] + col * self.grid_spacing
 
             # Determine movement direction for this column (alternating)
@@ -120,13 +115,10 @@ class Grid:
                 # Odd columns: reverse direction for boustrophedon
                 column_direction = self._reverse_direction(self.primary_direction)
 
-            # Generate points in this column
             column_points = self._generate_column_points(
                 y_pos, col, column_direction, points_per_column
             )
             waypoints.extend(column_points)
-        
-        print(waypoints)
 
         return waypoints
 
@@ -136,8 +128,6 @@ class Grid:
         Rows pattern: Move right/left along Y-axis, transition forward/backward along X-axis
         """
         waypoints = []
-
-        # Calculate number of rows (X-axis divisions) and points per row (Y-axis divisions)
         num_rows = max(1, int(math.ceil(self.search_height / self.grid_spacing)))
         points_per_row = (
             max(1, int(math.ceil(self.search_width / self.grid_spacing))) + 1
@@ -181,37 +171,31 @@ class Grid:
         """
         points = []
 
+        # Determine if this is an even or odd column for boustrophedon pattern
+        is_even_column = col % 2 == 0
+
         for point_idx in range(num_points):
-            # if direction == Direction.FORWARD:
-            #     # Moving forward means increasing X
-            #     x_pos = self.search_origin[0] + point_idx * self.grid_spacing
-            # else:  # BACKWARD
-            #     # Moving backward means decreasing X
-            #     x_pos = (
-            #         self.search_origin[0]
-            #         - point_idx * self.grid_spacing
-            #     )
+            if is_even_column:
+                if self.primary_direction == Direction.FORWARD:
+                    x_pos = self.search_origin[0] + (point_idx + 1) * self.grid_spacing
+                else:  # BACKWARD
+                    x_pos = self.search_origin[0] - (point_idx + 1) * self.grid_spacing
+            else:
+                if self.primary_direction == Direction.FORWARD:
+                    x_pos = (
+                        self.search_origin[0]
+                        + (num_points - point_idx) * self.grid_spacing
+                    )
+                else:  # BACKWARD
+                    x_pos = (
+                        self.search_origin[0]
+                        - (num_points - point_idx) * self.grid_spacing
+                    )
 
-            if direction == Direction.FORWARD:
-                # Moving forward means increasing X
-                x_pos = (
-                    self.search_origin[0]
-                    - (num_points - 1 - point_idx) * self.grid_spacing
-                )
-            else:  # BACKWARD
-                # Moving backward means decreasing X
-                x_pos = (
-                    self.search_origin[0]
-                    - point_idx * self.grid_spacing
-                )
-
-
-            # Check if point is within search bounds
             if (
                 x_pos <= self.search_origin[0] + self.search_height
                 and abs(y_pos - self.search_origin[1]) <= self.search_width
             ):
-
                 points.append(
                     {
                         "x": x_pos,
@@ -396,3 +380,53 @@ class Grid:
             visualization += f"  ... and {len(self._waypoints) - 10} more waypoints\n"
 
         return visualization
+
+    def get_structured_waypoints(self) -> str:
+        """
+        Get a structured view of waypoints organized by columns.
+
+        Returns:
+            String representation showing waypoint flow
+        """
+        if not self._waypoints:
+            return "No waypoints generated"
+
+        output = []
+        output.append("=" * 60)
+        output.append(f"Grid Configuration:")
+        output.append(f"  Pattern: {self.pattern_type.value}")
+        output.append(f"  Primary Direction: {self.primary_direction.value}")
+        output.append(f"  Transition Direction: {self.transition_direction.value}")
+        output.append(f"  Grid Size: {self.search_width}m x {self.search_height}m")
+        output.append(f"  Grid Spacing: {self.grid_spacing}m")
+        output.append(
+            f"  Initial Position: ({self.initial_position[0]:.2f}, {self.initial_position[1]:.2f})"
+        )
+        output.append(
+            f"  Start Offset: ({self.start_offset[0]:.2f}, {self.start_offset[1]:.2f})"
+        )
+        output.append(
+            f"  Search Origin: ({self.search_origin[0]:.2f}, {self.search_origin[1]:.2f})"
+        )
+        output.append("=" * 60)
+        output.append(f"Total Waypoints: {len(self._waypoints)}")
+        output.append("")
+
+        # Group waypoints by column
+        columns = {}
+        for wp in self._waypoints:
+            col = wp.get("column", wp.get("row", 0))
+            if col not in columns:
+                columns[col] = []
+            columns[col].append(wp)
+
+        # Display waypoints by column
+        for col_idx in sorted(columns.keys()):
+            output.append(f"Column {col_idx + 1}:")
+            for wp in columns[col_idx]:
+                output.append(
+                    f"  Point {wp['index']+1:2d}: ({wp['x']:6.2f}, {wp['y']:6.2f}) - {wp['direction']}"
+                )
+            output.append("")
+
+        return "\n".join(output)
