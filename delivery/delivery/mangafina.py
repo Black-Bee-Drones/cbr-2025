@@ -46,7 +46,7 @@ class Delivery(StateMachine):
             GoToTarget(desired_class="base"),
             transitions={
                 SUCCEED : "LAND",
-                ABORT   : ABORT,
+                ABORT   : "RETURN_TO_LAUNCH"
             },
         )
         self.add_state(
@@ -54,7 +54,7 @@ class Delivery(StateMachine):
             Land(),
             transitions={
                 SUCCEED : "DROP_PKG",
-                ABORT   : ABORT
+                ABORT   : "RETURN_TO_LAUNCH"
             }
         )
         self.add_state(
@@ -62,7 +62,7 @@ class Delivery(StateMachine):
             GripperController(action="open"),
             transitions={
                 SUCCEED: "TAKEOFF",
-                ABORT: ABORT,
+                ABORT: "RETURN_TO_LAUNCH"
             },
         )
         self.add_state(
