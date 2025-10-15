@@ -33,7 +33,7 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "TAKEOFF",
-            Takeoff(True),
+            Takeoff(),
             transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"},
         )
         self.add_state(
@@ -61,7 +61,7 @@ class Delivery(StateMachine):
             "DROP_PKG",
             GripperController(action="open"),
             transitions={
-                SUCCEED: "TAKEOFF",
+                SUCCEED: "RETURN_TO_LAUNCH",
                 ABORT: "RETURN_TO_LAUNCH"
             },
         )
