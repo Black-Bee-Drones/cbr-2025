@@ -15,9 +15,9 @@ PACKAGE_PROPORTION_ALIGN = 1.7  # How many times the smaller side fits into the 
 
 # Timeouts
 SEARCH_TIMEOUT = 30  # seconds
-CENTER_TIMEOUT = 30  # seconds
-ALIGN_TIMEOUT = 30  # seconds
-REACQUIRE_TIMEOUT = 5  # seconds
+CENTER_TIMEOUT = 60  # seconds
+ALIGN_TIMEOUT = 60  # seconds
+REACQUIRE_TIMEOUT = 30  # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = -1
@@ -39,7 +39,7 @@ YOLO_MODEL_PATH_PKG = os.path.join(
 YOLO_MODEL_PATH_CROSS = os.path.join(
     get_package_share_directory("delivery"), "models", "yolov11nTC.pt"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.2 
+YOLO_CONFIDENCE_THRESHOLD = 0.8
 DETECTION_SAVE_PATH = "detections/"  # save detection images
 
 # Camera
@@ -60,6 +60,6 @@ POSITION_CONTROLLER_TOLERANCE_XY = 35  # Meters, XY tolerance for considering th
 POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
 
 # Servo motor value
-SERVO_PIN_OUT = 1
-SERVO_OPEN_PWM = 1200
-SERVO_CLOSE_PWM = 1800
+SERVO_PIN_OUT = 4
+SERVO_OPEN_PWM = 1495
+SERVO_CLOSE_PWM = 2006
