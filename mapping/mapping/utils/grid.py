@@ -177,9 +177,9 @@ class Grid:
         for point_idx in range(num_points):
             if is_even_column:
                 if self.primary_direction == Direction.FORWARD:
-                    x_pos = self.search_origin[0] + (point_idx + 1) * self.grid_spacing
+                    x_pos = self.search_origin[0] + (point_idx) * self.grid_spacing
                 else:  # BACKWARD
-                    x_pos = self.search_origin[0] - (point_idx + 1) * self.grid_spacing
+                    x_pos = self.search_origin[0] - (point_idx) * self.grid_spacing
             else:
                 if self.primary_direction == Direction.FORWARD:
                     x_pos = (
