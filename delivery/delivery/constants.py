@@ -18,6 +18,9 @@ SEARCH_TIMEOUT = 30  # seconds
 CENTER_TIMEOUT = 60  # seconds
 ALIGN_TIMEOUT = 60  # seconds
 REACQUIRE_TIMEOUT = 30  # seconds
+CENTER_TIMEOUT = 60  # seconds
+ALIGN_TIMEOUT = 60  # seconds
+REACQUIRE_TIMEOUT = 30  # seconds
 
 # Package Info
 STARTING_PACKAGE_IDX = -1
@@ -60,6 +63,9 @@ POSITION_CONTROLLER_TOLERANCE_XY = 35  # Meters, XY tolerance for considering th
 POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
 
 # Servo motor value
+SERVO_PIN_OUT = 4
+SERVO_OPEN_PWM = 1495
+SERVO_CLOSE_PWM = 2006
 SERVO_PIN_OUT = 4
 SERVO_OPEN_PWM = 1495
 SERVO_CLOSE_PWM = 2006

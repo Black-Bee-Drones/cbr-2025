@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             "delivery_task = delivery.mangalarga:main",
             "cavalinho = delivery.cavalinho:main",
+            "mangafina = delivery.mangafina:main",
             "cam_test_node = delivery.utils.cam_test_node:main",
         ],
     },
