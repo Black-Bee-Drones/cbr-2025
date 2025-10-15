@@ -105,6 +105,8 @@ class Initialize(State):
 
             print(grid.visualize_pattern())
 
+            print(grid.get_all_waypoints())
+
             return SUCCEED
 
         except Exception as e:

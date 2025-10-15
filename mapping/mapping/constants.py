@@ -1,10 +1,11 @@
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 import os
+import time
 
 # Arena dimensions
 ARENA_WIDTH = 8.0
 ARENA_HEIGHT = 8.0
-SEARCH_AREA_WIDTH = 5.0
+SEARCH_AREA_WIDTH = 5.0 
 SEARCH_AREA_HEIGHT = 5.0
 
 # Mission parameters
@@ -29,14 +30,14 @@ GRID_TRANSITION_DIRECTION = "LEFT"  # Transition between columns/rows
 GRID_START_OFFSET = (
     -0.5,
     0.75,
-)  # (forward 0.75m, right 0.5m)
+)  
 
 # Duplicate detection
-DUPLICATE_BASE_RADIUS = 0.7  # meters - radius to consider as same base
+DUPLICATE_BASE_RADIUS = 0.75  # meters - radius to consider as same base
 
 # Timeouts
-SEARCH_TIMEOUT = 40
-TAKEOFF_TIMEOUT = 20  # seconds - takeoff timeout
+SEARCH_TIMEOUT = 30
+TAKEOFF_TIMEOUT = 12  # seconds - takeoff timeout
 
 # YOLO detection parameters
 YOLO_MODEL_PATH = os.path.join(
@@ -45,13 +46,13 @@ YOLO_MODEL_PATH = os.path.join(
 YOLO_CONFIDENCE_THRESHOLD = 0.65
 YOLO_IMAGE_SIZE = 640
 DETECTION_SAVE_PATH = os.path.join(
-    get_package_prefix("mapping").replace("install", "src"), "detections"
+    get_package_prefix("mapping"), "share", "detections_phase1"
 )
 
 # Centering control parameters
 CENTERING_P_GAIN = 0.00031  # P controller gain for centering (m/s per pixel)
 CENTERING_TOLERANCE_PX = 200  # pixel tolerance for considering centered
-CENTERING_TIMEOUT = 20  # seconds - max time for centering operation
+CENTERING_TIMEOUT = 35  # seconds - max time for centering operation
 LAND_WAIT_TIME = 5  # seconds - wait time after landing before takeoff
 DESCEND_KP = 0.16
 
@@ -70,4 +71,4 @@ CAMERA_FOV_VERTICAL = 48.8  # degrees
 CAMERA_PITCH = -90.0  # degrees - camera pointing down
 
 ALTITUDE_TOLERANCE = 0.1  # meters - altitude precision tolerance
-POSITION_TOLERANCE = 0.10  # meters - position precision tolerance
+POSITION_TOLERANCE = 0.12  # meters - position precision tolerance

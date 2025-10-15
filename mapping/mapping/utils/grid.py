@@ -94,10 +94,12 @@ class Grid:
         """
         waypoints = []
 
-        num_columns = max(1, int(math.ceil(self.search_width / self.grid_spacing)))
+        num_columns = max(1, int(math.ceil(self.search_width / self.grid_spacing))) + 1
         points_per_column = max(
             1, int(math.ceil(self.search_height / self.grid_spacing))
-        )
+        ) + 1                                                       
+
+        print(f"Num Columns:{num_columns}, Points: {points_per_column}")
 
         for col in range(num_columns):
             if self.transition_direction == Direction.RIGHT:
@@ -184,13 +186,15 @@ class Grid:
                 if self.primary_direction == Direction.FORWARD:
                     x_pos = (
                         self.search_origin[0]
-                        + (num_points - point_idx) * self.grid_spacing
+                        + (num_points - point_idx - 1) * self.grid_spacing
                     )
                 else:  # BACKWARD
                     x_pos = (
                         self.search_origin[0]
-                        - (num_points - point_idx) * self.grid_spacing
+                        - (num_points - point_idx - 1) * self.grid_spacing
                     )
+            
+            print(f"x: {x_pos}, y: {y_pos}")
 
             if (
                 x_pos <= self.search_origin[0] + self.search_height
@@ -392,14 +396,14 @@ class Grid:
         visualization = f"\nBoustrophedon Pattern Visualization:\n"
         visualization += f"Pattern: {self.pattern_type.value}, Primary: {self.primary_direction.value}\n"
         visualization += (
-            f"Bounds: X[{min_x:.1f}, {max_x:.1f}], Y[{min_y:.1f}, {max_y:.1f}]\n"
+            f"Bounds: X[{min_x:.2f}, {max_x:.2f}], Y[{min_y:.2f}, {max_y:.2f}]\n"
         )
         visualization += f"Total waypoints: {len(self._waypoints)}\n"
 
         # Show first few waypoints in order
         visualization += "\nFirst 10 waypoints in sequence:\n"
         for i, wp in enumerate(self._waypoints[:10]):
-            visualization += f"  {i+1:2d}: ({wp['x']:.1f}, {wp['y']:.1f}) - {wp.get('direction', 'N/A')}\n"
+            visualization += f"  {i+1:2d}: ({wp['x']:.4f}, {wp['y']:.4f}) - {wp.get('direction', 'N/A')}\n"
 
         if len(self._waypoints) > 10:
             visualization += f"  ... and {len(self._waypoints) - 10} more waypoints\n"
