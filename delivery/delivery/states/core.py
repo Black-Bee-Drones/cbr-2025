@@ -27,7 +27,8 @@ from delivery.constants import (
     IMAGE_CALCULUS_OFFSET_Y,
     CAMERA_FOV_HORIZONTAL,
     CAMERA_FOV_VERTICAL,
-    POSITION_CONTROLLER_KP_YAW
+    POSITION_CONTROLLER_KP_YAW,
+    SEARCH_TIMEOUT
 )
 
 
@@ -180,7 +181,7 @@ class AdjustYaw(State):
                 x=-1.0,
                 y=0.0, 
                 z=TAKEOFF_ALTITUDE,
-                timeout_sec=30,
+                timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True,
                 precision_radius=0.15
             )
@@ -188,7 +189,7 @@ class AdjustYaw(State):
                 x=-1.0,
                 y=1.0, 
                 z=TAKEOFF_ALTITUDE,
-                timeout_sec=30,
+                timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True,
                 precision_radius=0.15
             )

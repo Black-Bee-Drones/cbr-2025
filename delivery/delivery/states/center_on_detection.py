@@ -92,6 +92,7 @@ class CenterOnDetection(State):
                     error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
                 else:
                     error_y = center[1] - IMAGE_CENTER_Y
+                    
                 if (abs(error_x) <= POSITION_CONTROLLER_TOLERANCE_XY) and (abs(error_y) <= POSITION_CONTROLLER_TOLERANCE_XY):
                     yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                     return SUCCEED

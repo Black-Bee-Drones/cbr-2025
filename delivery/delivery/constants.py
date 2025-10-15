@@ -4,7 +4,7 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 2.0  # Meters
+TAKEOFF_ALTITUDE = 1.0  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
 MAX_ALTITUDE = 2.8  # Meters
 MIN_CENTERING_ALTITUDE = 0.8  # Meters, final altitude above figure for landing
@@ -14,10 +14,7 @@ DETECTIONS_LOST_TOLERANCE = 3  # Number of missed detections to consider it as l
 PACKAGE_PROPORTION_ALIGN = 1.7  # How many times the smaller side fits into the larger one to consider it aligned
 
 # Timeouts
-SEARCH_TIMEOUT = 30  # seconds
-CENTER_TIMEOUT = 60  # seconds
-ALIGN_TIMEOUT = 60  # seconds
-REACQUIRE_TIMEOUT = 30  # seconds
+SEARCH_TIMEOUT = 60  # seconds
 CENTER_TIMEOUT = 60  # seconds
 ALIGN_TIMEOUT = 60  # seconds
 REACQUIRE_TIMEOUT = 30  # seconds
@@ -63,9 +60,6 @@ POSITION_CONTROLLER_TOLERANCE_XY = 35  # Meters, XY tolerance for considering th
 POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the PID at the target
 
 # Servo motor value
-SERVO_PIN_OUT = 4
-SERVO_OPEN_PWM = 1495
-SERVO_CLOSE_PWM = 2006
 SERVO_PIN_OUT = 4
 SERVO_OPEN_PWM = 1495
 SERVO_CLOSE_PWM = 2006
