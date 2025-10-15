@@ -8,7 +8,7 @@ class CenterWithArena:
         for position in positions:
             x_y = {}
             x_y["x"] = -position["x"] - 2.2
-            x_y["y"] = position["y"] + 3.25
+            x_y["y"] = -position["y"] + 3.25
             arena_positions.append(x_y)
 
         return arena_positions

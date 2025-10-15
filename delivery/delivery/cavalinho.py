@@ -12,6 +12,7 @@ from delivery.states import (
     Initialize,
     Takeoff,
     Land,
+    AdjustYaw,
 )
 
 from delivery.state_machines import (
@@ -31,8 +32,13 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "TAKEOFF",
-            Takeoff(True),
-            transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"},
+            Takeoff(),
+            transitions={SUCCEED:"ADJUST_YAW", ABORT:"RETURN_TO_LAUNCH"},
+        )
+        self.add_state(
+            "ADJUST_YAW",
+            AdjustYaw(),
+            transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"}
         )
         self.add_state(
             "PICKUP",

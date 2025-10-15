@@ -57,8 +57,8 @@ class AlignPkg(State):
         orientation = PositionUtils.get_yaw_from_pose(position)
 
         initial_orientation = blackboard["initial_orientation"]
-        orientation_limit = initial_orientation + np.pi/2
-        if((orientation_limit - orientation) > (orientation - initial_orientation)):
+        orientation_limit = initial_orientation - np.pi/2
+        if((orientation - orientation_limit) > (initial_orientation - orientation)):
             vel_yaw *= -1
 
 
@@ -84,8 +84,8 @@ class AlignPkg(State):
 
                 side_x = abs(detection["package"]["bbox"][2] - detection["package"]["bbox"][0])
                 side_y = abs(detection["package"]["bbox"][3] - detection["package"]["bbox"][1])
-
-                yasmin.YASMIN_LOG_INFO(f"Bounding box: side_x = {side_x}, side_y = {side_y}")
+                mavdrone.node.get_logger().info(f"Bounding box: side_x = {side_x}, side_y = {side_y}", throttle_duration_sec = 0.1                       )
+                # yasmin.YASMIN_LOG_INFO(f"Bounding box: side_x = {side_x}, side_y = {side_y}")   
                 package_proportion = side_y/side_x
 
                 if package_proportion > PACKAGE_PROPORTION_ALIGN:

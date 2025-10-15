@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Optional
 import time
 
 from ultralytics import YOLO
+from ultralytics.utils import LOGGER
 
 from delivery.constants import (
     YOLO_MODEL_PATH_CROSS,
@@ -25,13 +26,14 @@ class YoloDetector:
             conf_package: float = YOLO_CONFIDENCE_THRESHOLD,
             save_image_path: str = DETECTION_SAVE_PATH,
         ):
+        LOGGER.setLevel("ERROR")
         self.model_cross = YOLO(model_cross_path)
         self.model_package = YOLO(model_package_path)
 
         self._conf_cross = conf_cross
         self._conf_package = conf_package
 
-        self._save_image_path = save_image_path
+        self._save_image_path =  DETECTION_SAVE_PATH
         self.detection_count = 0
 
     def detect(self,
@@ -199,5 +201,5 @@ class YoloDetector:
         # Salvar imagem com timestamp
         filename = f"{self._save_image_path}/frame_{int(timestamp)}.jpg"
         cv2.imwrite(filename, annotated_image)
-        print(f"Detection image saved: {filename}")
+        # print(f"Detection image saved: {filename}")
 

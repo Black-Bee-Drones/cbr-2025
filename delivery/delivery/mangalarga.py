@@ -31,7 +31,7 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "TAKEOFF",
-            Takeoff(True),
+            Takeoff(),
             transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"},
         )
         self.add_state(

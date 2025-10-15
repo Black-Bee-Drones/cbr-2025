@@ -72,7 +72,7 @@ class CenterOnDetection(State):
                 desired_class = [self._desired_class],
             )
 
-            yasmin.YASMIN_LOG_WARN(f'{detection}')
+            # yasmin.YASMIN_LOG_WARN(f'{detection}')
             
             if self._desired_class not in detection.keys():
                 detections_lost += 1
@@ -88,8 +88,10 @@ class CenterOnDetection(State):
                 center = detection[self._desired_class]["center"]
 
                 error_x = center[0] - IMAGE_CENTER_X
-                error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
-
+                if self._desired_class == "package":
+                    error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
+                else:
+                    error_y = center[1] - IMAGE_CENTER_Y
                 if (abs(error_x) <= POSITION_CONTROLLER_TOLERANCE_XY) and (abs(error_y) <= POSITION_CONTROLLER_TOLERANCE_XY):
                     yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                     return SUCCEED
@@ -100,8 +102,7 @@ class CenterOnDetection(State):
                 vel_x = self.saturate_abs(vel_x)
                 vel_y = self.saturate_abs(vel_y)
 
-                yasmin.YASMIN_LOG_INFO(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}")
-                print(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}")
+                mavdrone.node.get_logger().info(f"Adjusting position: \nerror_x={error_x:.2f}, \nerror_y={error_y:.2f}, \nlinear_x={vel_x:.2f}, \nlinear_y={vel_y:.2f}", throttle_duration_sec = 1.0)
                 mavdrone.offboard_velocity(
                     linear_x = vel_x,
                     linear_y = vel_y,

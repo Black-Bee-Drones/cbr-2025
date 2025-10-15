@@ -2,6 +2,7 @@ from .core import (
     Initialize,
     Takeoff,
     Land,
+    AdjustYaw,
 )
 
 from .center_on_detection import CenterOnDetection
@@ -24,5 +25,6 @@ __all__ = [
     'GripperController',
     "AlignPkg",
     "CheckPkg",
-    "HeightController"
+    "HeightController",
+    "AdjustYaw",
 ]

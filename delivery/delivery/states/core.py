@@ -1,4 +1,6 @@
 import time
+import math
+import rclpy
 
 import yasmin
 from yasmin import Blackboard
@@ -25,6 +27,7 @@ from delivery.constants import (
     IMAGE_CALCULUS_OFFSET_Y,
     CAMERA_FOV_HORIZONTAL,
     CAMERA_FOV_VERTICAL,
+    POSITION_CONTROLLER_KP_YAW
 )
 
 
@@ -60,6 +63,9 @@ class Initialize(State):
             position = mavdrone.get_position
             initial_orientation = PositionUtils.get_yaw_from_pose(position)
             blackboard["initial_orientation"] = initial_orientation
+            blackboard["initial_position"] = mavdrone.get_position_as_target
+            initial_position =  blackboard["initial_position"]
+            yasmin.YASMIN_LOG_INFO(f"Initial position set to: {initial_position}")
 
             yasmin.YASMIN_LOG_INFO("Initializing ImageHandler...")
             blackboard["image_handler"] = ImageHandler(
@@ -90,19 +96,20 @@ class Initialize(State):
 
 
 class Takeoff(State):
-    def __init__(self, update_initial_position: bool = False):
+    def __init__(self,):
         super().__init__(outcomes=[SUCCEED, ABORT])
-        self._update_initial_position = update_initial_position
-
+    
     def execute(self, blackboard: Blackboard):
+        blackboard["mavdrone"] = MavDrone(
+            node=YasminNode.get_instance(),
+            mavros=False,
+            indoor=IS_INDOOR,
+        )
+
         if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
             yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
             return ABORT
         mavdrone: MavDrone = blackboard["mavdrone"]
-
-        if self._update_initial_position:
-            yasmin.YASMIN_LOG_INFO('Update inicial position.')
-            blackboard["initial_position"] = mavdrone.get_position_as_target
 
         yasmin.YASMIN_LOG_INFO(f"Taking off to {TAKEOFF_ALTITUDE} meters...")
         try:
@@ -148,10 +155,70 @@ class Land(State):
                 yasmin.YASMIN_LOG_INFO('Try to normal land.')
 
         try:
-            mavdrone.offboard_position(x=0.0, y=0.0, z=(0.17 - mavdrone.get_height), ground_reference=False, precision_radius=0.04, timeout_sec=15.0)
             mavdrone.land()
             mavdrone.delay(10) 
             yasmin.YASMIN_LOG_INFO("Landed successfully.")
+            return SUCCEED
+
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
+            return ABORT
+
+class AdjustYaw(State):
+    def __init__(self):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+
+    def execute(self, blackboard: Blackboard):
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(f"Mavdrone not available in {self.__class__.__name__} state.")
+            return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
+
+        yasmin.YASMIN_LOG_INFO("Executing Adjust Yaw...")
+        try:
+            mavdrone.offboard_position(
+                x=-1.0,
+                y=0.0, 
+                z=TAKEOFF_ALTITUDE,
+                timeout_sec=30,
+                ground_reference=True,
+                precision_radius=0.15
+            )
+            mavdrone.offboard_position(
+                x=-1.0,
+                y=1.0, 
+                z=TAKEOFF_ALTITUDE,
+                timeout_sec=30,
+                ground_reference=True,
+                precision_radius=0.15
+            )
+
+            yasmin.YASMIN_LOG_INFO("Adjust in position completed.")
+
+            position = mavdrone.get_position
+            orientation = PositionUtils.get_yaw_from_pose(position)
+
+            initial_orientation = blackboard["initial_orientation"]
+            
+            initial_orientation = math.degrees(initial_orientation)
+
+            current_orientation = math.degrees(orientation)
+
+            yaw_error = initial_orientation - current_orientation
+            print(f"os carai {yaw_error} | inicial {initial_orientation} | atual {current_orientation}")
+            while yaw_error < 87:
+                rclpy.spin_once(mavdrone.node, timeout_sec=0.1)
+                mavdrone.node.get_logger().info(f"Yaw: {yaw_error}/90", throttle_duration_sec=0.1)
+                mavdrone.offboard_velocity(
+                    angular_z=-POSITION_CONTROLLER_KP_YAW
+                )
+                position = mavdrone.get_position
+                orientation = PositionUtils.get_yaw_from_pose(position)
+                current_orientation = math.degrees(orientation)
+                yaw_error = initial_orientation - current_orientation
+
+            yasmin.YASMIN_LOG_INFO("Adjust Yaw completed")
+
             return SUCCEED
 
         except Exception as e:
