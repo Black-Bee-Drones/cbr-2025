@@ -73,7 +73,7 @@ class NavigateToWaypoint(State):
                 )
 
             visited_bases = blackboard["visited_bases"]
-            max_bases = blackboard.get("max_bases_to_visit", 6)
+            max_bases = blackboard["max_bases_to_visit"]
             if len(visited_bases) >= max_bases:
                 yasmin.YASMIN_LOG_INFO(
                     f"All {max_bases} landing bases visited! Mission complete."
@@ -380,7 +380,7 @@ class CaptureAndDetect(State):
                         y=est_y,
                         z=TAKEOFF_ALTITUDE,
                         ground_reference=True,
-                        precision_radius=0.16,
+                        precision_radius=0.15,
                         timeout_sec=10.0,
                         strategy="PID",
                         disable_altitude_control=True,

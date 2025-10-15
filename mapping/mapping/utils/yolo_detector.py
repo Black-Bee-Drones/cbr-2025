@@ -23,8 +23,11 @@ from mapping.constants import (
     IMAGE_OFFSET_Y,
 )
 
+from ultralytics.utils import LOGGER
 
-class YOLODetector:
+LOGGER.setLevel("ERROR")
+
+class YOLODetector: 
     """
     YOLO-based landing base detector for CB5 Phase 1.
 
@@ -229,6 +232,8 @@ class YOLODetector:
             (255, 0, 0),
             2,
         )
+
+        os.makedirs(f"{DETECTION_SAVE_PATH}/{timestamp}", exist_ok=True)
 
         filename = f"{DETECTION_SAVE_PATH}/{timestamp}/detection_{self.detection_count:04d}.jpg"
         cv2.imwrite(filename, annotated_image)

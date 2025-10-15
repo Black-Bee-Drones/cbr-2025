@@ -36,7 +36,7 @@ class Initialize(State):
 
         try:
             # Store max bases configuration in blackboard
-            blackboard["max_bases_to_visit"] = self.max_bases
+            blackboard["max_bases_to_visit"] = self.max_bases + 1
 
             blackboard["mavdrone"] = MavDrone(
                 node=YasminNode.get_instance(), indoor=True
@@ -197,7 +197,7 @@ class ReturnToLaunch(State):
         visited_bases = blackboard["visited_bases"]
         grid_waypoints = blackboard["grid_waypoints"]
 
-        max_bases = blackboard.get("max_bases_to_visit", 6)
+        max_bases = blackboard["max_bases_to_visit"]
         yasmin.YASMIN_LOG_INFO("Mission Summary:")
         if grid_waypoints:
             progress = grid_waypoints.get_progress()
@@ -245,7 +245,7 @@ class End(State):
 
         visited_bases = blackboard["visited_bases"]
         grid_waypoints = blackboard["grid_waypoints"]
-        max_bases = blackboard.get("max_bases_to_visit", 6)
+        max_bases = blackboard["max_bases_to_visit"]
 
         yasmin.YASMIN_LOG_INFO("FINAL MISSION REPORT")
 

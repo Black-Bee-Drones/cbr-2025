@@ -316,7 +316,7 @@ class LandAndWait(State):
             yasmin.YASMIN_LOG_INFO(
                 f"- Landed successfully! Waiting {LAND_WAIT_TIME} seconds..."
             )
-            max_bases = blackboard.get("max_bases_to_visit", 6)
+            max_bases = blackboard["max_bases_to_visit"]
             yasmin.YASMIN_LOG_INFO(
                 f"Total bases visited: {len(visited_bases)}/{max_bases}"
             )
