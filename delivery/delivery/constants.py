@@ -61,5 +61,11 @@ POSITION_CONTROLLER_TOLERANCE_Z = 0.1  # Meters, Z tolerance for considering the
 
 # Servo motor value
 SERVO_PIN_OUT = 4
+<<<<<<< Updated upstream
 SERVO_OPEN_PWM = 1266.0
 SERVO_CLOSE_PWM = 1906.0
+=======
+SERVO_OPEN_PWM = 1495
+SERVO_CLOSE_PWM = 2006
+
+>>>>>>> Stashed changes

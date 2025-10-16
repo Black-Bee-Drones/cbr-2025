@@ -14,7 +14,7 @@ from mirela_sdk.image_processing.camera.imx219_cam import IMX219Config
 from mirela_sdk.utils.position_utils import PositionUtils
 
 from delivery.utils import YoloDetector, ImageCalculus
-from delivery.utils.center_with_arena import CenterWithArena
+from delivery.utils.calculate_target_position import CalculateTargetPosition
 
 from delivery.constants import (
     IS_INDOOR,
@@ -43,9 +43,9 @@ class Initialize(State):
             yasmin.YASMIN_LOG_INFO("Initializing blackboard constants...")
             blackboard["next_package"] = STARTING_PACKAGE_IDX
             package_positions = PACKAGE_POSITIONS
-            blackboard["packages_positions"] = CenterWithArena.calc_arena_position(package_positions)
+            blackboard["packages_positions"] = CalculateTargetPosition.calc_offset_position(package_positions)
             deliver_positions = DELIVER_POSITIONS
-            blackboard["deliver_positions"] = CenterWithArena.calc_arena_position(deliver_positions)
+            blackboard["deliver_positions"] = CalculateTargetPosition.calc_arena_position(deliver_positions)
 
             if not blackboard["packages_positions"]:
                 yasmin.YASMIN_LOG_ERROR("Package positions not declared.")
@@ -140,7 +140,46 @@ class Land(State):
             yasmin.YASMIN_LOG_INFO("Returning to launch...")
 
             try:
+                position = mavdrone.get_position
+                orientation = PositionUtils.get_yaw_from_pose(position)
+                orientation = math.degrees(orientation)
+
+                initial_orientation = blackboard["initial_orientation"]
+                initial_orientation = math.degrees(initial_orientation)
+                yaw_error = initial_orientation - orientation
+                while yaw_error > 0.1:
+                    rclpy.spin_once(mavdrone.node, timeout_sec=0.1)
+                    mavdrone.node.get_logger().info(f"Yaw error: {yaw_error}", throttle_duration_sec=0.1)
+
+                    mavdrone.offboard_velocity(
+                        angular_z=POSITION_CONTROLLER_KP_YAW,
+                    )
+                    
+                    position = mavdrone.get_position
+                    orientation = PositionUtils.get_yaw_from_pose(position)
+                    orientation = math.degrees(orientation)
+
+                    yaw_error = initial_orientation - orientation
+
+                yasmin.YASMIN_LOG_INFO("Orientation adjusted. Returning to launch point.")
+
+                mavdrone.delay(1)
+
+                deliver_positions = blackboard["deliver_positions"]
+                current_position = deliver_positions[0]
+
                 mavdrone.set_takeoff_position(blackboard["initial_position"])
+
+                mavdrone.offboard_position(
+                    x=current_position["x"],
+                    y=0.0,
+                    z=TAKEOFF_ALTITUDE,
+                    timeout_sec=30,
+                    ground_reference=True,
+                    precision_radius=0.15
+                )
+
+                
                 mavdrone.rtl(
                     rtl_alt=TAKEOFF_ALTITUDE,
                     precision_radius=0.25,
