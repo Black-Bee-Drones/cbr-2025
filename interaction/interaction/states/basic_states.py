@@ -54,7 +54,7 @@ class Initialize(State):
 
             blackboard["takeoff_position"] = takeoff_position
             blackboard["initial_orientation"] = PositionUtils.get_yaw_from_pose(
-                takeoff_position
+                mavdrone.get_position
             )
             blackboard["rtl_land_counter"] = 0
 
@@ -207,6 +207,16 @@ class ReturnToLaunch(State):
             return ABORT
 
         try:
+            mavdrone.set_takeoff_position(blackboard["initial_position"])
+            mavdrone.offboard_position(
+                x=mavdrone.get_position.pose.pose.position.x,
+                y=0.0,
+                z=TAKEOFF_HEIGHT,
+                timeout_sec=40,
+                ground_reference=True,
+                precision_radius=0.15,
+                disable_altitude_control=True,
+            )
             mavdrone.rtl(
                 rtl_alt=None, precision_radius=0.1, rtl_strategy="default", land=False
             )

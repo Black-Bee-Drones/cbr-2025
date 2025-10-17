@@ -51,7 +51,7 @@ class CBRPhase3StateMachine(StateMachine):
 
         self.add_state(
             "TAKEOFF_RTL",
-            Takeoff(TAKEOFF_POSE),
+            Takeoff(TAKEOFF_HEIGHT),
             transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"},
         )
 
@@ -70,6 +70,10 @@ def main() -> None:
     rclpy.init()
 
     try:
+        # Get yasmin node and declare parameter
+        yasmin_node = YasminNode.get_instance()
+        yasmin_node.declare_parameter("max_lands", 6)
+
         phase3_sm = CBRPhase3StateMachine()
 
         print(phase3_sm())

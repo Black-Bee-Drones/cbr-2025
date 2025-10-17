@@ -49,35 +49,70 @@ class PoseControl(State):
         self.blackboard = None
         self.land_count = 0
 
+        # Gesture to command mapping with logging
         self.gesture_commands = {
-            "double_biceps": lambda: self.mavdrone.arm_takeoff(TAKEOFF_POSE),
-            "cross_arms": lambda: self.land_and_count(),
-            "right_arm_up_left_arm_side": lambda: self.mavdrone.offboard_velocity(
-                linear_y=-VELOCITY_SIDES
-            ),
-            "left_arm_up_right_arm_side": lambda: self.mavdrone.offboard_velocity(
-                linear_y=VELOCITY_SIDES
-            ),
-            "both_arms_down": lambda: self.mavdrone.offboard_velocity(
-                linear_z=-VELOCITY_UP_DOWN
-            ),
-            "both_arms_up": lambda: self.mavdrone.offboard_velocity(
-                linear_z=VELOCITY_UP_DOWN
-            ),
-            "right_arm_biceps_left_arm_down": lambda: self.mavdrone.offboard_velocity(
-                linear_x=VELOCITY_IN_OUT
-            ),
-            "left_arm_biceps_right_arm_down": lambda: self.mavdrone.offboard_velocity(
-                linear_x=-VELOCITY_IN_OUT
-            ),
-            "left_arm_down_right_arm_side": lambda: self.mavdrone.offboard_velocity(
-                angular_z=-VELOCITY_YAW
-            ),
-            "right_arm_down_left_arm_side": lambda: self.mavdrone.offboard_velocity(
-                angular_z=VELOCITY_YAW
-            ),
-            "neutral": lambda: self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0),
+            "double_biceps": self._cmd_takeoff,
+            "cross_arms": self._cmd_land,
+            "right_arm_up_left_arm_side": self._cmd_move_left,
+            "left_arm_up_right_arm_side": self._cmd_move_right,
+            "both_arms_down": self._cmd_move_down,
+            "both_arms_up": self._cmd_move_up,
+            "right_arm_biceps_left_arm_down": self._cmd_move_forward,
+            "left_arm_biceps_right_arm_down": self._cmd_move_backward,
+            "left_arm_down_right_arm_side": self._cmd_yaw_right,
+            "right_arm_down_left_arm_side": self._cmd_yaw_left,
+            "neutral": self._cmd_neutral,
         }
+
+    def _cmd_takeoff(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] arm_takeoff({TAKEOFF_POSE})")
+        self.mavdrone.arm_takeoff(TAKEOFF_POSE)
+
+    def _cmd_land(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] land() [Count: {self.land_count + 1}]")
+        self.land_and_count()
+
+    def _cmd_move_left(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] offboard_velocity(linear_y={-VELOCITY_SIDES})")
+        self.mavdrone.offboard_velocity(linear_y=-VELOCITY_SIDES)
+
+    def _cmd_move_right(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] offboard_velocity(linear_y={VELOCITY_SIDES})")
+        self.mavdrone.offboard_velocity(linear_y=VELOCITY_SIDES)
+
+    def _cmd_move_down(self):
+        yasmin.YASMIN_LOG_INFO(
+            f"[DRONE] offboard_velocity(linear_z={-VELOCITY_UP_DOWN})"
+        )
+        self.mavdrone.offboard_velocity(linear_z=-VELOCITY_UP_DOWN)
+
+    def _cmd_move_up(self):
+        yasmin.YASMIN_LOG_INFO(
+            f"[DRONE] offboard_velocity(linear_z={VELOCITY_UP_DOWN})"
+        )
+        self.mavdrone.offboard_velocity(linear_z=VELOCITY_UP_DOWN)
+
+    def _cmd_move_forward(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] offboard_velocity(linear_x={VELOCITY_IN_OUT})")
+        self.mavdrone.offboard_velocity(linear_x=VELOCITY_IN_OUT)
+
+    def _cmd_move_backward(self):
+        yasmin.YASMIN_LOG_INFO(
+            f"[DRONE] offboard_velocity(linear_x={-VELOCITY_IN_OUT})"
+        )
+        self.mavdrone.offboard_velocity(linear_x=-VELOCITY_IN_OUT)
+
+    def _cmd_yaw_right(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] offboard_velocity(angular_z={-VELOCITY_YAW})")
+        self.mavdrone.offboard_velocity(angular_z=-VELOCITY_YAW)
+
+    def _cmd_yaw_left(self):
+        yasmin.YASMIN_LOG_INFO(f"[DRONE] offboard_velocity(angular_z={VELOCITY_YAW})")
+        self.mavdrone.offboard_velocity(angular_z=VELOCITY_YAW)
+
+    def _cmd_neutral(self):
+        yasmin.YASMIN_LOG_INFO("[DRONE] offboard_velocity(0.0, 0.0, 0.0, 0.0) - STOP")
+        self.mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0)
 
     def land_and_count(self):
         """Land and count for exit condition."""
@@ -101,6 +136,10 @@ class PoseControl(State):
         self.node = YasminNode.get_instance()
         self.blackboard = blackboard
 
+        # Get max_lands parameter from ROS
+        max_lands = self.node.get_parameter("max_lands").value
+        yasmin.YASMIN_LOG_INFO(f"Max lands to exit: {max_lands}")
+
         try:
             if not self._initialize_camera():
                 return ABORT
@@ -110,9 +149,9 @@ class PoseControl(State):
             while rclpy.ok():
                 rclpy.spin_once(self.node, timeout_sec=0.1)
 
-                if self.land_count >= 6:
+                if self.land_count >= max_lands:
                     yasmin.YASMIN_LOG_INFO(
-                        "Land count reached 6, exiting PoseControl state."
+                        f"Land count reached {max_lands}, exiting PoseControl state."
                     )
                     self._cleanup()
                     return SUCCEED
@@ -248,14 +287,19 @@ class PoseControl(State):
             single_gestures = ["double_biceps", "cross_arms"]
 
             if self.confirmed_gesture in continuous_gestures:
+                # Execute continuous commands (every frame after timeout)
                 self.gesture_commands[self.confirmed_gesture]()
 
             elif self.confirmed_gesture in single_gestures and not self.command_sent:
+                # Execute single actions only once
                 yasmin.YASMIN_LOG_INFO(
-                    f"Executing single action: {self.confirmed_gesture}"
+                    f"▶ Executing SINGLE action: {self.confirmed_gesture}"
                 )
                 self.gesture_commands[self.confirmed_gesture]()
                 self.command_sent = True
+                yasmin.YASMIN_LOG_INFO(
+                    "  (Command sent once, won't repeat even if gesture held)"
+                )
 
     def _cleanup(self):
         """Clean up resources."""

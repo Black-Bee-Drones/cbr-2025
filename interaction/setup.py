@@ -29,6 +29,7 @@ setup(
         "console_scripts": [
             "gesture_recognizer = interaction.mav_gesture_recognizer:main",
             "test_detection = interaction.test.test_detection:main",
+            "sm_interaction = interaction.sm_interaction:main",
         ],
     },
 )
