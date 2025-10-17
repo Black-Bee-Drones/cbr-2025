@@ -4,7 +4,7 @@ import os
 
 # Delivery constants
 IS_INDOOR = True
-TAKEOFF_ALTITUDE = 2.4  # Meters
+TAKEOFF_ALTITUDE = 2.6  # Meters
 TAKEOFF_SLEEP = 5.0 # Seconds
 MAX_ALTITUDE = 2.8  # Meters
 MIN_CENTERING_ALTITUDE = 0.79  # Meters, final altitude above figure for landing
@@ -40,7 +40,7 @@ YOLO_MODEL_PATH_PKG = os.path.join(
 YOLO_MODEL_PATH_CROSS = os.path.join(
     get_package_share_directory("delivery"), "models", "yolov11nTC.pt"
 )
-YOLO_CONFIDENCE_THRESHOLD = 0.6 
+YOLO_CONFIDENCE_THRESHOLD = 0.6
 DETECTION_SAVE_PATH = os.path.join(get_package_share_directory("delivery"), "detections")  # save detection images
 
 # Camera

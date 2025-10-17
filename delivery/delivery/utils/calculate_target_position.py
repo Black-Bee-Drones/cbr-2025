@@ -19,7 +19,7 @@ class CalculateTargetPosition:
         for position in positions:
             x_y = {}
             x_y["x"] = -position["x"] + 0.7
-            x_y["y"] = -position["y"] - 0.1
+            x_y["y"] = -position["y"]
             arena_positions.append(x_y)
 
         return arena_positions

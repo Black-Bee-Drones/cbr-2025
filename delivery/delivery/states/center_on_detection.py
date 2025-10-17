@@ -87,7 +87,7 @@ class CenterOnDetection(State):
 
                 center = detection[self._desired_class]["center"]
 
-                error_x = center[0] - IMAGE_CENTER_X + 10
+                error_x = center[0] - IMAGE_CENTER_X + 11
                 if self._desired_class == "package":
                     error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
                 else:

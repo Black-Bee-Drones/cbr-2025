@@ -39,7 +39,7 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "ADJUST_YAW",
-            AdjustYaw(adjust=False),
+            AdjustYaw(adjust=True),
             transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"}
         )
         self.add_state(
