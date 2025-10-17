@@ -87,18 +87,30 @@ class CenterOnDetection(State):
 
                 center = detection[self._desired_class]["center"]
 
-                error_x = center[0] - IMAGE_CENTER_X
+                error_x = center[0] - IMAGE_CENTER_X + 10
                 if self._desired_class == "package":
                     error_y = center[1] - (IMAGE_CENTER_Y - IMAGE_CALCULUS_OFFSET_Y)
                 else:
                     error_y = center[1] - IMAGE_CENTER_Y
                     
-                if (abs(error_x) <= POSITION_CONTROLLER_TOLERANCE_XY) and (abs(error_y) <= POSITION_CONTROLLER_TOLERANCE_XY):
+                height = mavdrone.get_height
+
+                improve_kp = 1.0
+
+                if height > 1.2:
+                    tolerance = 40
+                elif height > 1.0:
+                    improve_kp = 0.7
+                    tolerance = 31
+                else:
+                    improve_kp = 0.5
+                    tolerance = 17    
+                if (abs(error_x) <= tolerance) and (abs(error_y) <= tolerance):
                     yasmin.YASMIN_LOG_INFO(f"Target centered successfully (error_x={error_x:.2f}, error_y={error_y:.2f}).")
                     return SUCCEED
 
-                vel_x = error_y * POSITION_CONTROLLER_KP_XY
-                vel_y = error_x * POSITION_CONTROLLER_KP_XY
+                vel_x = error_y * POSITION_CONTROLLER_KP_XY * improve_kp
+                vel_y = error_x * POSITION_CONTROLLER_KP_XY * improve_kp
 
                 vel_x = self.saturate_abs(vel_x)
                 vel_y = self.saturate_abs(vel_y)

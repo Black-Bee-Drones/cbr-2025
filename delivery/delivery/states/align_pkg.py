@@ -65,7 +65,7 @@ class AlignPkg(State):
         start = time.time()
         while time.time() - start < ALIGN_TIMEOUT:
             frame = image_handler.take_photo()
-
+# Draw line from center to target
             detection = yolo_detector.detect(
                 frame = frame,
                 desired_class = ["package"],
@@ -89,6 +89,9 @@ class AlignPkg(State):
                 package_proportion = side_y/side_x
 
                 if package_proportion > PACKAGE_PROPORTION_ALIGN:
+                    # position = mavdrone.get_position
+                    # orientation = PositionUtils.get_yaw_from_pose(position)
+                    # blackboard["orientation_aligned"] = orientation
                     yasmin.YASMIN_LOG_INFO("Succeed, drone aligned with package.")
                     return SUCCEED
 

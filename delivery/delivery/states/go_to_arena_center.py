@@ -23,6 +23,7 @@ class GoToArenaCenter(State):
                 z = 0.0,
                 timeout_sec=30,
                 precision_radius=0.3,
+                disable_altitude_control=True,
             )
             yasmin.YASMIN_LOG_INFO("Reached arena's center.")
             return SUCCEED

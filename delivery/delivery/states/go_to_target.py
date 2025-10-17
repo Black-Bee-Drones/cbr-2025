@@ -65,6 +65,7 @@ class GoToTarget(State):
                 z=TAKEOFF_ALTITUDE,
                 timeout_sec=SEARCH_TIMEOUT,
                 ground_reference=True,
+                disable_altitude_control=True,
             )
             yasmin.YASMIN_LOG_INFO("Target point reached successfully.")
             return SUCCEED

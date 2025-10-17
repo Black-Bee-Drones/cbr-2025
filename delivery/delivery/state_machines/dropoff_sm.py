@@ -22,37 +22,12 @@ class DropoffSM(StateMachine):
             "GO_TO_NEXT_CROSS",
             GoToTarget(desired_class="base"),
             transitions={
-                SUCCEED : "CENTER",
+                SUCCEED : "LAND",
                 ABORT   : ABORT,
             },
         )
-        self.add_state(
-            "CENTER",
-            CenterOnDetection(desired_class='cross'),
-            transitions={
-                SUCCEED : "DESCEND",
-                FAIL    : "REACQUIRE_CROSS",  # Target not detected for too long.
-                ABORT   : ABORT,
-            },
-        )
-        self.add_state(
-            "REACQUIRE_CROSS",
-            ReacquireTarget(desired_class='cross'),
-            transitions={
-                SUCCEED        : "CENTER",
-                FAIL           : "GO_TO_NEXT_CROSS",
-                ABORT          : ABORT,
-            },
-        )
-        self.add_state (
-            "DESCEND",
-            HeightController(direction="down"),
-            transitions={
-                SUCCEED        : "CENTER",
-                FAIL           : "LAND",
-                ABORT          : ABORT,
-            },
-        )
+        
+        
         self.add_state(
             "LAND",
             Land(),

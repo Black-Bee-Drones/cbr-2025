@@ -68,16 +68,8 @@ class PickupSM(StateMachine):
             "DESCEND",
             HeightController(direction="down"),
             transitions={
-                SUCCEED : "CENTER",
-                FAIL    : "OPEN_GRIPPER",
-                ABORT   : ABORT,
-            },
-        )
-        self.add_state(
-            "OPEN_GRIPPER",
-            GripperController(action="open"),
-            transitions={
-                SUCCEED : "LAND",
+                SUCCEED : "CENTER_2",
+                FAIL    : "LAND",
                 ABORT   : ABORT,
             },
         )
@@ -99,19 +91,9 @@ class PickupSM(StateMachine):
         )
         self.add_state(
             "TAKEOFF",
-            Takeoff(),
-            transitions={
-                SUCCEED : "CHECK_PKG",
-                ABORT   : ABORT,
-            },
-        )
-        self.add_state(
-            "CHECK_PKG",
-            CheckPkg(),
+            Takeoff(alt=1.0),
             transitions={
                 SUCCEED : SUCCEED,
-                FAIL    : "GO_TO_NEXT_PACKAGE",
-                CANCEL  : "GO_TO_NEXT_PACKAGE",
                 ABORT   : ABORT,
             },
         )

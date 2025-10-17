@@ -19,6 +19,14 @@ from delivery.state_machines import (
     PickupSM,
 )
 
+from delivery.constants import DELIVER_POSITIONS
+
+DELIVER_POSITIONS = [
+    {"x": 3.85, "y": -1.00},
+    {"x": 3.25, "y": -3.5},
+    {"x": 4.50, "y": -5.8},
+]
+
 
 class Delivery(StateMachine):
     def __init__(self):

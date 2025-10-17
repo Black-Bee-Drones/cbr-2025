@@ -39,7 +39,7 @@ class Delivery(StateMachine):
         )
         self.add_state(
             "ADJUST_YAW",
-            AdjustYaw(),
+            AdjustYaw(adjust=False),
             transitions={SUCCEED:"PICKUP", ABORT:"RETURN_TO_LAUNCH"}
         )
         self.add_state(
@@ -67,10 +67,16 @@ class Delivery(StateMachine):
             "DROP_PKG",
             GripperController(action="open"),
             transitions={
-                SUCCEED: "RETURN_TO_LAUNCH",
+                SUCCEED: "TAKEOFF1",
                 ABORT: "RETURN_TO_LAUNCH"
             },
         )
+        self.add_state(
+            "TAKEOFF1",
+            Takeoff(),
+            transitions={SUCCEED:"RETURN_TO_LAUNCH", ABORT:"RETURN_TO_LAUNCH"},
+        )
+        
         self.add_state(
             "RETURN_TO_LAUNCH",
             Land(rtl=True),
