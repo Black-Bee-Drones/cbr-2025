@@ -4,7 +4,7 @@ import yasmin
 from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
-from .states import (
+from navigation.states import (
     Initialize,
     Takeoff,
     Navigate,
@@ -30,12 +30,12 @@ class NavigationSM(StateMachine):
         self.add_state(
             "NAVIGATE",
             Navigate(),
-            transitions={SUCCEED:"PHOTOSHOOT", ABORT:"LAND", "FINAL_SUCCEED": "BASE_SEARCH"},
+            transitions={SUCCEED:"PHOTOSHOOT", ABORT:"LAND", "FINAL_SUCCEED": "LAND"},
         )
         self.add_state(
             "PHOTOSHOOT",
             Photoshoot(),
-            transitions={SUCCEED:"NAVIGATE", ABORT:"NAVIGATE"},
+            transitions={SUCCEED:"NAVIGATE", ABORT:"LAND"},
         )
         self.add_state(
             "BASE_SEARCH",

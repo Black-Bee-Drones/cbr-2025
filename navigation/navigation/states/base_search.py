@@ -5,7 +5,7 @@ from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
 
 class BaseSearch(State):
-    def __init__(self, action: str):
+    def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
     def execute(self, blackboard: Blackboard):
