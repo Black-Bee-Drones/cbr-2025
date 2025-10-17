@@ -2,7 +2,8 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 # Controller constants
-TAKEOFF_HEIGHT = 1.7
+TAKEOFF_POSE = 1.0
+TAKEOFF_HEIGHT = 2.0
 TAKEOFF_TIMEOUT = 10.0
 ALTITUDE_TOLERANCE = 0.1
 VELOCITY_UP_DOWN = 0.2

@@ -1,5 +1,5 @@
 import rclpy
-import time 
+import time
 
 import yasmin
 from yasmin import State, Blackboard
@@ -16,11 +16,16 @@ from interaction.constants import (
     GESTURE_CONTROLLER_PROCESS,
     GESTURE_RECOGNIZER_PROCESS,
     RTL_COUNT_TOPIC,
-    RTL_REQUIRED_COUNT
+    RTL_REQUIRED_COUNT,
+    TAKEOFF_POSE,
 )
+
+from mirela_sdk.utils.position_utils import PositionUtils
+import math
 
 # Importa o novo estado de controle por gestos
 from interaction.states.gesture_control_state import GestureControl
+
 
 class Initialize(State):
     """Initializes the drone connection and checks system status."""
@@ -29,13 +34,15 @@ class Initialize(State):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
     def execute(self, blackboard: Blackboard):
-        
+
         try:
-            blackboard["mavdrone"] = MavDrone(node=YasminNode.get_instance(), mavros=False, indoor=True)
-            mavdrone : MavDrone = blackboard["mavdrone"]
-            
+            blackboard["mavdrone"] = MavDrone(
+                node=YasminNode.get_instance(), mavros=False, indoor=True
+            )
+            mavdrone: MavDrone = blackboard["mavdrone"]
+
             # Store takeoff position for RTL
-            mavdrone.delay(0.1) # Callback processing delay
+            mavdrone.delay(0.1)  # Callback processing delay
             takeoff_position = mavdrone.get_position_as_target
             mavdrone.set_takeoff_position()
             blackboard["takeoff_position"] = takeoff_position
@@ -61,7 +68,7 @@ class Takeoff(State):
         if "mavdrone" not in blackboard:
             yasmin.YASMIN_LOG_ERROR("MavDrone not available in Takeoff state.")
             return ABORT
-        
+
         mavdrone: MavDrone = blackboard["mavdrone"]
         yasmin.YASMIN_LOG_INFO(f"Taking off to altitude: {TAKEOFF_HEIGHT}m...")
 
@@ -98,7 +105,78 @@ class Takeoff(State):
         except Exception as e:
             yasmin.YASMIN_LOG_ERROR(f"Takeoff failed: {e}")
             return ABORT
-        
+
+
+class AdjustYaw(State):
+    def __init__(self, adjust: bool = True):
+        super().__init__(outcomes=[SUCCEED, ABORT])
+        self.adjust = adjust
+
+    def execute(self, blackboard: Blackboard):
+        if ("mavdrone" not in blackboard) or not blackboard["mavdrone"]:
+            yasmin.YASMIN_LOG_ERROR(
+                f"Mavdrone not available in {self.__class__.__name__} state."
+            )
+            return ABORT
+        mavdrone: MavDrone = blackboard["mavdrone"]
+
+        yasmin.YASMIN_LOG_INFO("Executing Adjust Yaw...")
+        try:
+
+            mavdrone.offboard_position(
+                x=-1.5,
+                y=0.0,
+                z=TAKEOFF_POSE,
+                timeout_sec=30,
+                ground_reference=True,
+                precision_radius=0.15,
+                disable_altitude_control=True,
+            )
+            mavdrone.offboard_position(
+                x=-1.5,
+                y=2.10,
+                z=TAKEOFF_POSE,
+                timeout_sec=30,
+                ground_reference=True,
+                precision_radius=0.15,
+                disable_altitude_control=True,
+            )
+
+            if self.adjust:
+                yasmin.YASMIN_LOG_INFO("Adjust in position completed.")
+
+                position = mavdrone.get_position
+                orientation = PositionUtils.get_yaw_from_pose(position)
+
+                initial_orientation = blackboard["initial_orientation"]
+
+                initial_orientation = math.degrees(initial_orientation)
+
+                current_orientation = math.degrees(orientation)
+
+                yaw_error = initial_orientation - current_orientation
+                print(
+                    f"os carai {yaw_error} | inicial {initial_orientation} | atual {current_orientation}"
+                )
+                while yaw_error < 87:
+                    rclpy.spin_once(mavdrone.node, timeout_sec=0.1)
+                    mavdrone.node.get_logger().info(
+                        f"Yaw: {yaw_error}/90", throttle_duration_sec=0.1
+                    )
+                    mavdrone.offboard_velocity(angular_z=-0.1)
+                    position = mavdrone.get_position
+                    orientation = PositionUtils.get_yaw_from_pose(position)
+                    current_orientation = math.degrees(orientation)
+                    yaw_error = initial_orientation - current_orientation
+
+                yasmin.YASMIN_LOG_INFO("Adjust Yaw completed")
+
+            return SUCCEED
+
+        except Exception as e:
+            yasmin.YASMIN_LOG_ERROR(f"Landing failed: {e}")
+            return ABORT
+
 
 class FindHuman(State):
     """Starting the movement to find human."""
@@ -106,11 +184,10 @@ class FindHuman(State):
     def __init__(self):
         super().__init__(outcomes=[SUCCEED, ABORT])
 
-
     def execute(self, blackboard: Blackboard):
 
         mavdrone: MavDrone = blackboard["mavdrone"]
-        
+
         try:
             yasmin.YASMIN_LOG_INFO("Navigating towards human position...")
             mavdrone.offboard_position(
@@ -120,17 +197,20 @@ class FindHuman(State):
                 ground_reference=True,
                 precision_radius=0.15,
                 timeout_sec=30,
-                strategy="default"
-                )
-            yasmin.YASMIN_LOG_INFO("First waypoint reached, moving to second waypoint...")
-            
+                strategy="default",
+            )
+            yasmin.YASMIN_LOG_INFO(
+                "First waypoint reached, moving to second waypoint..."
+            )
+
             mavdrone.offboard_position(
                 x=4.5,
                 y=-3.5,
                 z=TAKEOFF_HEIGHT,
                 ground_reference=True,
                 precision_radius=0.15,
-                timeout_sec=30, strategy="default"
+                timeout_sec=30,
+                strategy="default",
             )
             yasmin.YASMIN_LOG_INFO("Second waypoint reached, moving to next state...")
             return SUCCEED
@@ -139,62 +219,6 @@ class FindHuman(State):
             yasmin.YASMIN_LOG_ERROR(f"Find Human failed: {e}")
             return ABORT
 
-
-# StartGesture foi substituído por GestureControl em gesture_control_state.py
-    
-
-class CheckCount(State):
-    """ Monitors the 'rtl_land_counter' and triggers transition to RTL when the count reaches the limit (6). """
-
-    def __init__(self):
-        super().__init__(outcomes=[SUCCEED, ABORT])
-        self.node = YasminNode.get_instance()
-        self.land_count_sub = None
-
-        self.land_count_sub = self.node.create_subscription(Int16, RTL_COUNT_TOPIC, self._count_callback, 10)
-        yasmin.YASMIN_LOG_INFO(f"RTL Count Subscriber configured on topic: {RTL_COUNT_TOPIC}")
-
-    def _count_callback(self, msg: Int16):
-        """Updates the 'rtl_land_counter' variable in the blackboard."""
-        
-        if not hasattr(self, '_blackboard'):
-            time.sleep(0.1)
-        current_count = self._blackboard["rtl_land_counter"]
-        current_count += 1
-        self._blackboard["rtl_land_counter"] = current_count
-
-        yasmin.YASMIN_LOG_INFO(f"RTL Count: {current_count}/{RTL_REQUIRED_COUNT}")
-
-    def execute(self, blackboard: Blackboard):
-        self._blackboard = blackboard
-        mavdrone: MavDrone = blackboard["mavdrone"]
-
-        while rclpy.ok():
-            current_count = blackboard["rtl_land_counter"]
-
-            if current_count >= RTL_REQUIRED_COUNT:
-                yasmin.YASMIN_LOG_INFO("RTL count reached 6. Preparing for next state.")
-                
-                if self.land_count_sub:
-                    self.node.destroy_subscription(self.land_count_sub)
-                    self.land_count_sub = None
-
-                if not ProcessUtils.kill_process(GESTURE_CONTROLLER_PROCESS):
-                    yasmin.YASMIN_LOG_ERROR("Failed to kill Gesture Controller process.")
-                    return ABORT
-                if not ProcessUtils.kill_process(GESTURE_RECOGNIZER_PROCESS):
-                    yasmin.YASMIN_LOG_ERROR("Failed to kill Gesture Recognizer process.")
-                    return ABORT
-                
-                return SUCCEED
-
-            rclpy.spin_once(self.node, timeout_sec=0.1)
-
-        if self.land_count_sub:
-            self.node.destroy_subscription(self.land_count_sub)
-            self.land_count_sub = None
-            
-        return ABORT
 
 class ReturnToLaunch(State):
     """Returns the drone to the takeoff position using local coordinates and lands."""
@@ -210,25 +234,25 @@ class ReturnToLaunch(State):
         mavdrone: MavDrone = blackboard["mavdrone"]
 
         while mavdrone.get_state.armed:
-            yasmin.YASMIN_LOG_INFO("Drone is still armed, waiting for finishing landing...")
+            yasmin.YASMIN_LOG_INFO(
+                "Drone is still armed, waiting for finishing landing..."
+            )
             mavdrone.delay(1)
 
         mavdrone.arm_takeoff(TAKEOFF_HEIGHT)
 
-        # Set initial position as takeoff position for RTL
-        takeoff_position = blackboard.get("takeoff_position")
+        takeoff_position = blackboard["takeoff_position"]
         mavdrone.set_takeoff_position(takeoff_position)
         mavdrone.rtl(
-            rtl_alt=None,
-            precision_radius=0.3,
-            rtl_strategy="default",
-            land=True
+            rtl_alt=None, precision_radius=0.1, rtl_strategy="default", land=False
         )
+        mavdrone.offboard_velocity(0.35)
+        mavdrone.land()
 
         if not takeoff_position:
             yasmin.YASMIN_LOG_ERROR("Takeoff position not stored.")
             return ABORT
-        
+
         yasmin.YASMIN_LOG_INFO("Returning to takeoff base using local coordinates...")
 
 
