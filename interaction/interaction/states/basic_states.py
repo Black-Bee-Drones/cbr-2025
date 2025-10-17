@@ -134,7 +134,7 @@ class AdjustPosition(State):
         try:
 
             mavdrone.offboard_position(
-                x=-1.5,
+                x=-2.0,
                 y=0.0,
                 z=TAKEOFF_POSE,
                 timeout_sec=30,

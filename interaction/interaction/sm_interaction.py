@@ -32,18 +32,26 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "TAKEOFF", Takeoff(TAKEOFF_POSE), transitions={SUCCEED: "ADJUST_POSITION", ABORT: "END"}
+            "TAKEOFF",
+            Takeoff(TAKEOFF_HEIGHT),
+            transitions={SUCCEED: "ADJUST_POSITION", ABORT: "END"},
         )
 
         self.add_state(
             "ADJUST_POSITION",
-            AdjustPosition(),
+            AdjustPosition(True),
             transitions={SUCCEED: "POSE_CONTROL", ABORT: "RETURN_TO_LAUNCH"},
         )
 
         self.add_state(
             "POSE_CONTROL",
             PoseControl(),
+            transitions={SUCCEED: "TAKEOFF_RTL", ABORT: "RETURN_TO_LAUNCH"},
+        )
+
+        self.add_state(
+            "TAKEOFF_RTL",
+            Takeoff(TAKEOFF_POSE),
             transitions={SUCCEED: "RETURN_TO_LAUNCH", ABORT: "RETURN_TO_LAUNCH"},
         )
 

@@ -82,7 +82,7 @@ class PoseControl(State):
     def land_and_count(self):
         """Land and count for exit condition."""
         self.mavdrone.land()
-        self.mavdrone.delay(8)
+        self.mavdrone.delay(12)
         self.land_count += 1
 
     def execute(self, blackboard: Blackboard):
@@ -131,7 +131,7 @@ class PoseControl(State):
                 node=self.node,
                 image_source="imx219",
                 image_processing_callback=self.process_image,
-                config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2),
+                config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=0),
             )
 
             time.sleep(1.0)
