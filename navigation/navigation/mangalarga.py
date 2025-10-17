@@ -1,5 +1,6 @@
 import rclpy
 
+import yasmin
 from yasmin import StateMachine
 from yasmin_ros.basic_outcomes import SUCCEED, ABORT
 
@@ -46,3 +47,25 @@ class NavigationSM(StateMachine):
             Land(),
             transitions={SUCCEED:SUCCEED, ABORT:ABORT},
         )
+
+        self.set_start_state("INITIALIZE")
+
+def main():
+    rclpy.init()
+
+    navigation_sm = NavigationSM()
+
+    try:
+        yasmin.YASMIN_LOG_ERROR(navigation_sm.validate())
+        final_outcome = navigation_sm()
+        yasmin.YASMIN_LOG_DEBUG(final_outcome)
+    except KeyboardInterrupt:
+        if navigation_sm.is_running():
+            navigation_sm.cancel_state()
+
+    if rclpy.ok():
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
