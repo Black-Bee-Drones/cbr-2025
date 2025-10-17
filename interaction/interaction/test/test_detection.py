@@ -1,310 +1,27 @@
 #!/usr/bin/env python3
 """
 Test script for pose-based drone control using YOLO11n-pose.
-Displays detected poses and corresponding drone commands.
+Replicates exact behavior of PoseControl state.
+Usage: ros2 run interaction test_detection [--no-viz]
 """
 
 import cv2
-import numpy as np
-from ultralytics import YOLO
+import time
+import argparse
+from interaction.utils.yolo_detector import YoloDetector
+from interaction.constants import (
+    ACTION_TIMEOUT,
+    YOLO_IMAGE_SIZE,
+    TAKEOFF_POSE,
+    VELOCITY_UP_DOWN,
+    VELOCITY_SIDES,
+    VELOCITY_IN_OUT,
+    VELOCITY_YAW,
+    GESTURE_CONFIRMATION_THRESHOLD,
+    GESTURE_CONFIRMATION_THRESHOLD_SINGLE,
+)
 
-
-def draw_angle(img, p1, p2, p3, angle, color=(0, 255, 0)):
-    """
-    Draw angle arc between three points
-    p1 - p2 - p3 forms the angle with p2 as vertex
-    """
-    # Convert to integer tuples
-    p1 = tuple(map(int, p1))
-    p2 = tuple(map(int, p2))
-    p3 = tuple(map(int, p3))
-
-    # Draw lines
-    cv2.line(img, p1, p2, color, 2)
-    cv2.line(img, p2, p3, color, 2)
-
-    # Draw angle arc
-    radius = 30
-    angle_start = np.arctan2(p1[1] - p2[1], p1[0] - p2[0]) * 180 / np.pi
-    angle_end = np.arctan2(p3[1] - p2[1], p3[0] - p2[0]) * 180 / np.pi
-
-    # Draw arc
-    cv2.ellipse(
-        img,
-        p2,
-        (radius, radius),
-        0,
-        min(angle_start, angle_end),
-        max(angle_start, angle_end),
-        color,
-        2,
-    )
-
-    # Put angle text
-    text_pos = (p2[0] + 35, p2[1])
-    cv2.putText(
-        img, f"{int(angle)}°", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2
-    )
-
-    return img
-
-
-def draw_arm_angle(img, shoulder, wrist, angle, label, color=(255, 255, 0)):
-    """
-    Draw the arm angle relative to horizontal
-    """
-    # Convert to integer tuples
-    shoulder = tuple(map(int, shoulder))
-    wrist = tuple(map(int, wrist))
-
-    # Draw arm line
-    cv2.line(img, shoulder, wrist, color, 3)
-
-    # Draw horizontal reference line (dashed effect by drawing small segments)
-    horizon_end = (shoulder[0] + 60, shoulder[1])
-    for i in range(0, 60, 10):
-        cv2.line(
-            img,
-            (shoulder[0] + i, shoulder[1]),
-            (shoulder[0] + i + 5, shoulder[1]),
-            (128, 128, 128),
-            1,
-        )
-
-    # Draw angle arc
-    radius = 40
-    cv2.ellipse(
-        img, shoulder, (radius, radius), 0, 0, angle if angle > 0 else 0, color, 1
-    )
-
-    # Put angle text
-    text_pos = (shoulder[0] - 30, shoulder[1] - 45)
-    cv2.putText(
-        img,
-        f"{label}: {int(angle)}°",
-        text_pos,
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.4,
-        color,
-        1,
-    )
-
-    return img
-
-
-def detect_gesture(keypoints, return_angles=False):
-    """
-    Analyze keypoints to determine the gesture.
-
-    Parameters
-    ----------
-    keypoints : np.array
-        Array of keypoints [17, 2] in COCO format
-    return_angles : bool
-        If True, also return calculated angles
-
-    Returns
-    -------
-    str or None or tuple
-        Detected gesture name or None if no gesture detected
-        If return_angles=True, returns (gesture, angles_dict)
-    """
-    if keypoints is None or len(keypoints) < 17:
-        if return_angles:
-            return None, None
-        return None
-
-    # Extract relevant keypoints (indices in COCO format)
-    left_shoulder = keypoints[5]
-    right_shoulder = keypoints[6]
-    left_elbow = keypoints[7]
-    right_elbow = keypoints[8]
-    left_wrist = keypoints[9]
-    right_wrist = keypoints[10]
-
-    # Check if all required keypoints are valid (not zero)
-    required_points = [
-        left_shoulder,
-        right_shoulder,
-        left_elbow,
-        right_elbow,
-        left_wrist,
-        right_wrist,
-    ]
-    if any(point[0] == 0 and point[1] == 0 for point in required_points):
-        if return_angles:
-            return None, None
-        return None
-
-    # Calculate angles for arms
-    def calculate_arm_angle(shoulder, elbow, wrist):
-        """Calculate the angle of the arm relative to horizontal"""
-        arm_vector = wrist - shoulder
-        angle = np.arctan2(arm_vector[1], arm_vector[0]) * 180 / np.pi
-        return angle
-
-    left_angle = calculate_arm_angle(left_shoulder, left_elbow, left_wrist)
-    right_angle = calculate_arm_angle(right_shoulder, right_elbow, right_wrist)
-
-    # Calculate elbow angles (flexion)
-    def calculate_elbow_angle(shoulder, elbow, wrist):
-        """Calculate the elbow flexion angle"""
-        v1 = shoulder - elbow
-        v2 = wrist - elbow
-        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-6)
-        angle = np.arccos(np.clip(cos_angle, -1.0, 1.0)) * 180 / np.pi
-        return angle
-
-    left_elbow_angle = calculate_elbow_angle(left_shoulder, left_elbow, left_wrist)
-    right_elbow_angle = calculate_elbow_angle(right_shoulder, right_elbow, right_wrist)
-
-    # Store angles for visualization
-    angles_data = {
-        "left_shoulder": left_shoulder,
-        "right_shoulder": right_shoulder,
-        "left_elbow": left_elbow,
-        "right_elbow": right_elbow,
-        "left_wrist": left_wrist,
-        "right_wrist": right_wrist,
-        "left_arm_angle": left_angle,
-        "right_arm_angle": right_angle,
-        "left_elbow_angle": left_elbow_angle,
-        "right_elbow_angle": right_elbow_angle,
-    }
-
-    # Detect gestures based on arm positions and angles
-    gesture = None
-
-    # Double biceps (bodybuilder pose): both arms up with elbows bent showing biceps
-    # Arms should be raised to approximately shoulder height with elbows bent ~90 degrees
-    if (
-        # Both arms raised (negative angles mean arms are above horizontal)
-        left_angle < -30
-        and left_angle > -150
-        and right_angle < -30
-        and right_angle > -150
-        and
-        # Both elbows bent significantly (smaller angle = more bent)
-        left_elbow_angle < 100
-        and left_elbow_angle > 40
-        and right_elbow_angle < 100
-        and right_elbow_angle > 40
-        and
-        # Wrists should be above elbows (flexing biceps)
-        left_wrist[1] < left_elbow[1]
-        and right_wrist[1] < right_elbow[1]
-    ):
-        gesture = "double_biceps"
-
-    # Cross arms: arms crossed in front
-    elif (
-        abs(left_wrist[0] - right_shoulder[0]) < 50
-        and abs(right_wrist[0] - left_shoulder[0]) < 50
-    ):
-        gesture = "cross_arms"
-
-    # Right arm up, left arm to side
-    elif right_angle < -60 and right_angle > -120 and abs(left_angle) < 45:
-        gesture = "right_arm_up_left_arm_side"
-
-    # Left arm up, right arm to side
-    elif (
-        left_angle < -60
-        and left_angle > -120
-        and (abs(right_angle - 180) < 45 or abs(right_angle) < 45)
-    ):
-        gesture = "left_arm_up_right_arm_side"
-
-    # Both arms up (extended)
-    elif (
-        left_angle < -60
-        and left_angle > -120
-        and right_angle < -60
-        and right_angle > -120
-        and left_elbow_angle > 140
-        and right_elbow_angle > 140
-    ):
-        gesture = "both_arms_up"
-
-    # Both arms down (extended)
-    elif (
-        left_angle > 60 and left_angle < 120 and right_angle > 60 and right_angle < 120
-    ):
-        gesture = "both_arms_down"
-
-    # Right arm biceps, left arm down (MOVE FORWARD)
-    # Right arm showing biceps pose, left arm relaxed down
-    elif (
-        # Right arm raised
-        right_angle < -30
-        and right_angle > -150
-        and
-        # Right elbow bent (biceps flex)
-        right_elbow_angle < 100
-        and right_elbow_angle > 40
-        and
-        # Right wrist above elbow
-        right_wrist[1] < right_elbow[1]
-        and
-        # Left arm down
-        left_angle > 45
-        and left_angle < 135
-    ):
-        gesture = "right_arm_biceps_left_arm_down"
-
-    # Left arm biceps, right arm down (MOVE BACKWARD)
-    # Left arm showing biceps pose, right arm relaxed down
-    elif (
-        # Left arm raised
-        left_angle < -30
-        and left_angle > -150
-        and
-        # Left elbow bent (biceps flex)
-        left_elbow_angle < 100
-        and left_elbow_angle > 40
-        and
-        # Left wrist above elbow
-        left_wrist[1] < left_elbow[1]
-        and
-        # Right arm down
-        right_angle > 45
-        and right_angle < 135
-    ):
-        gesture = "left_arm_biceps_right_arm_down"
-
-    # Left arm down, right arm to side (YAW RIGHT)
-    # Right arm horizontal, left arm pointing down
-    elif (
-        (
-            abs(right_angle - 180) < 45 or abs(right_angle) < 45
-        )  # Right arm horizontal to side
-        and right_elbow_angle > 140  # Right arm extended
-        and left_angle > 45
-        and left_angle < 135  # Left arm down
-    ):
-        gesture = "left_arm_down_right_arm_side"
-
-    # Right arm down, left arm to side (YAW LEFT)
-    # Left arm horizontal, right arm pointing down
-    elif (
-        (
-            abs(left_angle - 180) < 45 or abs(left_angle) < 45
-        )  # Left arm horizontal to side
-        and left_elbow_angle > 140  # Left arm extended
-        and right_angle > 45
-        and right_angle < 135  # Right arm down
-    ):
-        gesture = "right_arm_down_left_arm_side"
-
-    else:
-        gesture = "neutral"
-
-    if return_angles:
-        return gesture, angles_data
-    return gesture
-
-
-# Gesture to command mapping
+# Gesture to command mapping (matching pose_control_state.py)
 GESTURE_COMMANDS = {
     "double_biceps": "TAKEOFF",
     "cross_arms": "LAND",
@@ -317,6 +34,21 @@ GESTURE_COMMANDS = {
     "left_arm_down_right_arm_side": "YAW RIGHT",
     "right_arm_down_left_arm_side": "YAW LEFT",
     "neutral": "STOP/HOVER",
+}
+
+# Drone command details for each gesture
+GESTURE_DRONE_COMMANDS = {
+    "double_biceps": f"arm_takeoff({TAKEOFF_POSE})",
+    "cross_arms": "land()",
+    "right_arm_up_left_arm_side": f"offboard_velocity(linear_y={-VELOCITY_SIDES})",
+    "left_arm_up_right_arm_side": f"offboard_velocity(linear_y={VELOCITY_SIDES})",
+    "both_arms_down": f"offboard_velocity(linear_z={-VELOCITY_UP_DOWN})",
+    "both_arms_up": f"offboard_velocity(linear_z={VELOCITY_UP_DOWN})",
+    "right_arm_biceps_left_arm_down": f"offboard_velocity(linear_x={VELOCITY_IN_OUT})",
+    "left_arm_biceps_right_arm_down": f"offboard_velocity(linear_x={-VELOCITY_IN_OUT})",
+    "left_arm_down_right_arm_side": f"offboard_velocity(angular_z={-VELOCITY_YAW})",
+    "right_arm_down_left_arm_side": f"offboard_velocity(angular_z={VELOCITY_YAW})",
+    "neutral": "offboard_velocity(0.0, 0.0, 0.0, 0.0)",
 }
 
 # Command colors for visualization
@@ -335,220 +67,201 @@ COMMAND_COLORS = {
 }
 
 
-def main():
-    """Main function to run pose detection and command interpretation."""
+class PoseControlTester:
+    """
+    Replicates PoseControl state behavior for testing.
+    Matches exactly the process_gesture_action logic.
+    """
 
-    # Gesture confirmation threshold settings
-    GESTURE_CONFIRMATION_THRESHOLD = 5
-    MAX_GESTURE_FRAMES = 300
+    def __init__(self, show_visualization: bool = True):
+        """Initialize the tester."""
+        self.show_visualization = show_visualization
 
-    # Gesture confirmation variables
-    current_gesture = None
-    previous_gesture = None
-    gesture_detection_count = 0
-    confirmed_gesture = None
-    total_gesture_frames = 0
+        # YoloDetector instance
+        self.yolo_detector = None
 
-    print("Loading YOLO11n-pose model...")
-    model = YOLO("yolo11n-pose.pt")
+        # Gesture tracking (matching pose_control_state.py)
+        self.current_gesture = None
+        self.previous_gesture = None
+        self.gesture_start_time = 0.0
+        self.command_sent = False
 
-    # Initialize webcam
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Error: Cannot access webcam")
-        return
+        # Gesture confirmation variables
+        self.gesture_detection_count = 0
+        self.confirmed_gesture = None
+        self.total_gesture_frames = 0
 
-    # Set webcam resolution
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # FPS tracking
+        self.fps = 0.0
+        self.frame_times = []
 
-    print("\n" + "=" * 60)
-    print("POSE-BASED DRONE CONTROL TEST")
-    print("=" * 60)
-    print(f"Gesture Confirmation Threshold: {GESTURE_CONFIRMATION_THRESHOLD} frames")
-    print("\nGestures and Commands:")
-    for gesture, command in GESTURE_COMMANDS.items():
-        if gesture != "neutral":
-            print(f"  {gesture:30s} → {command}")
-    print("\nPress 'q' to quit")
-    print("=" * 60 + "\n")
+        # Command execution tracking
+        self.continuous_command_count = 0
+        self.last_command_time = 0
 
-    while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
-            print("Failed to read frame")
-            break
+    def initialize_detector(self):
+        """Initialize YOLO detector using the YoloDetector class."""
+        print("Initializing YOLO detector...")
+        self.yolo_detector = YoloDetector()
+        if not self.yolo_detector.load_model():
+            print("Error: Failed to load YOLO model")
+            return False
+        print("YOLO detector loaded successfully.")
+        return True
 
-        # Run pose detection
-        results = model(frame, verbose=False)
+    def process_gesture_action(self, gesture: str) -> None:
+        """
+        Process the action for detected gesture with confirmation threshold.
+        EXACT COPY of pose_control_state.py logic.
 
-        detected_gesture = None
-        detected_command = None
-        angles_data = None
+        Single actions (takeoff, land) require GESTURE_CONFIRMATION_THRESHOLD_SINGLE frames.
+        Continuous gestures require GESTURE_CONFIRMATION_THRESHOLD frames.
+        """
 
-        for r in results:
-            if r.keypoints is not None and len(r.keypoints) > 0:
-                keypoints = r.keypoints.xy.cpu().numpy()
+        self.previous_gesture = self.current_gesture
+        self.current_gesture = gesture
 
-                # Process first person detected
-                if len(keypoints) > 0:
-                    detected_gesture, angles_data = detect_gesture(
-                        keypoints[0], return_angles=True
-                    )
+        # Determine which threshold to use based on gesture type
+        single_gestures = ["double_biceps", "cross_arms"]
+        required_threshold = (
+            GESTURE_CONFIRMATION_THRESHOLD_SINGLE
+            if gesture in single_gestures
+            else GESTURE_CONFIRMATION_THRESHOLD
+        )
 
-        # Gesture confirmation logic
-        previous_gesture = current_gesture
-        current_gesture = detected_gesture
+        if self.previous_gesture != self.current_gesture:
+            self.gesture_detection_count = 0
+            self.confirmed_gesture = None
+            self.command_sent = False
+            self.total_gesture_frames = 0
+            self.continuous_command_count = 0
 
-        # Check if gesture changed
-        if previous_gesture != current_gesture:
-            gesture_detection_count = 0
-            confirmed_gesture = None
-            total_gesture_frames = 0
-
-            if current_gesture and current_gesture != "neutral":
+            if gesture and gesture != "neutral":
                 print(
-                    f"[NEW] Gesture: {current_gesture} - Confirming... (0/{GESTURE_CONFIRMATION_THRESHOLD})"
+                    f"[NEW] Gesture: {gesture} - Confirming... (0/{required_threshold})"
+                )
+            return
+
+        if self.current_gesture and self.current_gesture != "neutral":
+            self.gesture_detection_count += 1
+
+            if self.gesture_detection_count <= required_threshold:
+                print(
+                    f"[CONFIRMING] {self.current_gesture}: "
+                    f"{self.gesture_detection_count}/{required_threshold}"
                 )
 
-        # Increment detection counter for same gesture
-        elif current_gesture and current_gesture != "neutral":
-            gesture_detection_count += 1
-
-            if gesture_detection_count <= GESTURE_CONFIRMATION_THRESHOLD:
-                print(
-                    f"[CONFIRMING] {current_gesture}: {gesture_detection_count}/{GESTURE_CONFIRMATION_THRESHOLD}"
-                )
-
-        # Check if gesture is confirmed
+        # Check if gesture is confirmed (reached threshold)
         if (
-            gesture_detection_count >= GESTURE_CONFIRMATION_THRESHOLD
-            and confirmed_gesture != current_gesture
+            self.gesture_detection_count >= required_threshold
+            and self.confirmed_gesture != self.current_gesture
         ):
-            confirmed_gesture = current_gesture
-            detected_command = GESTURE_COMMANDS.get(confirmed_gesture, "UNKNOWN")
+            self.confirmed_gesture = self.current_gesture
+            self.gesture_start_time = time.time()
+            self.last_command_time = time.time()
+            command = GESTURE_COMMANDS.get(self.confirmed_gesture, "UNKNOWN")
             print(
-                f"[✓ CONFIRMED] Gesture: {confirmed_gesture:25s} | Command: {detected_command}"
+                f"[✓ CONFIRMED] Gesture: {self.confirmed_gesture:30s} | Command: {command}"
             )
 
-        # Update total frames for confirmed gesture
-        if confirmed_gesture:
-            total_gesture_frames += 1
+        if not self.confirmed_gesture or self.confirmed_gesture == "neutral":
+            if self.previous_gesture and self.previous_gesture != "neutral":
+                print(
+                    f"[DRONE CMD] mavdrone.offboard_velocity(0.0, 0.0, 0.0, 0.0) - STOP"
+                )
+            return
 
-            # Reset if held too long
-            if total_gesture_frames > MAX_GESTURE_FRAMES:
-                print(f"[RESET] Gesture '{confirmed_gesture}' held too long")
-                gesture_detection_count = 0
-                confirmed_gesture = None
-                total_gesture_frames = 0
+        self.total_gesture_frames += 1
 
-        # Set command for display
-        if confirmed_gesture:
-            detected_command = GESTURE_COMMANDS.get(confirmed_gesture, "UNKNOWN")
+        time_elapsed = time.time() - self.gesture_start_time
 
-        # Draw skeleton and angles if pose was detected
-        if detected_gesture:
-            for r in results:
+        if time_elapsed >= ACTION_TIMEOUT:
+            continuous_gestures = [
+                "right_arm_up_left_arm_side",
+                "left_arm_up_right_arm_side",
+                "both_arms_down",
+                "both_arms_up",
+                "right_arm_biceps_left_arm_down",
+                "left_arm_biceps_right_arm_down",
+                "left_arm_down_right_arm_side",
+                "right_arm_down_left_arm_side",
+            ]
+
+            single_gestures = ["double_biceps", "cross_arms"]
+
+            if self.confirmed_gesture in continuous_gestures:
+                # For continuous gestures, command is sent repeatedly
+                self.continuous_command_count += 1
+                drone_cmd = GESTURE_DRONE_COMMANDS.get(
+                    self.confirmed_gesture, "UNKNOWN"
+                )
+                current_time = time.time()
+                time_since_last = current_time - self.last_command_time
+                self.last_command_time = current_time
+
+                print(
+                    f"[DRONE CMD] mavdrone.{drone_cmd} "
+                    f"[CONTINUOUS #{self.continuous_command_count}, Δt={time_since_last:.3f}s]"
+                )
+
+            elif self.confirmed_gesture in single_gestures and not self.command_sent:
+                command = GESTURE_COMMANDS.get(self.confirmed_gesture, "UNKNOWN")
+                drone_cmd = GESTURE_DRONE_COMMANDS.get(
+                    self.confirmed_gesture, "UNKNOWN"
+                )
+                print(
+                    f"[DRONE CMD] mavdrone.{drone_cmd} "
+                    f"[SINGLE ACTION - Executed ONCE]"
+                )
+                self.command_sent = True
+
+    def calculate_fps(self):
+        """Calculate current FPS."""
+        current_time = time.time()
+        self.frame_times.append(current_time)
+
+        # Keep only last 30 frames for FPS calculation
+        if len(self.frame_times) > 30:
+            self.frame_times.pop(0)
+
+        if len(self.frame_times) > 1:
+            elapsed = self.frame_times[-1] - self.frame_times[0]
+            self.fps = (len(self.frame_times) - 1) / elapsed if elapsed > 0 else 0.0
+
+    def draw_visualization(self, frame, pose_results):
+        """Draw visualization on frame including skeleton."""
+        # Draw skeleton/keypoints if available
+        if pose_results is not None:
+            for r in pose_results:
                 if r.keypoints is not None and len(r.keypoints) > 0:
-                    # Draw skeleton on frame
-                    annotated_frame = r.plot()
-                    frame = annotated_frame
+                    # Draw skeleton using YOLO's built-in plot
+                    frame = r.plot()
                     break
 
-            # Draw angles if available
-            if angles_data:
-                # Draw elbow angles
-                draw_angle(
-                    frame,
-                    angles_data["left_shoulder"],
-                    angles_data["left_elbow"],
-                    angles_data["left_wrist"],
-                    angles_data["left_elbow_angle"],
-                    color=(0, 255, 255),
-                )  # Yellow
+        # Draw FPS
+        cv2.putText(
+            frame,
+            f"FPS: {self.fps:.1f}",
+            (frame.shape[1] - 120, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (0, 255, 0),
+            2,
+        )
 
-                draw_angle(
-                    frame,
-                    angles_data["right_shoulder"],
-                    angles_data["right_elbow"],
-                    angles_data["right_wrist"],
-                    angles_data["right_elbow_angle"],
-                    color=(255, 0, 255),
-                )  # Magenta
-
-                # Draw arm angles relative to horizontal
-                draw_arm_angle(
-                    frame,
-                    angles_data["left_shoulder"],
-                    angles_data["left_wrist"],
-                    angles_data["left_arm_angle"],
-                    "L.Arm",
-                    color=(0, 255, 0),
-                )  # Green
-
-                draw_arm_angle(
-                    frame,
-                    angles_data["right_shoulder"],
-                    angles_data["right_wrist"],
-                    angles_data["right_arm_angle"],
-                    "R.Arm",
-                    color=(0, 165, 255),
-                )  # Orange
-
-                # Display angle values in a panel
-                cv2.rectangle(
-                    frame,
-                    (10, frame.shape[0] - 100),
-                    (250, frame.shape[0] - 10),
-                    (0, 0, 0),
-                    -1,
-                )
-                cv2.rectangle(
-                    frame,
-                    (10, frame.shape[0] - 100),
-                    (250, frame.shape[0] - 10),
-                    (255, 255, 255),
-                    1,
-                )
-
-                cv2.putText(
-                    frame,
-                    f"L.Arm: {int(angles_data['left_arm_angle'])}° | L.Elbow: {int(angles_data['left_elbow_angle'])}°",
-                    (15, frame.shape[0] - 70),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (0, 255, 255),
-                    1,
-                )
-
-                cv2.putText(
-                    frame,
-                    f"R.Arm: {int(angles_data['right_arm_angle'])}° | R.Elbow: {int(angles_data['right_elbow_angle'])}°",
-                    (15, frame.shape[0] - 45),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 0, 255),
-                    1,
-                )
-
-                cv2.putText(
-                    frame,
-                    "Angles (from horizontal)",
-                    (15, frame.shape[0] - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.4,
-                    (128, 128, 128),
-                    1,
-                )
+        # Get command for display
+        detected_command = None
+        if self.confirmed_gesture:
+            detected_command = GESTURE_COMMANDS.get(self.confirmed_gesture, "UNKNOWN")
 
         # Draw confirmation status and gesture display
-        if confirmed_gesture and detected_command:
+        if self.confirmed_gesture and detected_command:
             # Confirmed gesture - draw in color
             color = COMMAND_COLORS.get(detected_command, (255, 255, 255))
 
             # Draw background rectangles for better text visibility
-            cv2.rectangle(frame, (10, 10), (630, 130), (0, 0, 0), -1)
-            cv2.rectangle(frame, (10, 10), (630, 130), color, 3)
+            cv2.rectangle(frame, (10, 10), (630, 180), (0, 0, 0), -1)
+            cv2.rectangle(frame, (10, 10), (630, 180), color, 3)
 
             # Draw status
             cv2.putText(
@@ -564,10 +277,10 @@ def main():
             # Draw gesture name
             cv2.putText(
                 frame,
-                f"Gesture: {confirmed_gesture}",
+                f"Gesture: {self.confirmed_gesture}",
                 (20, 70),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
+                0.7,
                 (255, 255, 255),
                 2,
             )
@@ -576,18 +289,75 @@ def main():
             cv2.putText(
                 frame,
                 f"Command: {detected_command}",
-                (20, 110),
+                (20, 105),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                1.0,
+                0.9,
                 color,
-                3,
+                2,
             )
 
-        elif current_gesture and current_gesture != "neutral":
+            # Draw drone command details
+            drone_cmd = GESTURE_DRONE_COMMANDS.get(self.confirmed_gesture, "")
+            # Truncate if too long
+            if len(drone_cmd) > 50:
+                drone_cmd = drone_cmd[:47] + "..."
+
+            cv2.putText(
+                frame,
+                f"Drone: {drone_cmd}",
+                (20, 140),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (200, 200, 200),
+                1,
+            )
+
+            # Show execution count for continuous gestures
+            continuous_gestures = [
+                "right_arm_up_left_arm_side",
+                "left_arm_up_right_arm_side",
+                "both_arms_down",
+                "both_arms_up",
+                "right_arm_biceps_left_arm_down",
+                "left_arm_biceps_right_arm_down",
+                "left_arm_down_right_arm_side",
+                "right_arm_down_left_arm_side",
+            ]
+
+            if self.confirmed_gesture in continuous_gestures:
+                cv2.putText(
+                    frame,
+                    f"CONTINUOUS - Sent {self.continuous_command_count}x",
+                    (20, 165),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 255, 255),
+                    1,
+                )
+            else:
+                status = "SENT" if self.command_sent else "WAITING"
+                cv2.putText(
+                    frame,
+                    f"SINGLE ACTION - {status}",
+                    (20, 165),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 0),
+                    1,
+                )
+
+        elif self.current_gesture and self.current_gesture != "neutral":
             # Gesture detected but not confirmed - show confirmation progress
+            single_gestures = ["double_biceps", "cross_arms"]
+            required_threshold = (
+                GESTURE_CONFIRMATION_THRESHOLD_SINGLE
+                if self.current_gesture in single_gestures
+                else GESTURE_CONFIRMATION_THRESHOLD
+            )
+
             progress_color = (
                 (255, 165, 0)
-                if gesture_detection_count < GESTURE_CONFIRMATION_THRESHOLD
+                if self.gesture_detection_count < required_threshold
                 else (0, 255, 0)
             )
 
@@ -597,18 +367,18 @@ def main():
             # Draw confirmation status
             cv2.putText(
                 frame,
-                f"CONFIRMING... {gesture_detection_count}/{GESTURE_CONFIRMATION_THRESHOLD}",
+                f"CONFIRMING... {self.gesture_detection_count}/{required_threshold}",
                 (20, 35),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
                 progress_color,
                 2,
             )
-
+git c
             # Draw detected gesture
             cv2.putText(
                 frame,
-                f"Gesture: {current_gesture}",
+                f"Gesture: {self.current_gesture}",
                 (20, 70),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,
@@ -621,9 +391,7 @@ def main():
             bar_height = 20
             bar_x = 20
             bar_y = 90
-            progress = min(
-                gesture_detection_count / GESTURE_CONFIRMATION_THRESHOLD, 1.0
-            )
+            progress = min(self.gesture_detection_count / required_threshold, 1.0)
 
             # Background bar
             cv2.rectangle(
@@ -663,17 +431,118 @@ def main():
                 2,
             )
 
-        # Display frame
-        cv2.imshow("Pose Control Test", frame)
+        return frame
 
-        # Break on 'q' key
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+    def run(self):
+        """Run the pose detection test."""
+        # Initialize detector
+        if not self.initialize_detector():
+            return
 
-    # Cleanup
-    cap.release()
-    cv2.destroyAllWindows()
-    print("\nTest completed.")
+        # Initialize webcam
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Error: Cannot access webcam")
+            return
+
+        # Set webcam resolution
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, YOLO_IMAGE_SIZE)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, YOLO_IMAGE_SIZE)
+
+        print("\n" + "=" * 80)
+        print("POSE-BASED DRONE CONTROL TEST")
+        print("=" * 80)
+        print(f"Confirmation Thresholds:")
+        print(f"  - Continuous gestures: {GESTURE_CONFIRMATION_THRESHOLD} frames")
+        print(
+            f"  - Single actions:      {GESTURE_CONFIRMATION_THRESHOLD_SINGLE} frames"
+        )
+        print(f"Action Timeout: {ACTION_TIMEOUT}s")
+        print(f"Visualization: {'ENABLED' if self.show_visualization else 'DISABLED'}")
+        print("\nGestures and Commands:")
+        for gesture, command in GESTURE_COMMANDS.items():
+            if gesture != "neutral":
+                drone_cmd = GESTURE_DRONE_COMMANDS.get(gesture, "")
+                is_single = gesture in ["double_biceps", "cross_arms"]
+                threshold = (
+                    GESTURE_CONFIRMATION_THRESHOLD_SINGLE
+                    if is_single
+                    else GESTURE_CONFIRMATION_THRESHOLD
+                )
+                action_type = (
+                    f"[SINGLE-{threshold}]"
+                    if is_single
+                    else f"[CONTINUOUS-{threshold}]"
+                )
+                print(f"  {gesture:30s} → {command:15s} {action_type}")
+                print(f"    Drone: mavdrone.{drone_cmd}")
+        print("\nPress 'q' to quit")
+        print("=" * 80 + "\n")
+
+        try:
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success:
+                    print("Failed to read frame")
+                    break
+
+                # Calculate FPS
+                self.calculate_fps()
+
+                # Detect gesture using YoloDetector and get pose results for visualization
+                detected_gesture = self.yolo_detector.detect_gesture(frame)
+
+                # Get pose results for drawing skeleton
+                pose_results = None
+                if self.show_visualization and self.yolo_detector.model is not None:
+                    try:
+                        pose_results = self.yolo_detector.model(frame, verbose=False)
+                    except:
+                        pass
+
+                # Process gesture action (exact copy of pose_control_state.py logic)
+                self.process_gesture_action(detected_gesture)
+
+                # Draw visualization if enabled
+                if self.show_visualization:
+                    display_frame = self.draw_visualization(frame.copy(), pose_results)
+                    cv2.imshow("Pose Control Test", display_frame)
+
+                    # Break on 'q' key
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
+                else:
+                    # Small delay to prevent 100% CPU usage
+                    time.sleep(0.01)
+
+        except KeyboardInterrupt:
+            print("\n\nTest interrupted by user.")
+
+        finally:
+            # Cleanup
+            cap.release()
+            if self.show_visualization:
+                cv2.destroyAllWindows()
+            print("\nTest completed.")
+            print(f"Final FPS: {self.fps:.1f}")
+
+
+def main():
+    """Main function with argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="Test pose-based drone control with YOLO11n-pose"
+    )
+    parser.add_argument(
+        "--no-viz",
+        action="store_true",
+        help="Disable visualization (no OpenCV window)",
+    )
+
+    args = parser.parse_args()
+
+    # Run tester
+    tester = PoseControlTester(show_visualization=not args.no_viz)
+    tester.run()
 
 
 if __name__ == "__main__":
