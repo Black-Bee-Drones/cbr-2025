@@ -8,11 +8,15 @@ from yasmin_ros.yasmin_node import YasminNode
 from interaction.states import (
     Initialize,
     Takeoff,
-    FindHuman,
-    AdjustYaw,
+    AdjustPosition,
     ReturnToLaunch,
     End,
     PoseControl,
+)
+
+from interaction.constants import (
+    TAKEOFF_HEIGHT,
+    TAKEOFF_POSE,
 )
 
 
@@ -28,12 +32,12 @@ class CBRPhase3StateMachine(StateMachine):
         )
 
         self.add_state(
-            "TAKEOFF", Takeoff(), transitions={SUCCEED: "FIND_HUMAN", ABORT: "END"}
+            "TAKEOFF", Takeoff(TAKEOFF_POSE), transitions={SUCCEED: "ADJUST_POSITION", ABORT: "END"}
         )
 
         self.add_state(
-            "FIND_HUMAN",
-            AdjustYaw(),
+            "ADJUST_POSITION",
+            AdjustPosition(),
             transitions={SUCCEED: "POSE_CONTROL", ABORT: "RETURN_TO_LAUNCH"},
         )
 
