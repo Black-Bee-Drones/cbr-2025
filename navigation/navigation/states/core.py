@@ -66,7 +66,7 @@ class Takeoff(State):
         try:
             tello = blackboard["tello"]
             tello.takeoff() 
-            time.sleep(COMMAND_SLEEP)
+            time.sleep(5) # Wait to stabilize
             yasmin.YASMIN_LOG_INFO(f"{GREEN}Tello TAKE OFF was successful.{RESET}")
             current_height = tello.get_height()
             tello.move(direction="down", x = abs(TAKEOFF_HEIGHT-current_height))

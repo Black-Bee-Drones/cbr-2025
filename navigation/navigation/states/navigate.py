@@ -25,7 +25,7 @@ class Navigate(State):
                 return "FINAL_SUCCEED"
             yasmin.YASMIN_LOG_INFO(f"{GREEN}Current waypoint: {waypoint}{RESET}")
             time.sleep(COMMAND_SLEEP)
-            if waypoint == 1:
+            if waypoint == 1 and tello.get_height() < 70:
                 tello.move("up", 120 - tello.get_height())
             return SUCCEED
         except Exception as e:
