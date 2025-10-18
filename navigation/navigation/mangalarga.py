@@ -25,7 +25,7 @@ class NavigationSM(StateMachine):
         self.add_state(
             "TAKEOFF",
             Takeoff(),
-            transitions={SUCCEED:"NAVIGATE", ABORT:"LAND"},
+            transitions={SUCCEED:"BASE_SEARCH", ABORT:"LAND"},
         )
         self.add_state(
             "NAVIGATE",

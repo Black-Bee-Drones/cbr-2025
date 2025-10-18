@@ -15,9 +15,22 @@ CONNECTION_TIMEOUT = 30
 
 YOLO_CONFIDENCE = 0.6
 
-SEARCH_POSITIONS = [
-                {"name": "Position 1", "x": -200, "y": 150, "z": 0},  # 200 LEFT, 150 FORWARD
-                {"name": "Position 2", "x": -300, "y": 0, "z": 0},    # 300 LEFT
-                {"name": "Position 3", "x": 0, "y": 200, "z": 0},     # 200 FORWARD
-                {"name": "Position 4", "x": 300, "y": 0, "z": 0}      # 300 RIGHT
+HIGH_WINDOW = 1.2
+LOW_WINDOW = 0.4
+NULL_WINDOW = -1
+
+
+WAYPOINTS_HEIGHT_YAW = [
+                {"height": LOW_WINDOW, "yaw": -90}, 
+                {"height": NULL_WINDOW, "yaw": 0}, 
+                {"height": NULL_WINDOW, "yaw": 90}, 
+                {"height": NULL_WINDOW, "yaw": 0}, 
+                {"height": LOW_WINDOW, "yaw": -90}, 
+                {"height": HIGH_WINDOW, "yaw": 0}, 
+                {"height": LOW_WINDOW, "yaw": 90}, 
+                {"height": HIGH_WINDOW, "yaw": 0}, 
+                {"height": NULL_WINDOW, "yaw": -90}, 
+                {"height": LOW_WINDOW, "yaw": 0}, 
+                {"height": NULL_WINDOW, "yaw": 90}, 
+                {"height": HIGH_WINDOW, "yaw": 90}, 
             ]
