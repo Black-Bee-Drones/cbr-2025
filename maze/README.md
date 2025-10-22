@@ -1,6 +1,6 @@
 # CBR 2025 Phase 4 - Maze Navigation
 
-Autonomous Tello drone maze exploration with QR code detection for the Flying Robot League (FRL) competition.
+Autonomous Tello drone maze exploration with QR code detection for the Flying Robot League competition.
 
 ## Overview
 
@@ -31,6 +31,103 @@ The system uses a hierarchical state machine with the following states:
 6. **Navigate to Passage**: Move to next grid position
 7. **Land**: Move to arena center (1.5m forward, 3.5m left) and land
 
+## State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> INITIALIZE
+    
+    INITIALIZE --> TAKEOFF: SUCCESS
+    INITIALIZE --> EMERGENCY_STOP: FAILURE
+    
+    TAKEOFF --> ENTER_MAZE: SUCCESS
+    TAKEOFF --> EMERGENCY_STOP: FAILURE
+    
+    ENTER_MAZE --> SCAN_POSITION: SUCCESS
+    ENTER_MAZE --> EMERGENCY_STOP: FAILURE
+    
+    SCAN_POSITION --> ANALYZE_PASSAGES: SUCCESS
+    SCAN_POSITION --> EMERGENCY_STOP: FAILURE
+    
+    ANALYZE_PASSAGES --> NAVIGATE_TO_PASSAGE: SUCCESS<br/>(next waypoint found)
+    ANALYZE_PASSAGES --> LAND: COMPLETE<br/>(12 points visited or end)
+    
+    NAVIGATE_TO_PASSAGE --> SCAN_POSITION: SUCCESS<br/>(reached waypoint)
+    NAVIGATE_TO_PASSAGE --> EMERGENCY_STOP: FAILURE
+    
+    LAND --> [*]: SUCCESS
+    LAND --> EMERGENCY_STOP: FAILURE
+    
+    EMERGENCY_STOP --> [*]: ABORT
+    
+    note right of INITIALIZE
+        • Connect to Tello drone
+        • Initialize QR detector
+        • Setup WebSocket lidar (or mock)
+        • Create maze grid (12 waypoints)
+        • Set starting position
+    end note
+    
+    note right of TAKEOFF
+        • Takeoff to entry height (0.5m)
+        • Battery check (>10%)
+        • Stabilize altitude
+        • Begin video stream
+    end note
+    
+    note right of ENTER_MAZE
+        • Move forward 1m to enter maze
+        • Update position to waypoint 1
+        • Mark first waypoint visited
+    end note
+    
+    note right of SCAN_POSITION
+        High-altitude scan (0.8m):
+        • Rotate and capture 4 photos
+        • Detect QR codes
+        • Read lidar distances
+        
+        Low-altitude scan (0.3m):
+        • Repeat photo/QR/lidar
+        • Skip entry direction
+        • Total: 8 photos, 8 scans
+    end note
+    
+    note right of ANALYZE_PASSAGES
+        • Use hardcoded waypoint path
+        • Get next waypoint in sequence
+        • Check visited status
+        • Determine required altitude
+        • Return COMPLETE if:
+          - 12 points visited
+          - End of path reached
+    end note
+    
+    note right of NAVIGATE_TO_PASSAGE
+        • Calculate movement to waypoint
+        • Adjust altitude if needed
+        • Execute rotation (90° steps)
+        • Move forward to grid position
+        • Update current position
+    end note
+    
+    note right of LAND
+        • Navigate to arena center
+        • Move 1.5m forward
+        • Move 3.5m left
+        • Execute landing sequence
+        • Stop video stream
+    end note
+    
+    note right of EMERGENCY_STOP
+        • Log error details
+        • Emergency landing if flying
+        • Disconnect from drone
+        • Cleanup resources
+        • Exit with ABORT
+    end note
+```
+
 ### Navigation Strategy
 
 The maze navigation uses a **waypoint serpentine path** optimized for the competition:
@@ -38,12 +135,6 @@ The maze navigation uses a **waypoint serpentine path** optimized for the compet
 - Mock lidar provides simulated readings matching the maze layout
 - Height-dependent passages (some at 0.3m, some at 0.8m, some at both)
 - Ensures reliable navigation through the known competition maze
-
-## Hardware Requirements
-
-- **DJI Tello drone**
-- **Computer with WiFi** (connected to Tello network)
-- **Note:** Lidar sensor not required (uses simulated values)
 
 ## Software Dependencies
 
@@ -139,7 +230,7 @@ View the detailed waypoint positions and navigation sequence:
 ros2 run maze waypoints
 ```
 
-This generates a comprehensive top-down view showing:
+This generates a top-down view showing:
 - All 12 waypoints in the maze (positions 1.5m to 6.5m)
 - Takeoff platform at (1.5m, 2.0m)
 - Color-coded navigation paths:
@@ -180,48 +271,3 @@ LIDAR_THRESHOLD = 0.5  # Minimum distance for passage (m)
    - Skip entry direction to avoid redundant scans
 3. **Navigation**: Analyzes lidar data (>0.5m = passage) and moves to unvisited areas
 4. **Completion**: After visiting 12 points or no more passages, lands
-
-## Safety Features
-
-- **Battery Monitoring**: Warns at <30%, aborts at <20%
-- **Emergency Stop**: Ctrl+C triggers safe landing
-- **Timeout Protection**: Configurable timeouts for all operations
-- **Graceful Shutdown**: Properly disconnects all components
-
-## Troubleshooting
-
-### Connection Issues
-- Ensure connected to Tello WiFi network (Tello-XXXXXX)
-- Check battery level (>30% recommended)
-- Verify Tello firmware is updated
-
-### Lidar Not Connecting
-- Check ESP32 WebSocket server is running
-- Verify WebSocket URL matches ESP32 configuration
-- Use `mock_lidar:=true` for testing without hardware
-
-### QR Detection Problems
-- Ensure adequate lighting for camera
-- Check QR codes are clearly visible and not too small
-- Adjust detection confidence threshold if needed
-
-## Development
-
-### Adding New States
-1. Create state class in `maze/states/`
-2. Import in `maze/states/__init__.py`
-3. Add to state machine in `mangalarga.py`
-
-### Modifying Navigation Logic
-- Grid navigation: `maze/utils/maze_data.py`
-- Tello control: `maze/utils/tello_wrapper.py`
-- Passage analysis: `maze/states/analyze_passages.py`
-
-## Competition Rules
-
-This implementation follows CBR 2025 Phase 4 requirements:
-- Maze dimensions: 2m x 6m x 1.5m
-- Gate size: 0.8m x 0.8m
-- QR codes: 10cm squares with letters A-E
-- Mission duration: 10 minutes maximum
-- Points: 50 for navigation + 20 per QR code
