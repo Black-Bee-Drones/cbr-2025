@@ -1,0 +1,29 @@
+from setuptools import find_packages, setup
+import os
+from glob import glob
+
+package_name = "interaction"
+
+setup(
+    name=package_name,
+    version="0.0.1",
+    packages=find_packages(),
+    data_files=[
+        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
+        ("share/" + package_name, ["package.xml"]),
+        ("share/" + package_name + "/models", glob("share/models/*")),
+    ],
+    install_requires=["setuptools"],
+    zip_safe=True,
+    maintainer="lipedras",
+    maintainer_email="lfljp@hotmail.com",
+    description="Pacote para controle de drone por gestos para a CBR 2025.",
+    license="Apache-2.0",
+    tests_require=["pytest"],
+    entry_points={
+        "console_scripts": [
+            "test_detection = interaction.test.test_detection:main",
+            "sm_interaction = interaction.sm_interaction:main",
+        ],
+    },
+)
