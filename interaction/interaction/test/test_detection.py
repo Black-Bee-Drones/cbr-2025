@@ -374,7 +374,7 @@ class PoseControlTester:
                 progress_color,
                 2,
             )
-git c
+
             # Draw detected gesture
             cv2.putText(
                 frame,
@@ -440,14 +440,24 @@ git c
             return
 
         # Initialize webcam
-        cap = cv2.VideoCapture(0)
+        def _build_gstreamer_pipeline() -> str:
+            """Build the GStreamer pipeline string for IMX219 camera."""
+            return (
+                f"nvarguscamerasrc sensor-id={0} ! "
+                f"video/x-raw(memory:NVMM), width=(int){YOLO_IMAGE_SIZE}, height=(int){YOLO_IMAGE_SIZE}, "
+                f"framerate=(fraction){30}/1, format=(string)NV12 ! "
+                f"nvvidconv flip-method={2} ! "
+                f"video/x-raw, width=(int){YOLO_IMAGE_SIZE}, height=(int){YOLO_IMAGE_SIZE}, format=(string)BGRx ! "
+                f"videoconvert ! "
+                f"video/x-raw, format=(string)BGR ! "
+                f"appsink max-buffer=1 drop=true sync=false"
+            )
+    
+        gstreamer_pipeline = _build_gstreamer_pipeline()
+        cap = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
+        
         if not cap.isOpened():
-            print("Error: Cannot access webcam")
-            return
-
-        # Set webcam resolution
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, YOLO_IMAGE_SIZE)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, YOLO_IMAGE_SIZE)
+            raise RuntimeError(f"Failed to open IMX219 camera (sensor_id={self._config.sensor_id})")
 
         print("\n" + "=" * 80)
         print("POSE-BASED DRONE CONTROL TEST")

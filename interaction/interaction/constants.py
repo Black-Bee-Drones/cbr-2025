@@ -25,5 +25,5 @@ DETECTION_SAVE_PATH = os.path.join(
 )
 
 GESTURE_CONFIRMATION_THRESHOLD = 8  # For continuous gestures (move, yaw)
-GESTURE_CONFIRMATION_THRESHOLD_SINGLE = 15  # For single actions (takeoff, land)
+GESTURE_CONFIRMATION_THRESHOLD_SINGLE = 2  # For single actions (takeoff, land)
 MAX_GESTURE_FRAMES = 300

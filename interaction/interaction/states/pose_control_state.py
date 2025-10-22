@@ -170,7 +170,7 @@ class PoseControl(State):
                 node=self.node,
                 image_source="imx219",
                 image_processing_callback=self.process_image,
-                config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=0),
+                config=IMX219Config(sensor_id=0, width=1640, height=1232, flip=2),
             )
 
             time.sleep(1.0)

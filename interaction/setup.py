@@ -11,11 +11,6 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
-        # Include launch files
-        (
-            os.path.join("share", package_name, "launch"),
-            glob(os.path.join("launch", "*launch.[pxy][yma]*")),
-        ),
         ("share/" + package_name + "/models", glob("share/models/*")),
     ],
     install_requires=["setuptools"],
@@ -27,7 +22,6 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "gesture_recognizer = interaction.mav_gesture_recognizer:main",
             "test_detection = interaction.test.test_detection:main",
             "sm_interaction = interaction.sm_interaction:main",
         ],
