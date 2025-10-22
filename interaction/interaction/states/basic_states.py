@@ -134,7 +134,7 @@ class AdjustPosition(State):
         try:
 
             mavdrone.offboard_position(
-                x=-2.0,
+                x=-3.0,
                 y=0.0,
                 z=TAKEOFF_POSE,
                 timeout_sec=30,
@@ -143,7 +143,7 @@ class AdjustPosition(State):
                 disable_altitude_control=True,
             )
             mavdrone.offboard_position(
-                x=-1.5,
+                x=-3.0,
                 y=2.10,
                 z=TAKEOFF_POSE,
                 timeout_sec=30,
