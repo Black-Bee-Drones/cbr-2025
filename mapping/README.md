@@ -18,7 +18,7 @@ This package implements an autonomous drone solution for Phase 1 of the CBR 2025
 
 - **Flight Controller**: [ArduPilot](https://ardupilot.org/) with [MAVROS](https://github.com/mavlink/mavros)
 - **Positioning**: Indoor positioning system (Visual Odometry)
-  - We use [Isaac ROS vSLAM](https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_visual_slam/index.html) with a [Intel RealSense D435i](https://nvidia-isaac-ros.github.io/getting_started/hardware_setup/sensors/realsense_setup.html) camera and [Jetson Orin Nano Super](https://developer.nvidia.com/jetson-orin-nano-super) for onboard inference.
+  - We use [Isaac ROS vSLAM](https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_visual_slam/index.html) with a [Intel RealSense D435i](https://nvidia-isaac-ros.github.io/getting_started/hardware_setup/sensors/realsense_setup.html) camera and [Jetson Orin Nano Super](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/nano-super-developer-kit/).
 - **Sensors**: 
   - Lidar rangefinder for altitude measurement
   - Arducam IMX219 camera (1640x1232, FOV: 62.2°H × 48.8°V)
