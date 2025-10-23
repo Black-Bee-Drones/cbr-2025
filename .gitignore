@@ -1,24 +1,25 @@
-# ROS build files
+# ROS2 build and install folders
 build/
 install/
 log/
-devel/
 
-# Python cache files
+# Python cache
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# VSCode settings
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Visual Studio Code settings
 .vscode/
 
-# ROS generated python cache
-*/__pycache__/
-*/**/__pycache__/
+# Backup files
+*~
+*.swp
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-*.png
+# Dependency folders
+.colcon/
+.env/
+venv/
